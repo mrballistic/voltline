@@ -12,6 +12,8 @@ Voltline is an original game. It has its own pieces, its own look and its own so
 
 The board is 8×8. Swap two neighboring pieces; if the swap lines up three or more of the same color in a row or column, they clear. Pieces above the gap fall, new ones drop in, and any new matches clear too. Each link in that chain scores more than the last.
 
+![A cascade in four frames: three stars pop, the gap opens, every column falls together with new pieces entering from above, and the board settles](docs/screenshots/cascade-sequence.webp)
+
 A swap that makes no match slides back, so you can’t waste a move on one.
 
 ### The pieces
@@ -56,7 +58,7 @@ The AI is a search, not a chatbot. It looks at exactly what you can see (the boa
 
 ## Controls
 
-Tap or click a piece, then tap a neighbor to swap. Or drag a piece toward a neighbor, or swipe on a touch screen. To use a tray piece, tap it, then tap a plain piece on the board. The playable interface is still being built.
+Tap or click a piece, then tap a neighbor to swap. Or drag a piece toward a neighbor, or swipe on a touch screen. To use a tray piece, tap it, then tap a plain piece on the board. The score, level bar, Hint and AI controls around the board are still being built.
 
 ## Credits and license
 
