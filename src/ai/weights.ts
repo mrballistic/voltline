@@ -12,3 +12,7 @@ export const W = {
 
 // Board health counts at most this many productive moves; past it, more options add nothing.
 export const HEALTH_CAP = 20;
+
+// Default rollout budget for `rankMoves`: rollouts per candidate = clamp(floor(budget / candidates),
+// min, max). Sized so a mid-game decision takes ≤ 40 ms median in Node on the dev Mac.
+export const ROLLOUTS = { budget: 160, min: 8, max: 16 };

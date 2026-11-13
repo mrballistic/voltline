@@ -1,4 +1,4 @@
-import type { Board, MatchGroup, MatchKey, MatchShape, Piece, Pos } from './types';
+import type { Board, Color, MatchGroup, MatchKey, MatchShape, Piece, Pos } from './types';
 import { BOARD_SIZE } from './types';
 
 export function matchKeyOf(p: Piece | null): MatchKey | null {
@@ -78,12 +78,37 @@ export function findMatches(board: Board): MatchGroup[] {
   return groups;
 }
 
+type PieceAt = (row: number, col: number) => Piece | null;
+
+// True when the piece `at(row, col)` sits in a 3+ same-key run along its row or its column:
+// exactly when `findMatches` on that board would put the cell in some group.
+function inLine(at: PieceAt, row: number, col: number): boolean {
+  const key = matchKeyOf(at(row, col));
+  if (!key) return false;
+  const same = (r: number, c: number) =>
+    r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && matchKeyOf(at(r, c)) === key;
+  let h = 1;
+  for (let c = col - 1; same(row, c); c--) h++;
+  for (let c = col + 1; same(row, c); c++) h++;
+  if (h >= 3) return true;
+  let v = 1;
+  for (let r = row - 1; same(r, col); r--) v++;
+  for (let r = row + 1; same(r, col); r++) v++;
+  return v >= 3;
+}
+
+/** Whether swapping `a` and `b` puts either cell in a match. Swaps virtually; no board copy. */
 export function swapCreatesMatch(board: Board, a: Pos, b: Pos): boolean {
-  const copy = board.map((r) => r.slice());
-  const t = copy[a.row][a.col];
-  copy[a.row][a.col] = copy[b.row][b.col];
-  copy[b.row][b.col] = t;
-  const touches = (c: Pos) =>
-    (c.row === a.row && c.col === a.col) || (c.row === b.row && c.col === b.col);
-  return findMatches(copy).some((g) => g.cells.some(touches));
+  const at: PieceAt = (row, col) => {
+    if (row === a.row && col === a.col) return board[b.row]?.[b.col] ?? null;
+    if (row === b.row && col === b.col) return board[a.row]?.[a.col] ?? null;
+    return board[row][col];
+  };
+  return inLine(at, a.row, a.col) || inLine(at, b.row, b.col);
+}
+
+/** Whether a plain `color` gem placed at `at` would be part of a match. */
+export function placementCreatesMatch(board: Board, color: Color, at: Pos): boolean {
+  const placed: Piece = { id: -1, kind: 'gem', color, special: 'none' };
+  return inLine((row, col) => (row === at.row && col === at.col ? placed : board[row][col]), at.row, at.col);
 }

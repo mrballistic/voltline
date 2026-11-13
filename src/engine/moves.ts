@@ -1,7 +1,6 @@
 import { BOARD_SIZE } from './types';
 import type { Board, Color, GameState, Move, Piece, Pos } from './types';
-import { cloneBoard } from './board';
-import { findMatches, swapCreatesMatch } from './matches';
+import { placementCreatesMatch, swapCreatesMatch } from './matches';
 import { canPlace } from './tray';
 
 export function isAdjacent(a: Pos, b: Pos): boolean {
@@ -23,12 +22,6 @@ export function isLegalSwap(board: Board, a: Pos, b: Pos): boolean {
   if (!p || !q) return false;
   if (p.kind === 'prism' || q.kind === 'prism') return p.kind !== 'rock' && q.kind !== 'rock';
   return swapCreatesMatch(board, a, b);
-}
-
-function placementMatches(board: Board, color: Color, at: Pos): boolean {
-  const copy = cloneBoard(board);
-  copy[at.row][at.col] = { id: -1, kind: 'gem', color, special: 'none' };
-  return findMatches(copy).some((g) => g.cells.some((c) => c.row === at.row && c.col === at.col));
 }
 
 // Each adjacent pair once, `a` before `b` in row-major order.
@@ -56,7 +49,7 @@ function* placements(state: GameState, matchingOnly: boolean): Generator<Move> {
       for (let col = 0; col < BOARD_SIZE; col++) {
         const at = { row, col };
         if (!canPlace(state.board, state.tray, slot, at)) continue;
-        if (matchingOnly && !placementMatches(state.board, color, at)) continue;
+        if (matchingOnly && !placementCreatesMatch(state.board, color, at)) continue;
         yield { type: 'place', slot, at };
       }
     }
@@ -76,6 +69,14 @@ export function allowedMoves(state: GameState): Move[] {
   return [...legalSwaps(state.board), ...placements(state, false)];
 }
 
+/** `productiveMoves(state).length`, but stops listing once it reaches `cap`. */
+export function countProductiveMoves(state: GameState, cap: number): number {
+  const moves = productive(state);
+  let n = 0;
+  while (n < cap && !moves.next().done) n++;
+  return n;
+}
+
 export function isGameOver(state: GameState): boolean {
-  return productive(state).next().done === true;
+  return countProductiveMoves(state, 1) === 0;
 }

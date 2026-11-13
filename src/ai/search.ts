@@ -1,14 +1,14 @@
-import { applyMove, productiveMoves } from '../engine';
+import { applyMove, countProductiveMoves, productiveMoves } from '../engine';
 import type { GameState, Move, Step } from '../engine';
 import { hashVisible } from './hash';
-import { HEALTH_CAP, W } from './weights';
+import { HEALTH_CAP, ROLLOUTS, W } from './weights';
 
 export interface RankedMove { move: Move; value: number; expectedPoints: number }
 
 export interface RankOptions {
-  rolloutBudget?: number; // total rollouts shared across candidates, default 2400
-  minRollouts?: number; // per candidate, default 8
-  maxRollouts?: number; // per candidate, default 32
+  rolloutBudget?: number; // total rollouts shared across candidates, default ROLLOUTS.budget
+  minRollouts?: number; // per candidate, default ROLLOUTS.min
+  maxRollouts?: number; // per candidate, default ROLLOUTS.max
 }
 
 // murmur3 fmix32
@@ -58,8 +58,8 @@ function evaluate(state: GameState, move: Move, rngState: number): { value: numb
     if (step.t === 'clear') value += W.rockCleared * step.cleared.filter((c) => c.key === 'rock').length;
     else if (step.t === 'level-up') value += W.levelUp;
   }
-  // A finished game has no productive moves by definition, so skip listing them.
-  const health = result.over ? 0 : productiveMoves(result).length;
+  // A finished game has no productive moves by definition, so skip counting them.
+  const health = result.over ? 0 : countProductiveMoves(result, Math.max(HEALTH_CAP, W.healthFloor));
   value += W.healthPerMove * Math.min(health, HEALTH_CAP);
   if (health < W.healthFloor) value -= W.belowFloorPenalty;
   if (result.over) value += W.gameOver;
@@ -73,7 +73,7 @@ function evaluate(state: GameState, move: Move, rngState: number): { value: numb
  * from the game's `rngState`, so the same visible board always yields the same ranking.
  */
 export function rankMoves(state: GameState, opts: RankOptions = {}): RankedMove[] {
-  const { rolloutBudget = 2400, minRollouts = 8, maxRollouts = 32 } = opts;
+  const { rolloutBudget = ROLLOUTS.budget, minRollouts = ROLLOUTS.min, maxRollouts = ROLLOUTS.max } = opts;
   if (state.over) return [];
   const candidates = productiveMoves(state);
   if (candidates.length === 0) return [];
