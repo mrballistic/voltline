@@ -1,0 +1,105 @@
+<h2>Dial in the shimmer</h2>
+<p class="subtitle">Rather than another round of guesses, this is deep breathing with a slider. 0 is the original B, 100 is the deep version you just saw, and it starts at 55. Move it until it feels right, then tell me the number.</p>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <filter id="vglow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="halo" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+    <filter id="haloBig" x="-120%" y="-120%" width="340%" height="340%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+    <filter id="chromaR" x="-20%" y="-20%" width="140%" height="140%">
+      <feColorMatrix type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .8 0"/>
+      <feOffset dx="-1.6" dy="0"/>
+    </filter>
+    <filter id="chromaB" x="-20%" y="-20%" width="140%" height="140%">
+      <feColorMatrix type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .8 0"/>
+      <feOffset dx="1.6" dy="0"/>
+    </filter>
+    <linearGradient id="vg9" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff3b5c"/><stop offset=".33" stop-color="#ffe14d"/><stop offset=".66" stop-color="#3bffb0"/><stop offset="1" stop-color="#4d7bff"/></linearGradient>
+    <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="2" fill="rgba(0,0,0,.28)"/></pattern>
+
+    <symbol id="v1" viewBox="0 0 100 100"><circle cx="50" cy="50" r="31" fill="#ff3b5c" fill-opacity=".14" stroke="#ff3b5c" stroke-width="7" filter="url(#vglow)"/></symbol>
+    <symbol id="v2" viewBox="0 0 100 100"><rect x="21" y="21" width="58" height="58" rx="8" fill="#4d7bff" fill-opacity=".14" stroke="#4d7bff" stroke-width="7" filter="url(#vglow)"/></symbol>
+    <symbol id="v3" viewBox="0 0 100 100"><polygon points="50,15 87,81 13,81" fill="#ffe14d" fill-opacity=".14" stroke="#ffe14d" stroke-width="7" stroke-linejoin="round" filter="url(#vglow)"/></symbol>
+    <symbol id="v4" viewBox="0 0 100 100"><polygon points="50,15 81,33 81,67 50,85 19,67 19,33" fill="#3bffb0" fill-opacity=".14" stroke="#3bffb0" stroke-width="7" stroke-linejoin="round" filter="url(#vglow)"/></symbol>
+    <symbol id="v5" viewBox="0 0 100 100"><polygon points="50,11 85,50 50,89 15,50" fill="#ff4fd8" fill-opacity=".14" stroke="#ff4fd8" stroke-width="7" stroke-linejoin="round" filter="url(#vglow)"/></symbol>
+    <symbol id="v6" viewBox="0 0 100 100"><path d="M38 15 H62 V38 H85 V62 H62 V85 H38 V62 H15 V38 H38 Z" fill="#ff9a2e" fill-opacity=".14" stroke="#ff9a2e" stroke-width="7" stroke-linejoin="round" filter="url(#vglow)"/></symbol>
+    <symbol id="v7" viewBox="0 0 100 100"><polygon points="50,11 61,38 89,38 66,56 75,85 50,68 25,85 34,56 11,38 39,38" fill="#4de8ff" fill-opacity=".14" stroke="#4de8ff" stroke-width="6" stroke-linejoin="round" filter="url(#vglow)"/></symbol>
+    <symbol id="v8" viewBox="0 0 100 100"><rect x="19" y="19" width="62" height="62" rx="6" fill="#24242c" stroke="#45454f" stroke-width="5"/><path d="M35 35 L65 65 M65 35 L35 65" stroke="#52525c" stroke-width="6" stroke-linecap="round"/><g fill="#45454f"><rect x="11" y="31" width="8" height="6"/><rect x="11" y="63" width="8" height="6"/><rect x="81" y="31" width="8" height="6"/><rect x="81" y="63" width="8" height="6"/></g></symbol>
+    <symbol id="v9" viewBox="0 0 100 100"><circle cx="50" cy="50" r="29" fill="none" stroke="url(#vg9)" stroke-width="11" filter="url(#vglow)"/><circle cx="50" cy="50" r="9" fill="#ffffff" filter="url(#vglow)"/></symbol>
+  </defs>
+</svg>
+
+<style>
+  .stage { max-width:560px; margin:0 auto; padding:18px; border-radius:14px; background:#0a0a11;
+    background-image:linear-gradient(rgba(120,140,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(120,140,255,.06) 1px,transparent 1px);
+    background-size:24px 24px; }
+  .stage svg.board { width:100%; height:auto; display:block; border-radius:10px;
+    background:rgba(0,0,0,.4); box-shadow:inset 0 0 0 1px rgba(140,160,255,.14); }
+  .halo { transform-box:fill-box; transform-origin:center;
+    animation:dial var(--dur) ease-in-out infinite; }
+  @keyframes dial {
+    0%,100% { opacity:var(--lo); transform:scale(var(--s0)) }
+    50%     { opacity:var(--hi); transform:scale(var(--s1)) }
+  }
+  .dial { max-width:560px; margin:18px auto 0; display:flex; align-items:center; gap:16px; font-size:16px; }
+  .dial input { flex:1; }
+  .dial output { font-variant-numeric:tabular-nums; min-width:3ch; font-weight:600; font-size:20px; }
+</style>
+
+<div class="stage"><svg class="board" id="b" viewBox="0 0 352 352"></svg></div>
+<div class="dial">
+  <span>Subtle</span>
+  <input id="k" type="range" min="0" max="100" value="55">
+  <span>Dramatic</span>
+  <output id="kv">55</output>
+</div>
+
+<script>
+(function () {
+  var layout = [
+    [1,2,3,4,5,6,7,1],[3,8,1,2,7,4,5,2],[5,6,4,9,1,2,3,6],[2,3,5,6,8,7,1,4],
+    [7,1,2,3,4,5,6,3],[4,5,7,1,2,3,8,7],[6,7,3,5,6,1,2,5],[1,4,6,2,3,7,4,1]
+  ];
+  var NS = 'http://www.w3.org/2000/svg', C = 44, svg = document.getElementById('b');
+  function use(id, x, y, cls, filter) {
+    var u = document.createElementNS(NS, 'use');
+    u.setAttribute('href', '#v' + id); u.setAttribute('x', x); u.setAttribute('y', y);
+    u.setAttribute('width', C); u.setAttribute('height', C);
+    if (cls) u.setAttribute('class', cls);
+    if (filter) u.setAttribute('filter', 'url(#' + filter + ')');
+    return u;
+  }
+  layout.forEach(function (row, r) {
+    row.forEach(function (id, c) {
+      var g = document.createElementNS(NS, 'g');
+      if (id !== 8) {
+        var h = use(id, c * C, r * C, 'halo', 'haloBig');
+        h.style.animationDelay = (((r * 3 + c * 5) % 11) * -0.31) + 's';
+        g.appendChild(h);
+      }
+      g.appendChild(use(id, c * C, r * C));
+      svg.appendChild(g);
+    });
+  });
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  var k = document.getElementById('k'), kv = document.getElementById('kv');
+  function apply() {
+    var t = k.value / 100;
+    svg.style.setProperty('--lo',  lerp(.25, .08, t).toFixed(3));
+    svg.style.setProperty('--hi',  lerp(.75, 1, t).toFixed(3));
+    svg.style.setProperty('--s0',  lerp(1, .9, t).toFixed(3));
+    svg.style.setProperty('--s1',  lerp(1, 1.18, t).toFixed(3));
+    svg.style.setProperty('--dur', lerp(3.6, 2.8, t).toFixed(2) + 's');
+    kv.textContent = k.value;
+  }
+  k.addEventListener('input', apply);
+  apply();
+})();
+</script>
