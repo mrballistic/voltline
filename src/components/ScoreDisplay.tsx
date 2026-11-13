@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { DISPLAY_FONT, NEON } from '../theme';
+import { BODY_FONT, NEON } from '../theme';
 
 const COUNT_MS = 400;
+const visuallyHidden = {
+  position: 'absolute', width: 1, height: 1, margin: -1, padding: 0, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0,
+} as const;
 const format = (n: number) => Math.round(n).toLocaleString('en-US');
 
 /** The score, counting up to each new value. Tabular digits in a reserved width: no layout shift. */
@@ -32,14 +36,16 @@ export default function ScoreDisplay({ score }: { score: number }) {
   return (
     <Typography
       component="div"
-      aria-label={`Score ${format(score)}`}
       sx={{
-        fontFamily: DISPLAY_FONT, fontWeight: 700, fontSize: { xs: 30, sm: 38 }, lineHeight: 1.1,
+        // Rajdhani, not Orbitron: Orbitron's slashed zero reads as a null sign.
+        fontFamily: BODY_FONT, fontWeight: 700, fontSize: { xs: 36, sm: 46 }, lineHeight: 1.1,
         fontVariantNumeric: 'tabular-nums', minWidth: '8ch', textAlign: 'center', color: '#fff',
         textShadow: `0 0 14px ${NEON.cyan}88`,
       }}
     >
       <span aria-hidden="true">{format(shown)}</span>
+      {/* The final value only, so a screen reader doesn't hear every count-up frame. */}
+      <Box component="span" sx={visuallyHidden}>{`Score ${format(score)}`}</Box>
     </Typography>
   );
 }

@@ -39,7 +39,8 @@ export default function App() {
   const host = useRef<HTMLDivElement>(null);
   const { ui, actions, failed } = useGame(host, seed);
   const over = ui?.over ?? false;
-  const best = ui ? (ui.aiOn ? ui.best.ai : ui.best.player) : 0;
+  // The best of the game that ended (recordBest's rule), not of the mode toggled afterwards.
+  const best = ui ? (ui.overAI ? ui.best.ai : ui.best.player) : 0;
 
   return (
     <ThemeProvider theme={theme}>
@@ -66,8 +67,8 @@ export default function App() {
         score={ui?.score ?? 0}
         level={ui?.level ?? 1}
         best={best}
-        newBest={(ui?.score ?? 0) > 0 && (ui?.score ?? 0) >= best}
-        ai={ui?.aiOn ?? false}
+        newBest={ui?.newBest ?? false}
+        ai={ui?.overAI ?? false}
         onPlayAgain={actions.newGame}
       />
     </ThemeProvider>

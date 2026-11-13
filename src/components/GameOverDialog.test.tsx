@@ -24,6 +24,13 @@ describe('GameOverDialog', () => {
     expect(screen.getByText('New best!')).toBeInTheDocument();
   });
 
+  it('a tie shows no New best!, a strictly higher score does', () => {
+    const { rerender } = render(<GameOverDialog open score={500} level={2} best={500} newBest={false} ai={false} onPlayAgain={() => {}} />);
+    expect(screen.queryByText('New best!')).toBeNull();
+    rerender(<GameOverDialog open score={501} level={2} best={501} newBest ai={false} onPlayAgain={() => {}} />);
+    expect(screen.getByText('New best!')).toBeInTheDocument();
+  });
+
   it('renders nothing when closed', () => {
     render(<GameOverDialog open={false} score={0} level={1} best={0} newBest={false} ai={false} onPlayAgain={() => {}} />);
     expect(screen.queryByText('No moves left')).toBeNull();
