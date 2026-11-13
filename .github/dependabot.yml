@@ -28,3 +28,13 @@ updates:
     directory: /
     schedule:
       interval: monthly
+
+  # The desktop shell's Rust crates (Tauri). Keep tauri in step with
+  # @tauri-apps/cli's minor in package.json.
+  - package-ecosystem: cargo
+    directory: /src-tauri
+    schedule:
+      interval: monthly
+    groups:
+      tauri-minor:
+        update-types: [minor, patch]
