@@ -1,0 +1,167 @@
+# Deploys Voltline to the Ubuntu host when a version tag is pushed. Only tags
+# that point at a commit on main deploy; anything else fails fast. Same flow as
+# infocom-office-space, minus the backend: Voltline is static files only.
+#
+# Release:  bump "version" in package.json, add a "## <version>" section to
+#           CHANGELOG.md, merge to main, then
+#           git tag -a v<version> -m "…" && git push origin v<version>
+#
+# After a successful deploy, the GitHub Release for the tag is created with
+# that version's CHANGELOG.md section as its notes (scripts/release-notes.mjs).
+#
+# Secrets, all in the `production` environment (v* tags only):
+#   DEPLOY_SSH_KEY      private half of the CI deploy key. Its public half is in
+#                       /home/voltline-deploy/.ssh/authorized_keys with
+#                       `restrict` (no pty, no forwarding).
+#   DEPLOY_KNOWN_HOSTS  output of `ssh-keyscan -t ed25519 <host>`; pins the
+#                       server's identity so the job can't be pointed elsewhere
+#   DEPLOY_HOST         server address (mrballistic.com)
+#   DEPLOY_USER         voltline-deploy: owns /var/www/voltline and has no sudo.
+#                       The site is static, so a leaked key can replace the
+#                       site's files and nothing else.
+name: Deploy
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  WEB_ROOT: /var/www/voltline
+  SITE_URL: https://voltline.mrballistic.com
+
+jobs:
+  verify:
+    name: Verify release tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Only deploy tags that point at main
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag $GITHUB_REF_NAME is not on main; refusing to deploy."
+            exit 1
+          fi
+
+      - name: Tag must match package.json version
+        run: |
+          expected="v$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME must match package.json ($expected)."
+            exit 1
+          fi
+
+      # Checked before anything ships, so a release can't reach production and
+      # then fail for want of notes.
+      - name: CHANGELOG has notes for the tag
+        run: node scripts/release-notes.mjs "${GITHUB_REF_NAME#v}"
+
+  ci:
+    needs: verify
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Deploy to production
+    needs: ci
+    runs-on: ubuntu-latest
+    # The deploy secrets live in this environment, which only v* tags may
+    # use (Settings → Environments → production → deployment tags). A
+    # workflow on any branch, or a fork's PR, can't read them.
+    environment:
+      name: production
+      url: https://voltline.mrballistic.com
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Build
+        run: npm ci && npm run build
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host deploy-target
+            HostName $DEPLOY_HOST
+            User $DEPLOY_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+          EOF
+
+      # --delete mirrors dist/ exactly, which also clears out stale hashed
+      # bundles. index.html is uncached and points at the new hashes, so it
+      # goes in the second pass to avoid serving a page whose assets aren't
+      # there yet.
+      - name: Upload site
+        run: |
+          rsync -rltz --chmod=D755,F644 --exclude=index.html dist/ "deploy-target:$WEB_ROOT/"
+          rsync -rltz --chmod=D755,F644 --delete dist/ "deploy-target:$WEB_ROOT/"
+
+      - name: Smoke test the public site
+        run: |
+          curl -fsS "$SITE_URL/" | grep -q '<title>Voltline</title>'
+          # One hashed asset referenced by the page must be served.
+          asset=$(curl -fsS "$SITE_URL/" | grep -oE 'assets/[^"]+\.js' | head -n 1)
+          test -n "$asset"
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE_URL/$asset")
+          echo "$asset -> $code"
+          test "$code" = 200
+
+  # After the deploy, so a release exists only for a version that is live. Its
+  # notes are that version's CHANGELOG section. A release that already exists
+  # is left alone, so hand-edited notes survive a re-run. The only job that can
+  # write to the repo, and it never sees the deploy secrets.
+  release:
+    name: GitHub Release
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The notes script is plain Node with no dependencies; the runner's Node
+      # is enough. A version with a "-" (1.1.0-rc.1) is marked a prerelease.
+      - name: Create the release
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "The $TAG release already exists; leaving its notes alone."
+            exit 0
+          fi
+          node scripts/release-notes.mjs "${TAG#v}" > "$RUNNER_TEMP/notes.md"
+          flags=()
+          case "$TAG" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "$TAG" --verify-tag --title "Voltline ${TAG#v}" \
+            --notes-file "$RUNNER_TEMP/notes.md" "${flags[@]}"

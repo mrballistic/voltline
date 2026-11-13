@@ -4,7 +4,7 @@
   "version": "1.0.0-dev",
   "type": "module",
   "engines": {
-    "node": ">=24"
+    "node": ">=26"
   },
   "scripts": {
     "dev": "vite",
@@ -14,7 +14,9 @@
     "test": "vitest",
     "test:run": "vitest run",
     "bench": "tsx scripts/bench.ts",
-    "audio": "bash scripts/encode-audio.sh"
+    "audio": "bash scripts/encode-audio.sh",
+    "type-check": "tsc --noEmit",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -32,10 +34,11 @@
     "@playwright/test": "^1.65.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
-    "@types/node": "^24.19.2",
+    "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
+    "@vitest/coverage-v8": "^5.1.0",
     "eslint": "^10.14.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.14.0",

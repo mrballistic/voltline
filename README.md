@@ -2,7 +2,7 @@
 
 A neon match-three puzzle game with explosive special pieces, chain reactions, a collectable tray, and an AI that plays like a strong human. Swap pieces, line up three or more, and watch the board light up.
 
-**Play it:** `https://voltline.mrballistic.com` (coming soon)
+**Play it:** https://voltline.mrballistic.com
 
 Voltline is an original game. It has its own pieces, its own look and its own sounds; it borrows only the genre’s mechanics.
 

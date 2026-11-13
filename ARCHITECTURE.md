@@ -95,18 +95,18 @@ Planned: `npm run audio` encodes the sources to Opus/WebM with an AAC fallback i
 
 ## App shell (planned)
 
-`app/` (controller, bootstrap, local storage for prefs and best scores) and `components/` (header, score, level bar, AI controls, game-over dialog, tray notice) with MUI. Best score for player games and a separate best for AI games persist in `localStorage`; corrupt or unavailable storage falls back to defaults. A desktop app and deployment to `voltline.mrballistic.com` are also planned. `deploy.sh` currently force-pushes to `gh-pages` from the old setup.
+`app/` (controller, bootstrap, local storage for prefs and best scores) and `components/` (header, score, level bar, AI controls, game-over dialog, tray notice) with MUI. Best score for player games and a separate best for AI games persist in `localStorage`; corrupt or unavailable storage falls back to defaults. A desktop app is also planned.
 
 ## Stack
 
 | Layer | Choice |
 |---|---|
 | Language | TypeScript 6.0, strict (held below 7 until typescript-eslint supports it) |
-| Runtime | Node `>=24` for tooling (a move to 26 is in the plan) |
+| Runtime | Node `>=26` for tooling (`.nvmrc`, CI and the deploy build all use 26) |
 | Build | Vite 8, `base: './'`, ES-module workers |
 | UI | React 19.3, MUI 9 (shell), fonts via `@fontsource` (Orbitron, Rajdhani) |
 | Board | PixiJS 8 and GSAP 3.15 (planned use; installed) |
-| Tests | Vitest 5, Testing Library, jsdom; Playwright for a planned smoke test |
+| Tests | Vitest 5, Testing Library, jsdom; Playwright for a planned smoke test (`npm run smoke` is not wired into CI yet) |
 | Lint | ESLint 10, typescript-eslint, react-hooks |
 
 ## Project layout
@@ -133,15 +133,30 @@ npm run dev        # Vite dev server
 npm run build      # tsc --noEmit && vite build
 npm run lint
 npm run bench      # headless AI benchmark (scripts/bench.ts)
+npm run type-check # tsc --noEmit
 ```
+
+Use Node 26 (`nvm use` reads `.nvmrc`).
 
 ## Testing
 
 ```bash
 npm run test:run   # Vitest, one pass (npm test watches)
+npm run test:coverage  # same, plus v8 coverage with thresholds
 ```
 
+Coverage thresholds (lines 90, branches 85, functions 90) apply to `src/engine/**` and `src/ai/**` only, configured in `vite.config.ts`.
+
 Engine tests cover matches (3/4/5, L/T), specials and priority, blasts and chaining, Prism rules, gravity and refills, rock spawning, tray rules, scoring, levels, game over and replay determinism. AI tests check that it never returns an illegal move, picks the known best move on fixtures, and does not depend on hidden randomness. Board fixtures come from `parseBoard` and `boardToString` in `src/engine/testing.ts`.
+
+## CI, deploy and release
+
+- **CI** (`.github/workflows/ci.yml`, on PRs to `main`, pushes to `main` and as a reusable workflow): `npm ci`, lint, type-check, tests with coverage thresholds, build, a short AI bench run (`npm run bench -- --games 5 --max-moves 200`), and a bundle hygiene check that fails if `dist/` contains an API key shape, an LLM endpoint or a Google Fonts URL. The Playwright smoke test is planned and is a commented placeholder in the workflow. Actions are pinned to commit SHAs.
+- **Deploy** (`.github/workflows/deploy.yml`, on `v*` tags): verifies the tag is on `main`, matches `package.json` and has a CHANGELOG section, runs CI, builds, rsyncs `dist/` to the Apache server at `https://voltline.mrballistic.com`, smoke-tests the live site, then creates the GitHub Release from the CHANGELOG section (`scripts/release-notes.mjs`).
+- **Release steps:** bump `version` in `package.json`, rename `## Unreleased` in `CHANGELOG.md` to `## <version> (date)`, merge to main, then `git tag -a vX.Y.Z -m "…" && git push origin vX.Y.Z`.
+- **Dependabot** updates npm and actions monthly, holding TypeScript and `@types/node` majors.
+
+Server layout, the deploy user, secrets, one-time setup and rollback are in [DEPLOY.md](./DEPLOY.md).
 
 ## Conventions
 

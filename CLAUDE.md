@@ -6,7 +6,7 @@ This file provides guidance to Claude Code when building or modifying this proje
 
 **Bejeweled.ai** — A web-based match-three puzzle game (Bejeweled 2 clone) with player and AI modes. The player swaps adjacent jewels to create matches of 3+ in a row. Matched jewels disappear, remaining jewels fall via gravity, new jewels spawn from above, and chain reactions score exponentially. An AI mode uses an LLM to analyze the board and make moves autonomously.
 
-**Live URL:** `mrballistic.github.io/bejeweled-ai/`
+**Live URL:** `https://voltline.mrballistic.com`
 
 This is a ground-up rebuild. A previous version exists but has architectural bugs. Do NOT reference or copy from any existing codebase. Build fresh using these specs.
 
@@ -20,7 +20,7 @@ npm run build      # TypeScript check + production build → dist/
 npm run preview    # Serve built dist/ locally
 npm run lint       # ESLint
 npm test           # Vitest + React Testing Library
-./deploy.sh        # Build and force-push to gh-pages branch
+# Releases: tag vX.Y.Z on main; GitHub Actions deploys to the server (see DEPLOY.md)
 ```
 
 ---
@@ -670,36 +670,23 @@ Implement in this sequence. Each phase should be testable/playable before moving
 
 ### Phase 7: Ship
 36. Responsive layout (mobile portrait + desktop landscape)
-37. `deploy.sh` script
+37. CI and server deploy (see `DEPLOY.md`)
 38. README with screenshots/GIF
 39. Final animation timing polish
 40. Mobile testing pass
 
 ---
 
-## Deployment
+## CI and deployment
 
-```bash
-#!/bin/bash
-# deploy.sh
-set -e
+CI (`.github/workflows/ci.yml`) runs lint, type-check, tests with coverage thresholds, build, a short AI bench and a bundle hygiene check on every PR and push to `main`. Releases deploy to `https://voltline.mrballistic.com` (static files on Apache) from `.github/workflows/deploy.yml` when a `v*` tag on `main` is pushed:
 
-if [ -n "$(git status --porcelain)" ]; then
-  echo "Working directory not clean. Commit or stash first."
-  exit 1
-fi
+1. bump `version` in `package.json`;
+2. rename `## Unreleased` in `CHANGELOG.md` to `## <version> (date)`;
+3. merge to `main`;
+4. `git tag -a vX.Y.Z -m "…" && git push origin vX.Y.Z`.
 
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
-npm run build
-
-cd dist
-git init
-git add -A
-git commit -m "deploy"
-git push -f git@github.com:mrballistic/bejeweled-ai.git main:gh-pages
-cd ..
-git checkout "$BRANCH"
-```
+The old `deploy.sh` gh-pages force-push is retired. Server layout, secrets, setup and rollback are in `DEPLOY.md`.
 
 ---
 
