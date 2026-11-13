@@ -11,8 +11,8 @@ describe('rules boundaries', () => {
   it('comboMult by group count', () => {
     expect([0, 1, 2, 3, 4, 5].map(comboMult)).toEqual([1, 1, 1.5, 2, 2.5, 2.5]);
   });
-  it('levelTarget grows by 750', () => {
+  it('levelTarget grows by 2500', () => {
     expect(levelTarget(1)).toBe(1000);
-    expect(levelTarget(3)).toBe(2500);
+    expect(levelTarget(3)).toBe(6000);
   });
 });

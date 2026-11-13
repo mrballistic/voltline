@@ -54,7 +54,7 @@ Script steps: `swap`, `swap-invalid`, `place`, `clear` (match groups, blasts, cl
 - **Gravity** (`gravity.ts`). Every column falls and refills in one pass. Refills come from the seeded RNG, with a rock chance from level 10.
 - **Tray** (`tray.ts`). Counters track clears of each color by any means; at 10 a plain piece enters the tray (capacity 5). When full, new pieces are lost. Placement is allowed only onto a plain gem, never a rock or special.
 - **Scoring** (`scoring.ts`, numbers in `rules.ts`). Match base 100/200/500, cross 300; blast pieces 20 each; times chain multiplier (1, 2, 4, 8, 16, 32 cap) and combo multiplier (1.5, 2, 2.5 for 2, 3, 4+ simultaneous groups).
-- **Levels.** Target is `1000 + 750 * (level - 1)`. Reaching it replaces the board with a fresh one that has no matches and at least one legal move. Counters and tray carry over.
+- **Levels.** Target is `1000 + 2500 * (level - 1)` (raised from the spec’s 750 step by the Task 9 benchmark). Reaching it replaces the board with a fresh one that has no matches and at least one legal move. Counters and tray carry over.
 - **Moves** (`moves.ts`). `allowedMoves` is everything a player may do (swaps that match, Prism swaps, any tray placement on a plain gem). `productiveMoves` is the subset that makes a match. `isGameOver` is true exactly when `productiveMoves` is empty, which is the tray-can-save-you rule: a dud placement cannot keep a dead board alive.
 - **Resolve** (`resolve.ts`). `applyMove` applies the move, then loops rounds of clear, create specials, score, bank to tray, fall, until quiet; then checks level-up and game over.
 

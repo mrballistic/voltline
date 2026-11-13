@@ -92,6 +92,17 @@ describe('rankMoves', () => {
     expect(only.value).toBeGreaterThanOrEqual(only.expectedPoints - W.trayPieceSpent - W.belowFloorPenalty);
   });
 
+  it('a board with no productive swap is saved by a matching placement', () => {
+    // Row 0 reads R R Y …: no swap matches anywhere, but placing the tray red on (0,2) does.
+    const s = makeState(boardWith({ '0,1': 'R' }), { tray: ['red'] });
+    const productive = productiveMoves(s);
+    expect(productive.some((m) => m.type === 'swap')).toBe(false);
+    expect(productive).toContainEqual({ type: 'place', slot: 0, at: { row: 0, col: 2 } });
+    const [best] = rankMoves(s);
+    expect(best.move.type).toBe('place');
+    expect(applyMove(s, best.move).script.some((step) => step.t === 'clear')).toBe(true);
+  });
+
   it('full tray: every placement is ranked, only the top few are rolled out', () => {
     const s = { ...midGame(1, 9), tray: ['red', 'blue', 'yellow', 'green', 'magenta'] as GameState['tray'] };
     const productive = productiveMoves(s);

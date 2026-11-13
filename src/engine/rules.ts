@@ -20,6 +20,9 @@ export function comboMult(groups: number): number {
   return 1;
 }
 
+// Points needed to clear level n. Spec §5.7 started at 1000 + 750·(n−1); the Task 9 benchmark showed
+// even the first-productive-move baseline reached level 13 in 400 moves (the AI 21), so the step is
+// 2500 and the AI now typically reaches level 12–14.
 export function levelTarget(level: number): number {
-  return 1000 + 750 * (level - 1);
+  return 1000 + 2500 * (level - 1);
 }
