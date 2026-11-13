@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { boardToString, makeState, parseBoard } from './testing';
+import { boardToString, boardWith, DEAD_ROWS, makeState, parseBoard } from './testing';
+import { findMatches } from './matches';
 
 describe('testing helpers', () => {
   it('parseBoard reads specials', () => {
@@ -22,5 +23,13 @@ describe('testing helpers', () => {
     expect(s.score).toBe(50);
     expect(s.levelTarget).toBe(1000);
     expect(s.counters.cyan).toBe(0);
+  });
+
+  it('DEAD_ROWS has no matches and boardWith overlays tokens', () => {
+    expect(DEAD_ROWS[0]).toBe('R B Y G M O C R');
+    expect(findMatches(boardWith())).toEqual([]);
+    const b = boardWith({ '7,0': 'Rc', '3,4': 'P' });
+    expect(b[7][0]).toMatchObject({ kind: 'gem', color: 'red', special: 'charge' });
+    expect(b[3][4]).toMatchObject({ kind: 'prism' });
   });
 });

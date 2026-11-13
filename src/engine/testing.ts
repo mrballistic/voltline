@@ -55,3 +55,20 @@ export function makeState(board: Board, over: Partial<GameState> = {}): GameStat
     ...over,
   };
 }
+
+// Color index (3·row + col) mod 7: no two cells within 6 of each other along a row or
+// column share a color, so the board has no match, no productive swap and no matching
+// placement. Overlay cells with `boardWith` to build fixtures on top of it.
+export const DEAD_ROWS: readonly string[] = Array.from({ length: 8 }, (_, row) =>
+  Array.from({ length: 8 }, (_, col) => 'RBYGMOC'[(3 * row + col) % 7]).join(' '),
+);
+
+// `cells` maps "row,col" to a parseBoard token.
+export function boardWith(cells: Record<string, string> = {}, rows: readonly string[] = DEAD_ROWS): Board {
+  const grid = rows.map((r) => r.split(' '));
+  for (const [at, tok] of Object.entries(cells)) {
+    const [row, col] = at.split(',').map(Number);
+    grid[row][col] = tok;
+  }
+  return parseBoard(grid.map((r) => r.join(' ')).join('\n'));
+}
