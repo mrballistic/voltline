@@ -21,6 +21,7 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 - Animation timing constants (`src/render/constants.ts`) and a pure script planner (`src/render/plan.ts`) that turns engine event scripts into timed actions and sound cues: every column starts falling on the same frame, explosions reach cells before they pop, chained blasts wait for the bolt that triggers them, and specials converted by a Prism show their change before they detonate.
 - The board is drawn for the first time: a PixiJS 8 canvas with the neon pieces (seven gems, Charge and Arc overlays, Prism, rock) on a dark circuit-grid page, the tray strip under the board, and soft halos that breathe out of phase (off with reduced motion). It re-lays out on resize and runs under a strict CSP without `unsafe-eval`.
 - A 404 page (“No moves left.”) and real 404 statuses on the server.
+- `npm run bench`: plays seeded games with the AI and a first-legal-move baseline and fails unless the AI scores at least 1.5× more (it scores about 3.4×, reaching level 14 in 400 moves against the baseline’s 8).
 - Supplied sound set in `audio-src/`, a provenance sheet (`audio-src/voltline-sounds.xlsx`) and a generated `CREDITS.md`.
 - Spec and implementation plan for the rebuild under `docs/superpowers/`.
 - CI and deploy: `ci.yml` (lint, type-check, tests with coverage thresholds on `src/engine` and `src/ai`, build, AI bench run, bundle hygiene check), a tag-triggered `deploy.yml` that rsyncs `dist/` to `https://voltline.mrballistic.com` and creates the GitHub Release from the CHANGELOG section (`scripts/release-notes.mjs`), Dependabot config, Apache vhosts in `deploy/`, and `DEPLOY.md`.
@@ -28,6 +29,8 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 - Tooling: ESLint 10 with typescript-eslint, a `bench` script, and an `audio` script (planned encoding pipeline).
 
 ### Changed
+
+- AI weights tuned with the benchmark, and the per-level score step raised from 750 to 2,500 so levels don’t fly by (subject to a feel test).
 
 - Node 26 LTS everywhere (`.nvmrc`, `engines`, `@types/node` 26, CI). The `gh-pages` force-push in `deploy.sh` is retired in favor of the server deploy.
 - Repo renamed from `bejeweled-ai` to Voltline; package renamed `voltline`.
