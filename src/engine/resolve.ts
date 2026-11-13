@@ -41,13 +41,16 @@ function runRound(w: Work, chain: number, groups: MatchGroup[], moved: Pos[], op
   const matched = new Set<string>();
   for (const g of groups) for (const c of g.cells) matched.add(keyOf(c));
 
-  // New specials from qualifying groups; their cells survive this round.
+  // New specials from qualifying groups; their cells survive this round. A prism-converted
+  // special always detonates and clears, so a group whose special would land on one makes none.
   const created: Created[] = [...(opening?.created ?? [])];
+  const openingSeeds = new Set((opening?.seeds ?? []).map((s) => keyOf(s.at)));
   const kept = new Set<string>();
   for (const g of groups) {
     const kind = specialFor(g.shape);
     if (!kind || g.key === 'rock') continue;
     const at = specialCell(g, moved);
+    if (openingSeeds.has(keyOf(at))) continue;
     const id = board[at.row][at.col]!.id;
     const piece: Piece = kind === 'prism' ? { id, kind: 'prism' } : { id, kind: 'gem', color: g.key, special: kind };
     after[at.row][at.col] = piece;

@@ -166,6 +166,23 @@ describe('applyMove', () => {
     expect(clear.blasts.some((b) => b.kind === 'prism')).toBe(false);
   });
 
+  it('prism conversion inside a match group detonates once and creates no second special', () => {
+    // The swap lands the cyan charge at (3,3) between cyan (2,3) and (4,3), beside cyan (1,3): line4.
+    const s = makeState(boardWith({ '3,3': 'P', '3,4': 'Cc', '2,3': 'C', '4,3': 'C' }), { levelTarget: 1e9 });
+    const { state, script } = applyMove(s, swap(P(3, 4), P(3, 3)));
+    const clear = clears(script)[0];
+    expect(clear.groups.map((g) => g.shape)).toEqual(['line4']);
+    const ids = clear.created.map((c) => c.piece.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(clear.created.filter((c) => key(c.at) === '3,3')).toHaveLength(1);
+    expect(clear.cleared.some((c) => key(c.at) === '3,3')).toBe(true);
+    expect(clear.blasts.filter((b) => key(b.at) === '3,3')).toHaveLength(1);
+    // Nothing that detonated is still on the board.
+    const detonated = new Set(clear.blasts.map((b) => s.board[b.at.row][b.at.col]!.id));
+    detonated.add(idAt(s.board, P(3, 4)));
+    expect(state.board.flat().some((p) => detonated.has(p!.id))).toBe(false);
+  });
+
   it('cascade chain increments and multiplies', () => {
     // Clearing row 7 cols 0–2 drops cyan (5,1),(5,2) into row 6 beside cyan (6,3).
     const s = makeState(boardWith({ ...LINE3, '5,1': 'C', '5,2': 'C', '6,3': 'C' }));
