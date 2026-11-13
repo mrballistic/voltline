@@ -25,6 +25,8 @@ export interface UiSnapshot {
   aiOn: boolean;
   aiSpeed: AISpeed;
   aiMoves: number;
+  muted: boolean;
+  volume: number;
   best: { player: number; ai: number };
   notice: { kind: 'tray-full' | 'level-up' | 'game-over'; level?: number } | null;
 }
@@ -101,6 +103,8 @@ export class GameController {
       aiOn: this.aiOn,
       aiSpeed: this.prefs.aiSpeed,
       aiMoves: this.aiMoves,
+      muted: this.prefs.muted,
+      volume: this.prefs.volume,
       best: { player: this.prefs.bestPlayer, ai: this.prefs.bestAI },
       notice: this.notice,
     };
@@ -242,6 +246,17 @@ export class GameController {
 
   setAISpeed(s: AISpeed): void {
     this.savePrefs({ aiSpeed: s });
+    this.emit();
+  }
+
+  /** Sound settings persist through prefs; the audio engine reads them in a later task. */
+  setMuted(m: boolean): void {
+    this.savePrefs({ muted: m });
+    this.emit();
+  }
+
+  setVolume(v: number): void {
+    this.savePrefs({ volume: Math.min(1, Math.max(0, v)) });
     this.emit();
   }
 

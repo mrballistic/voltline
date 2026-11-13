@@ -14,7 +14,8 @@ import { ScriptPlayer } from '../render/player';
 import { buildTextures, type PieceTextures } from '../render/textures';
 import { TrayView } from '../render/TrayView';
 import { GameController, type UiSnapshot } from './controller';
-import { noopEffects, type HintViewLike, type Prefs, type PrefsStore } from './ports';
+import { noopEffects, type HintViewLike } from './ports';
+import { createPrefsStore } from './storage';
 
 export interface GameHandle {
   controller: GameController;
@@ -33,12 +34,8 @@ function prefersReducedMotion(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-// Stand-ins until their tasks land: the hint layer (Task 17) and saved prefs (Task 16).
+// Stand-in until the hint layer lands (Task 17).
 const noHint: HintViewLike = { show: () => Promise.resolve(), clear() {} };
-function sessionPrefs(): PrefsStore {
-  let prefs: Prefs = { bestPlayer: 0, bestAI: 0, aiSpeed: 'medium', muted: false, volume: 0.8 };
-  return { load: () => ({ ...prefs }), save: (p) => { prefs = { ...p }; } };
-}
 
 export async function createGame(
   host: HTMLElement,
@@ -94,7 +91,7 @@ export async function createGame(
     player,
     ai: createAIClient(),
     hint: noHint,
-    prefs: sessionPrefs(),
+    prefs: createPrefsStore(),
     seed: opts.seed,
     doc: document,
     onChange: (s) => {
