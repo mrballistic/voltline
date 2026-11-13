@@ -15,7 +15,7 @@ Any older notes you may have seen about "Bejeweled.ai", an LLM player, the Anthr
 | `README.md` | Product docs only: how to play, the pieces, features |
 | `ARCHITECTURE.md` | Technical docs: engine, AI, renderer, sound, layout, testing |
 | `DEPLOY.md` | Release process, server, CI secrets, rollback |
-| `BUILDING.md` (planned) | Desktop app build |
+| `BUILDING.md` | Desktop app build, signing and notarizing |
 | `CHANGELOG.md` | Keep a Changelog; add to `## Unreleased` |
 | `CREDITS.md` | Sound attribution (generated, see Sounds) |
 | `docs/superpowers/specs/2026-11-13-voltline-rebuild-design.md` | The design spec |
@@ -38,6 +38,8 @@ npm run test:run       # Vitest, single run
 npm run test:coverage  # Vitest with v8 coverage
 npm run bench          # tsx scripts/bench.ts (AI/engine benchmark)
 npm run audio          # scripts/encode-audio.sh (encode audio-src/ for the app)
+npm run desktop:dev    # the game in a native window (Tauri 2; needs Rust, see BUILDING.md)
+npm run desktop:build  # tauri build (unsigned); releases use scripts/make-macos-app.sh
 ```
 
 Before calling work done: `npm run type-check && npm run lint && npm run test:run`.
