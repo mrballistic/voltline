@@ -41,7 +41,7 @@ A version with a hyphen (`1.1.0-rc.1`) deploys the same way and is marked a prer
 |---|---|
 | **Verify release tag** | Refuses the tag unless it is on `main`, matches `package.json`'s version, **and** has a section in `CHANGELOG.md`. |
 | **ci** | Calls `ci.yml`: lint, type-check, tests with coverage thresholds (`src/engine` and `src/ai`), build, a short AI bench run and a bundle hygiene check (no API keys, no LLM endpoints, no Google Fonts in `dist/`). |
-| **Deploy to production** | Builds the site on Node 26, then over SSH as `voltline-deploy`: rsyncs everything except `index.html` into `/var/www/voltline`, then rsyncs again with `--delete` so `index.html` lands last and stale hashed bundles go. Finally it smoke-tests the public site: the page has `<title>Voltline</title>` and one hashed asset returns 200. |
+| **Deploy to production** | Builds the site on Node 26, then over SSH as `voltline-deploy`: rsyncs everything except `index.html` into `/var/www/voltline`, then rsyncs again with `--delete` so `index.html` lands last and stale hashed bundles go. Finally it smoke-tests the public site: the page has `<title>Voltline</title>`, and the first bundle named in the built `index.html` is served as 200 with a JavaScript content type. |
 | **GitHub Release** | After a successful deploy, creates the release for the tag (“Voltline 1.0.0”) with that version's `CHANGELOG.md` section as its notes. It is the only job with `contents: write`, and it never sees the deploy secrets. An existing release is left alone, so hand-edited notes survive a re-run. |
 
 Deploys are serialized (`concurrency: deploy`, shared with any other workflow that uses the group), so two tags pushed close together run one after the other.
@@ -58,11 +58,11 @@ CI also runs on every PR to `main` and every push to `main`. The Playwright brow
 | Logs | `/var/log/apache2/voltline-{access,error}.log` |
 | Node on the server | Not needed. The site is built in CI; the server only holds the output. |
 
-Apache serves static files only: no proxy modules, no `.htaccess` (`AllowOverride None`). The vhost sets `FallbackResource /index.html`, a year-long immutable cache for `assets/*` and `audio/*` (their names are hashed), `no-cache` for `index.html`, HSTS, `nosniff`, a referrer policy, MIME types for `.webm` and `.m4a`, and a Content-Security-Policy matching the desktop app's: `default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:`.
+Apache serves static files only: no proxy modules, no `.htaccess` (`AllowOverride None`). The vhost sets `FallbackResource /index.html`, a year-long immutable cache for hashed bundles and sounds (matched by file extension; `/assets` and `/audio` answer 404 for missing files instead of falling back), `no-cache` for `index.html`, HSTS, `nosniff`, a referrer policy, MIME types for `.webm` and `.m4a`, and a Content-Security-Policy matching the desktop app's: `default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:`.
 
 ### The deploy user
 
-**`voltline-deploy`** owns `/var/www/voltline` and has **no sudo** and no other write access. Its key in `authorized_keys` is prefixed with `restrict` (no pty, no port or agent forwarding). Because the site is static, a leaked CI key can replace the site's files and nothing more: there is no server-side code or secret for it to reach. Rotate the key if it leaks and redeploy the last good tag.
+**`voltline-deploy`** owns `/var/www/voltline` and has **no sudo** and no other write access. The CI key in `authorized_keys` is installed as `restrict,command="/usr/bin/rrsync /var/www/voltline"`: `restrict` turns off pty and forwarding, and the forced `rrsync` command means the key can only run rsync, confined to `/var/www/voltline` (it cannot start a shell or touch any other path, whatever the client asks for). So a leaked CI key can write files under `/var/www/voltline` and nothing else; there is no server-side code or secret to reach. `rrsync` ships in Ubuntu 24.04's `rsync` package (`which rrsync` should print `/usr/bin/rrsync`; adjust the path in the key if it does not). Rotate the key if it leaks and redeploy the last good tag.
 
 Check the boundary any time:
 ```bash
@@ -97,7 +97,8 @@ ssh-keygen -F mrballistic.com -f ~/.ssh/known_hosts | ssh-keygen -lf -
 ssh-keygen -t ed25519 -N '' -C 'github-actions deploy: voltline -> voltline-deploy@mrballistic.com' -f ~/.ssh/voltline_ci_deploy
 # Build the file locally and copy it up: passing keys as ssh arguments
 # splits them at their spaces (see Gotchas).
-printf 'restrict %s\n' "$(cat ~/.ssh/voltline_ci_deploy.pub)" > /tmp/ak
+ssh <admin>@mrballistic.com 'which rrsync'    # expect /usr/bin/rrsync
+printf 'restrict,command="/usr/bin/rrsync /var/www/voltline" %s\n' "$(cat ~/.ssh/voltline_ci_deploy.pub)" > /tmp/ak
 scp /tmp/ak <admin>@mrballistic.com:/tmp/ak && rm /tmp/ak
 ssh <admin>@mrballistic.com 'sudo install -d -o voltline-deploy -g voltline-deploy -m 700 /home/voltline-deploy/.ssh && sudo install -o voltline-deploy -g voltline-deploy -m 600 /tmp/ak /home/voltline-deploy/.ssh/authorized_keys && rm /tmp/ak'
 gh secret set DEPLOY_SSH_KEY --env production < ~/.ssh/voltline_ci_deploy
@@ -142,11 +143,11 @@ Deploying an older version is just running the pipeline for it:
 
 - **Preferred:** revert on `main`, bump the patch version, tag. It goes through the same checks as any release.
 - **Fast:** re-run the deploy for an older tag. In the Actions tab, open the old tag's `Deploy` run and choose **Re-run all jobs**. It rebuilds that tag's commit and rsyncs it over the site, `--delete` included. (The `verify` job will refuse it if that tag is no longer on `main`.) The release already exists, so it is left alone.
-- **CI down:** check out the old tag and run the same two rsyncs by hand with your own key for `voltline-deploy`:
+- **CI down:** build the old tag locally and rsync as your admin account (the CI key can't be used by hand: it is locked to rrsync). Copy `dist/` up, then install it as `voltline-deploy` so ownership and modes are right:
   ```bash
   git checkout v1.0.0 && npm ci && npm run build
-  rsync -rltz --chmod=D755,F644 --exclude=index.html dist/ voltline-deploy@mrballistic.com:/var/www/voltline/
-  rsync -rltz --chmod=D755,F644 --delete dist/ voltline-deploy@mrballistic.com:/var/www/voltline/
+  rsync -rltz dist/ <admin>@mrballistic.com:/tmp/voltline-dist/
+  ssh <admin>@mrballistic.com 'sudo -u voltline-deploy rsync -rl --chmod=D755,F644 --exclude=index.html /tmp/voltline-dist/ /var/www/voltline/ && sudo -u voltline-deploy rsync -rl --chmod=D755,F644 --delete /tmp/voltline-dist/ /var/www/voltline/ && rm -rf /tmp/voltline-dist'
   git checkout -
   ```
 
@@ -167,6 +168,7 @@ What carried over from the initech pipeline and applies to a static site.
 - **certbot's generated 443 vhost is unreliable.** It copies the port-80 vhost, so a redirect-only port-80 vhost yields a redirect-only 443 vhost: an infinite https to https loop. Always replace it with `deploy/apache-voltline-le-ssl.conf`.
 - **Keep the ACME path out of the redirect.** The port-80 vhost redirects everything except `/.well-known/acme-challenge/`, so renewals keep working. Check with `sudo certbot renew --dry-run`.
 - **`index.html` goes last.** Uploading it first would serve a page whose hashed assets are not there yet. The workflow's two-pass rsync exists for this.
+- **A missing asset must 404.** `FallbackResource` would answer any unknown path with `index.html` as a 200, so the vhost disables it under `/assets` and `/audio`, and the cache header is matched by file extension, not URL. Otherwise HTML could be served (and cached for a year) as a JS module or a sound.
 - **The deploy user has no sudo, on purpose.** If a future step needs Apache config or certbot, do it by hand as your admin account instead of widening the deploy user.
 - **ssh only offers keys it knows about.** A key with a non-default filename needs a `Host` entry with `IdentityFile` in `~/.ssh/config`; without one, ssh falls back to a password prompt, which the server refuses.
 - **ssh flattens its arguments into one string.** `ssh host bash -s -- "$PUBKEY"` splits the key at its spaces on the far side, which silently wrote a broken `authorized_keys` once. Copy files with `scp` instead.

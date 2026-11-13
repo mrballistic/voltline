@@ -12,13 +12,15 @@
 # Secrets, all in the `production` environment (v* tags only):
 #   DEPLOY_SSH_KEY      private half of the CI deploy key. Its public half is in
 #                       /home/voltline-deploy/.ssh/authorized_keys with
-#                       `restrict` (no pty, no forwarding).
+#                       `restrict,command="/usr/bin/rrsync /var/www/voltline"`,
+#                       so the key can only run rsync, confined to the web root.
 #   DEPLOY_KNOWN_HOSTS  output of `ssh-keyscan -t ed25519 <host>`; pins the
 #                       server's identity so the job can't be pointed elsewhere
 #   DEPLOY_HOST         server address (mrballistic.com)
 #   DEPLOY_USER         voltline-deploy: owns /var/www/voltline and has no sudo.
-#                       The site is static, so a leaked key can replace the
-#                       site's files and nothing else.
+#                       Because of rrsync, a leaked key can write files under
+#                       /var/www/voltline and do nothing else (no shell, no
+#                       other paths).
 name: Deploy
 
 on:
@@ -33,7 +35,6 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  WEB_ROOT: /var/www/voltline
   SITE_URL: https://voltline.mrballistic.com
 
 jobs:
@@ -117,21 +118,30 @@ jobs:
       # --delete mirrors dist/ exactly, which also clears out stale hashed
       # bundles. index.html is uncached and points at the new hashes, so it
       # goes in the second pass to avoid serving a page whose assets aren't
-      # there yet.
+      # there yet. The key is pinned to rrsync, so the remote path is relative
+      # to /var/www/voltline.
       - name: Upload site
         run: |
-          rsync -rltz --chmod=D755,F644 --exclude=index.html dist/ "deploy-target:$WEB_ROOT/"
-          rsync -rltz --chmod=D755,F644 --delete dist/ "deploy-target:$WEB_ROOT/"
+          rsync -rltz --chmod=D755,F644 --exclude=index.html dist/ deploy-target:./
+          rsync -rltz --chmod=D755,F644 --delete dist/ deploy-target:./
 
+      # Saved to files rather than piped into grep -q: under pipefail, grep
+      # exiting early can SIGPIPE curl and fail a healthy check. The asset
+      # name comes from the freshly built dist/index.html, and Apache answers
+      # a missing /assets file with 404 (not the index.html fallback), so a
+      # 200 with a javascript type proves the new bundle is really live.
       - name: Smoke test the public site
         run: |
-          curl -fsS "$SITE_URL/" | grep -q '<title>Voltline</title>'
-          # One hashed asset referenced by the page must be served.
-          asset=$(curl -fsS "$SITE_URL/" | grep -oE 'assets/[^"]+\.js' | head -n 1)
+          curl -fsS -o "$RUNNER_TEMP/index.html" "$SITE_URL/"
+          grep -q '<title>Voltline</title>' "$RUNNER_TEMP/index.html"
+          asset=$(grep -oE 'assets/[^"]+\.js' dist/index.html | head -n 1)
           test -n "$asset"
-          code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE_URL/$asset")
-          echo "$asset -> $code"
-          test "$code" = 200
+          result=$(curl -fsS -o /dev/null -w '%{http_code} %{content_type}' "$SITE_URL/$asset")
+          echo "$asset -> $result"
+          case "$result" in
+            "200 "*javascript*) ;;
+            *) echo "::error::$asset did not come back as 200 JavaScript."; exit 1 ;;
+          esac
 
   # After the deploy, so a release exists only for a version that is live. Its
   # notes are that version's CHANGELOG section. A release that already exists
