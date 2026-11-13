@@ -4,6 +4,8 @@ A neon match-three puzzle game with explosive special pieces, chain reactions, a
 
 **Play it:** https://voltline.mrballistic.com
 
+![The Voltline board: neon circles, squares, triangles, hexagons, diamonds, plus signs and stars glowing on a dark circuit grid, with the empty tray below](docs/screenshots/board-desktop.webp)
+
 Voltline is an original game. It has its own pieces, its own look and its own sounds; it borrows only the genre’s mechanics.
 
 ## How to play
@@ -25,6 +27,8 @@ Bigger matches leave something behind.
 | 4 in a line | **Charge** | Clears the 3×3 area around it |
 | An L or T shape | **Arc** | Clears its whole row and column |
 | 5 in a line | **Prism** | Swap it with any piece to clear every piece of that color |
+
+![Special pieces on the board: Charges with a bright inner ring, Arcs with crackling edges, a rainbow Prism, gray rocks, and three pieces waiting in the tray](docs/screenshots/pieces-specials.webp)
 
 Specials chain. An explosion that catches another special sets it off, so one good match can clear half the board. Two Prisms swapped together clear everything. A Prism swapped with a Charge or Arc turns every piece of that color into one and detonates the lot.
 
