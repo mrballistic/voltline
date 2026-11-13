@@ -50,6 +50,7 @@ export class ScriptPlayer implements ScriptPlayerLike {
   /** The timeline playing now, the state it ends on, and the promise it owes. */
   private active: { tl: Tl; end: ShownState; resolve: () => void } | null = null;
   private readonly flyers = new Set<PieceSprite>();
+  private disposed = false;
 
   constructor(deps: ScriptPlayerDeps) {
     this.d = deps;
@@ -74,12 +75,14 @@ export class ScriptPlayer implements ScriptPlayerLike {
   }
 
   relayout(): void {
+    if (this.disposed) return; // the views may already be destroyed
     this.d.board.snapToModel(this.shown.board);
     this.d.tray.setTray(this.shown.tray);
   }
 
   /** Stops playing. A play in progress resolves at once, so nothing waits on it forever. */
   dispose(): void {
+    this.disposed = true;
     this.interrupt(false);
     this.clearFlyers();
   }

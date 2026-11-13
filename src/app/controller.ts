@@ -41,6 +41,9 @@ export interface GameControllerDeps {
   initial?: GameState;
   /** Used by AI mode to pause while the tab is hidden. */
   doc?: Pick<Document, 'hidden' | 'addEventListener' | 'removeEventListener'>;
+  /** Where errors that must not break play go (a failed save, a failed relayout). Defaults to
+   * rethrowing on a later tick, so they reach the console and window.onerror. */
+  reportError?: (err: unknown) => void;
 }
 
 /** What the player currently sees, which lags the engine state while a script plays. */
@@ -187,13 +190,18 @@ export class GameController {
 
   /** Deals the first board onto the empty canvas. */
   start(): Promise<void> {
+    if (this.busy || this.current || this.disposed) return Promise.resolve();
     const { board, tray } = this._state;
     return this.run(() => this.d.player.show({ board, tray }));
   }
 
   /** Starts a fresh game once the current move (if any) has finished playing. */
   async newGame(): Promise<void> {
-    while (this.current) await this.current.catch(() => {});
+    while (this.current) {
+      const c = this.current;
+      await c.catch(() => {});
+      if (this.current === c) break; // never spin on a task whose cleanup didn't clear it
+    }
     if (this.disposed) return;
     this.recordBest();
     this.d.hint.clear();
@@ -254,7 +262,7 @@ export class GameController {
   }
 
   private fire(move: Move): void {
-    this.submit(move).catch(rethrowLater);
+    this.submit(move).catch((err: unknown) => this.report(err));
   }
 
   /** Runs one animation with `busy` set; on its end shows the engine state and runs deferred work. */
@@ -269,17 +277,27 @@ export class GameController {
     } catch (err) {
       started = Promise.reject(err);
     }
+    // Nothing in the cleanup may escape it, or `current` would never clear and newGame would wait forever.
     const task: Promise<void> = started.finally(() => {
-      this.busy = false;
-      this.shown = this.shownFrom(this._state);
-      if (this._state.over) this.notice = { kind: 'game-over' };
-      after?.();
-      if (this.relayoutPending) {
-        this.relayoutPending = false;
-        this.d.player.relayout();
+      try {
+        this.shown = this.shownFrom(this._state);
+        if (this._state.over) this.notice = { kind: 'game-over' };
+        after?.();
+        if (this.relayoutPending) {
+          this.relayoutPending = false;
+          if (!this.disposed) this.d.player.relayout();
+        }
+      } catch (err) {
+        this.report(err);
+      } finally {
+        this.busy = false;
+        if (this.current === task) this.current = null;
       }
-      if (this.current === task) this.current = null;
-      this.emit();
+      try {
+        this.emit();
+      } catch (err) {
+        this.report(err);
+      }
     });
     this.current = task;
     await task;
@@ -291,9 +309,18 @@ export class GameController {
     if (this._state.score > this.prefs[key]) this.savePrefs({ [key]: this._state.score });
   }
 
+  /** Keeps the new prefs for this session even when storing them fails (quota, private mode). */
   private savePrefs(patch: Partial<Prefs>): void {
     this.prefs = { ...this.prefs, ...patch };
-    this.d.prefs.save(this.prefs);
+    try {
+      this.d.prefs.save(this.prefs);
+    } catch (err) {
+      this.report(err);
+    }
+  }
+
+  private report(err: unknown): void {
+    (this.d.reportError ?? rethrowLater)(err);
   }
 
   private shownFrom(s: GameState): Shown {

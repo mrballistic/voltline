@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Texture } from 'pixi.js';
 import { gsap } from 'gsap';
 import { applyMove, newGame, productiveMoves } from '../engine';
@@ -291,6 +291,14 @@ describe('ScriptPlayer', () => {
       expect(r.board.sprite(piece!.id)!.y).toBe(r.board.cellXY(ri, ci).y);
     }));
     expect(r.board.allSprites()).toHaveLength(64);
+  });
+
+  it('relayout after dispose touches nothing', async () => {
+    await deal(r, newGame(4));
+    r.player.dispose();
+    const snap = vi.spyOn(r.board, 'snapToModel');
+    r.player.relayout();
+    expect(snap).not.toHaveBeenCalled();
   });
 
   it('new game after disposing mid-move does not hang', async () => {

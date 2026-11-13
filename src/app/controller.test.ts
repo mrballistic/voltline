@@ -25,9 +25,12 @@ class FakePlayer implements ScriptPlayerLike {
     this.ends.push(end);
     return new Promise((resolve) => this.pending.push(resolve));
   }
+  /** When set, deals are held like plays until `finish()`. */
+  holdShows = false;
   show(state: ShownState): Promise<void> {
     this.shows.push(state);
-    return Promise.resolve();
+    if (!this.holdShows) return Promise.resolve();
+    return new Promise((resolve) => this.pending.push(resolve));
   }
   relayout(): void {
     this.relayouts++;
@@ -54,14 +57,16 @@ function rig(opts: { initial?: GameState; prefs?: ReturnType<typeof memoryPrefs>
   const player = new FakePlayer();
   const prefs = opts.prefs ?? memoryPrefs();
   const snapshots: UiSnapshot[] = [];
+  const errors: unknown[] = [];
   const c = new GameController({
     player, prefs, seed: SEED, initial: opts.initial,
     ai: createAIClient({ inline: true }),
     hint: { show: async () => {}, clear: () => {} },
     onChange: (s) => snapshots.push(s),
+    reportError: (err) => errors.push(err),
   });
   player.emit = (a) => c.onAction(a);
-  return { c, player, prefs, snapshots };
+  return { c, player, prefs, snapshots, errors };
 }
 
 const swapOf = (m: Move) => {
@@ -230,6 +235,59 @@ describe('GameController', () => {
     await c.newGame();
     expect(player.shows).toHaveLength(1);
     expect(c.snapshot().busy).toBe(false);
+  });
+
+  it('a prefs save that throws while a move finishes can’t wedge the controller', async () => {
+    const prefs = memoryPrefs();
+    prefs.save = () => { throw new Error('QuotaExceededError'); };
+    const { c, player, errors } = rig({ prefs, initial: makeState(boardWith(), { tray: ['red'], score: 500 }) });
+    const done = c.submit({ type: 'place', slot: 0, at: { row: 0, col: 5 } }); // ends the game: saves a best
+    await player.finish();
+    await done;
+    expect(c.snapshot()).toMatchObject({ busy: false, over: true });
+    expect(errors.map((e) => (e as Error).message)).toContain('QuotaExceededError');
+    await c.newGame();
+    expect(c.snapshot()).toMatchObject({ busy: false, over: false, score: 0 });
+    expect(player.shows).toHaveLength(1);
+  });
+
+  it('a deferred relayout that throws can’t wedge the controller', async () => {
+    const { c, player, errors } = rig();
+    player.relayout = () => { throw new Error('relayout failed'); };
+    const done = c.submit(firstSwap(c.state));
+    c.relayout();
+    await player.finish();
+    await done;
+    expect(c.snapshot().busy).toBe(false);
+    expect(errors.map((e) => (e as Error).message)).toEqual(['relayout failed']);
+    await c.newGame();
+    expect(player.shows).toHaveLength(1);
+    expect(c.snapshot().busy).toBe(false);
+  });
+
+  it('no deferred relayout after dispose', async () => {
+    const { c, player } = rig();
+    void c.submit(firstSwap(c.state));
+    c.relayout();
+    c.dispose();
+    await player.finish();
+    expect(player.relayouts).toBe(0);
+  });
+
+  it('start twice deals once, and nothing overlaps it', async () => {
+    const { c, player } = rig();
+    player.holdShows = true;
+    const first = c.start();
+    const second = c.start();
+    expect(player.shows).toHaveLength(1);
+    expect(c.snapshot().busy).toBe(true);
+    c.swap(firstSwap(c.state).a, firstSwap(c.state).b);
+    expect(player.scripts).toHaveLength(0);
+    await second;
+    await player.finish();
+    await first;
+    expect(c.snapshot().busy).toBe(false);
+    expect(player.shows).toHaveLength(1);
   });
 
   it('resize during play re-lays out after timeline', async () => {
