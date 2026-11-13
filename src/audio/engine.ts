@@ -102,7 +102,7 @@ export class AudioEngine implements CueSink {
     const ctx = this.context();
     if (!ctx) return;
     this.unlocked = true;
-    void ctx.resume?.();
+    ctx.resume?.()?.catch(() => {});
   }
 
   setMuted(m: boolean): void {
@@ -120,16 +120,16 @@ export class AudioEngine implements CueSink {
   }
 
   suspend(): void {
-    void this.ctx?.suspend?.();
+    this.ctx?.suspend?.()?.catch(() => {});
   }
 
   resume(): void {
-    if (this.unlocked) void this.ctx?.resume?.();
+    if (this.unlocked) this.ctx?.resume?.()?.catch(() => {});
   }
 
   cue(name: CueName, opts?: { chain?: number }): void {
     const ctx = this.ctx;
-    if (!ctx || !this.unlocked || this.muted) return;
+    if (!ctx || !this.unlocked || this.muted || ctx.state !== 'running') return;
     const base = (name.startsWith('match-chain-') ? 'match' : name) as ManifestCue;
     const spec = CUES[base];
     if (!spec) return;
@@ -138,7 +138,10 @@ export class AudioEngine implements CueSink {
     let key: string;
     let semitones = 0;
     if (spec.variants) {
-      key = `${base}-${1 + Math.floor(this.rng() * spec.variants)}`;
+      const n = spec.variants;
+      const picked = 1 + Math.floor(this.rng() * n);
+      key = `${base}-${picked}`;
+      for (let i = 0; i < n && !this.buffers.has(key); i++) key = `${base}-${1 + ((picked + i) % n)}`;
     } else if (spec.chainSet && chain > 0 && this.buffers.has(`${base}-chain-${Math.min(chain + 1, spec.chainSet)}`)) {
       key = `${base}-chain-${Math.min(chain + 1, spec.chainSet)}`;
     } else {
@@ -154,22 +157,28 @@ export class AudioEngine implements CueSink {
     let voices = this.active.get(base);
     if (!voices) this.active.set(base, (voices = new Set()));
     if (voices.size >= spec.voices) return;
-    this.lastStart.set(base, t);
 
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    src.loop = spec.loop ?? false;
-    src.playbackRate.value = 2 ** (semitones / 12) * (1 + (this.rng() * 2 - 1) * PITCH_JITTER);
-    const gain = ctx.createGain();
-    gain.gain.value = dbToLinear(spec.gain + (this.rng() * 2 - 1) * GAIN_JITTER_DB);
-    src.connect(gain);
-    gain.connect(this.buses[spec.bus] ?? this.master ?? ctx.destination);
-    voices.add(src);
-    src.onended = () => {
-      voices.delete(src);
-      src.disconnect();
-      gain.disconnect();
-    };
-    src.start();
+    let src: AudioBufferSourceNode | null = null;
+    try {
+      src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = spec.loop ?? false;
+      src.playbackRate.value = 2 ** (semitones / 12) * (1 + (this.rng() * 2 - 1) * PITCH_JITTER);
+      const gain = ctx.createGain();
+      gain.gain.value = dbToLinear(spec.gain + (this.rng() * 2 - 1) * GAIN_JITTER_DB);
+      src.connect(gain);
+      gain.connect(this.buses[spec.bus] ?? this.master ?? ctx.destination);
+      const started = src;
+      started.onended = () => {
+        voices.delete(started);
+        started.disconnect();
+        gain.disconnect();
+      };
+      voices.add(started);
+      started.start();
+      this.lastStart.set(base, t);
+    } catch {
+      if (src) voices.delete(src);
+    }
   }
 }

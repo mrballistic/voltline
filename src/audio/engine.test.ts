@@ -20,6 +20,7 @@ class FakeSource extends FakeNode {
 function setup(files: string[] | 'all', opts: { webm?: boolean } = {}) {
   const sources: FakeSource[] = [];
   const ctx = {
+    state: 'suspended' as 'suspended' | 'running',
     destination: {},
     createGain: () => new FakeNode(),
     createBufferSource: () => {
@@ -28,8 +29,8 @@ function setup(files: string[] | 'all', opts: { webm?: boolean } = {}) {
       return s;
     },
     decodeAudioData: vi.fn(async (b: ArrayBuffer) => ({ tag: new TextDecoder().decode(b) })),
-    resume: vi.fn(async () => {}),
-    suspend: vi.fn(async () => {}),
+    resume: vi.fn(async () => { ctx.state = 'running'; }),
+    suspend: vi.fn(async () => { ctx.state = 'suspended'; }),
   };
   const requested: string[] = [];
   const fetchFn = vi.fn(async (url: string) => {
@@ -80,6 +81,7 @@ describe('AudioEngine', () => {
     engine.cue('select');
     expect(sources).toHaveLength(0);
     engine.unlock();
+    await Promise.resolve();
     engine.cue('select');
     expect(sources).toHaveLength(1);
     expect(sources[0].start).toHaveBeenCalled();
@@ -141,6 +143,48 @@ describe('AudioEngine', () => {
     engine.cue('match', { chain: 2 });
     expect((sources[2].buffer as { tag: string }).tag).toBe('match');
     expect(sources[2].playbackRate.value).toBeCloseTo(2 ** (2 / 12));
+  });
+
+  it('suspended context starts nothing and consumes no voice slots', async () => {
+    const { engine, sources, ctx, tick } = setup('all');
+    await engine.load();
+    engine.unlock();
+    engine.suspend();
+    await Promise.resolve();
+    for (let i = 0; i < 10; i++) { tick(100); engine.cue('land'); }
+    expect(sources).toHaveLength(0);
+    engine.resume();
+    await Promise.resolve();
+    expect(ctx.state).toBe('running');
+    tick(100);
+    engine.cue('land');
+    expect(sources).toHaveLength(1);
+  });
+
+  it('unlock resumes a pre-created suspended context, and rejected resume is swallowed', async () => {
+    const { engine, ctx, sources } = setup('all');
+    await engine.load();
+    expect(ctx.state).toBe('suspended');
+    engine.unlock();
+    await Promise.resolve();
+    expect(ctx.resume).toHaveBeenCalled();
+    expect(ctx.state).toBe('running');
+    ctx.resume.mockRejectedValueOnce(new Error('nope'));
+    engine.resume();
+    await Promise.resolve();
+    expect(sources).toHaveLength(0);
+  });
+
+  it('a missing variant falls back to another loaded one', async () => {
+    const { engine, sources } = setup(['land-1', 'land-3']);
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await engine.load();
+    engine.unlock();
+    await Promise.resolve();
+    engine.cue('land'); // rng 0.5 picks land-2, which is missing
+    expect(sources).toHaveLength(1);
+    expect(['land-1', 'land-3']).toContain((sources[0].buffer as { tag: string }).tag);
+    vi.restoreAllMocks();
   });
 
   it('muted plays nothing', async () => {
