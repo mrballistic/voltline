@@ -58,7 +58,7 @@ The AI is a search, not a chatbot. It looks at exactly what you can see (the boa
 
 ## Controls
 
-Tap or click a piece, then tap a neighbor to swap. Or drag a piece toward a neighbor, or swipe on a touch screen. To use a tray piece, tap it, then tap a plain piece on the board. The score, level bar, Hint and AI controls around the board are still being built.
+Click or tap a piece, then a neighbor, to swap. Or just drag (or swipe) a piece toward a neighbor: the swap happens as soon as you pull past a third of a cell. Tap a tray piece, then a board piece, to place it, or drag it straight onto the board. A drag that goes nowhere eases back.
 
 ## Credits and license
 
