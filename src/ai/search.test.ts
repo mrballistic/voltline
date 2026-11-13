@@ -4,7 +4,7 @@ import type { GameState, Move } from '../engine';
 import { boardWith, makeState } from '../engine/testing';
 import { hashVisible } from './hash';
 import { rankMoves } from './search';
-import { W } from './weights';
+import { TOP_PLACEMENTS, W } from './weights';
 
 const swap = (r1: number, c1: number, r2: number, c2: number): Move => ({
   type: 'swap', a: { row: r1, col: c1 }, b: { row: r2, col: c2 },
@@ -90,5 +90,22 @@ describe('rankMoves', () => {
     expect(only.expectedPoints).toBeGreaterThanOrEqual(100);
     expect(Number.isFinite(only.value)).toBe(true);
     expect(only.value).toBeGreaterThanOrEqual(only.expectedPoints - W.trayPieceSpent - W.belowFloorPenalty);
+  });
+
+  it('full tray: every placement is ranked, only the top few are rolled out', () => {
+    const s = { ...midGame(1, 9), tray: ['red', 'blue', 'yellow', 'green', 'magenta'] as GameState['tray'] };
+    const productive = productiveMoves(s);
+    const placements = productive.filter((m) => m.type === 'place');
+    expect(placements.length).toBeGreaterThan(TOP_PLACEMENTS);
+    const rolled = new Map<string, number>();
+    const ranked = rankMoves(s, { onRollout: (m) => rolled.set(JSON.stringify(m), (rolled.get(JSON.stringify(m)) ?? 0) + 1) });
+    expect(ranked.map((r) => r.move)).toHaveLength(productive.length);
+    expect(ranked.map((r) => r.move)).toEqual(expect.arrayContaining(productive));
+    const rolledPlacements = [...rolled.keys()].filter((k) => JSON.parse(k).type === 'place');
+    expect(rolledPlacements).toHaveLength(TOP_PLACEMENTS);
+    const swapCount = productive.length - placements.length;
+    expect(rolled.size).toBe(swapCount + TOP_PLACEMENTS); // every swap is rolled out too
+    expect(new Set(rolled.values()).size).toBe(1); // with one shared rollout count
+    expect(rankMoves(s)).toEqual(ranked); // the hook doesn't change the result
   });
 });

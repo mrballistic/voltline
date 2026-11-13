@@ -1,14 +1,15 @@
 import { applyMove, countProductiveMoves, productiveMoves } from '../engine';
 import type { GameState, Move, Step } from '../engine';
 import { hashVisible } from './hash';
-import { HEALTH_CAP, ROLLOUTS, W } from './weights';
+import { HEALTH_CAP, ROLLOUTS, TOP_PLACEMENTS, W } from './weights';
 
 export interface RankedMove { move: Move; value: number; expectedPoints: number }
 
 export interface RankOptions {
-  rolloutBudget?: number; // total rollouts shared across candidates, default ROLLOUTS.budget
+  rolloutBudget?: number; // total rollouts shared across rolled-out candidates, default ROLLOUTS.budget
   minRollouts?: number; // per candidate, default ROLLOUTS.min
   maxRollouts?: number; // per candidate, default ROLLOUTS.max
+  onRollout?: (move: Move) => void; // observation hook, called once per full rollout (tests)
 }
 
 // murmur3 fmix32
@@ -50,7 +51,11 @@ function specialsValue(script: Step[], result: GameState): number {
   return value;
 }
 
-function evaluate(state: GameState, move: Move, rngState: number): { value: number; points: number } {
+interface Outcome { value: number; points: number; result: GameState }
+
+// One simulation scored on its immediate terms only: points, specials, rocks, level-up, game over
+// and the spent tray piece. No board-health count.
+function simulate(state: GameState, move: Move, rngState: number): Outcome {
   const { state: result, script } = applyMove({ ...state, rngState }, move);
   const points = result.score - state.score;
   let value = points + specialsValue(script, result);
@@ -58,38 +63,70 @@ function evaluate(state: GameState, move: Move, rngState: number): { value: numb
     if (step.t === 'clear') value += W.rockCleared * step.cleared.filter((c) => c.key === 'rock').length;
     else if (step.t === 'level-up') value += W.levelUp;
   }
-  // A finished game has no productive moves by definition, so skip counting them.
-  const health = result.over ? 0 : countProductiveMoves(result, Math.max(HEALTH_CAP, W.healthFloor));
-  value += W.healthPerMove * Math.min(health, HEALTH_CAP);
-  if (health < W.healthFloor) value -= W.belowFloorPenalty;
   if (result.over) value += W.gameOver;
   if (move.type === 'place') value -= W.trayPieceSpent;
-  return { value, points };
+  return { value, points, result };
 }
 
+// A full rollout: the immediate terms plus board health.
+function rollout(state: GameState, move: Move, rngState: number): Outcome {
+  const out = simulate(state, move, rngState);
+  // A finished game has no productive moves by definition, so skip counting them.
+  const health = out.result.over ? 0 : countProductiveMoves(out.result, Math.max(HEALTH_CAP, W.healthFloor));
+  out.value += W.healthPerMove * Math.min(health, HEALTH_CAP);
+  if (health < W.healthFloor) out.value -= W.belowFloorPenalty;
+  return out;
+}
+
+// Seed for the single pre-ranking simulation of a placement; distinct from every rollout's k >= 0.
+const PRE_RANK = -1;
+
+interface Scored { index: number; move: Move; value: number; expectedPoints: number }
+
 /**
- * Ranks every productive move by its mean value over Monte Carlo refill rollouts, best first;
- * ties keep `productiveMoves` order. Rollout seeds come from a hash of the visible state, never
- * from the game's `rngState`, so the same visible board always yields the same ranking.
+ * Ranks every productive move, best first; ties keep `productiveMoves` order. Swaps and the
+ * TOP_PLACEMENTS best placements (by one cheap simulation) get Monte Carlo refill rollouts, with the
+ * rollout budget shared among them; the other placements keep their cheap value. Every seed comes
+ * from a hash of the visible state, never from the game's `rngState`, so the same visible board
+ * always yields the same ranking.
  */
 export function rankMoves(state: GameState, opts: RankOptions = {}): RankedMove[] {
   const { rolloutBudget = ROLLOUTS.budget, minRollouts = ROLLOUTS.min, maxRollouts = ROLLOUTS.max } = opts;
   if (state.over) return [];
   const candidates = productiveMoves(state);
   if (candidates.length === 0) return [];
-  const rollouts = Math.min(Math.max(Math.floor(rolloutBudget / candidates.length), minRollouts), maxRollouts);
   const hash = hashVisible(state);
 
-  const ranked = candidates.map((move, i) => {
+  const swaps: Scored[] = [];
+  const placements: Scored[] = [];
+  candidates.forEach((move, index) => {
+    if (move.type === 'swap') {
+      swaps.push({ index, move, value: 0, expectedPoints: 0 });
+    } else {
+      const cheap = simulate(state, move, mix(hash, index, PRE_RANK));
+      placements.push({ index, move, value: cheap.value, expectedPoints: cheap.points });
+    }
+  });
+  placements.sort(byValue);
+  const deep = [...swaps, ...placements.slice(0, TOP_PLACEMENTS)];
+
+  const rollouts = Math.min(Math.max(Math.floor(rolloutBudget / deep.length), minRollouts), maxRollouts);
+  for (const c of deep) {
     let value = 0;
     let points = 0;
     for (let k = 0; k < rollouts; k++) {
-      const r = evaluate(state, move, mix(hash, i, k));
+      opts.onRollout?.(c.move);
+      const r = rollout(state, c.move, mix(hash, c.index, k));
       value += r.value;
       points += r.points;
     }
-    return { index: i, move, value: value / rollouts, expectedPoints: points / rollouts };
-  });
-  ranked.sort((a, b) => b.value - a.value || a.index - b.index);
-  return ranked.map(({ move, value, expectedPoints }) => ({ move, value, expectedPoints }));
+    c.value = value / rollouts;
+    c.expectedPoints = points / rollouts;
+  }
+
+  return [...swaps, ...placements].sort(byValue).map(({ move, value, expectedPoints }) => ({ move, value, expectedPoints }));
+}
+
+function byValue(a: Scored, b: Scored): number {
+  return b.value - a.value || a.index - b.index;
 }

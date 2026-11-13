@@ -13,6 +13,11 @@ export const W = {
 // Board health counts at most this many productive moves; past it, more options add nothing.
 export const HEALTH_CAP = 20;
 
-// Default rollout budget for `rankMoves`: rollouts per candidate = clamp(floor(budget / candidates),
-// min, max). Sized so a mid-game decision takes ≤ 40 ms median in Node on the dev Mac.
-export const ROLLOUTS = { budget: 160, min: 8, max: 16 };
+// Default rollout budget for `rankMoves`: rollouts per rolled-out candidate (swaps + top placements)
+// = clamp(floor(budget / count), min, max). Sized so a mid-game decision takes ≤ 40 ms median in
+// Node on the dev Mac.
+export const ROLLOUTS = { budget: 160, min: 4, max: 16 };
+
+// Only this many tray placements (best by one cheap simulation) get full rollouts; the rest keep
+// their cheap value, so a full tray can't multiply the search cost.
+export const TOP_PLACEMENTS = 3;
