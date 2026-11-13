@@ -89,9 +89,14 @@ PixiJS 8 will draw the board, with GSAP timelines driving Pixi properties on one
 
 ## Sound
 
-Exists: the supplied sound files in `audio-src/` and the provenance sheet `audio-src/voltline-sounds.xlsx`. `CREDITS.md` is generated from the sheet by `uv run scripts/sound-credits.py`; edit the sheet, not the file. `scripts/make-sound-sheet.py` builds the sheet.
+Exists:
 
-Planned: `npm run audio` encodes the sources to Opus/WebM with an AAC fallback in `public/audio/` (loudness-normalized, per the plan), and a small Web Audio `AudioEngine` with sfx, ui and music buses, cues scheduled from the same timeline as the animation, small pitch and gain variation, voice limits and cooldowns, and a mute toggle. Missing files degrade to silence.
+- **Sources.** The supplied sound files in `audio-src/` and the provenance sheet `audio-src/voltline-sounds.xlsx`. `CREDITS.md` is generated from the sheet by `uv run scripts/sound-credits.py`; edit the sheet, not the file. `scripts/make-sound-sheet.py` builds the sheet.
+- **Pipeline.** `npm run audio` (`scripts/encode-audio.sh`, needs ffmpeg) trims silence, measures each file's overall RMS, applies gain to -20 dBFS RMS (loudness-normalized, never peak-normalized), limits at -3 dBTP, and writes `public/audio/<name>.webm` (Opus) and `.m4a` (AAC). Mono, except the stereo cues and `music-*`. Outputs newer than their source are skipped; `--report` measures without writing, `--only <name>` does one cue. The encoded files are committed.
+- **Manifest** (`src/audio/cues.ts`). `CUES` gives every cue a bus (`sfx`, `ui`, `music`), a starting gain in dB, a voice limit, a cooldown, and optionally `variants` (`land-1..3`), `chainSet` (`match-chain-1..5`), `loop` or `stereo`. Cue-to-cue balance lives here, since the files are all at the same loudness. `CueSink` is the one-method interface the renderer will call.
+- **Engine** (`src/audio/engine.ts`). `AudioEngine` is a small Web Audio player with a master gain and one gain per bus. `load()` picks WebM or M4A by `canPlayType` and decodes every file, skipping 404s and decode errors (one dev-only warning each). `cue()` does nothing until `unlock()` (first pointer or key event), while muted, or for a cue whose file is missing. It enforces the voice limit and cooldown per cue, varies pitch by ±3% and gain by ±1.5 dB, and for `match` with a chain level uses the `match-chain-N` file if loaded, else raises the pitch one semitone per level up to +7. Context, fetch, clock and RNG are injected for tests.
+
+Planned: wiring the engine into the player, hints, controller and header (mute and volume), with cues fired from the same timeline as the animation.
 
 ## App shell (planned)
 

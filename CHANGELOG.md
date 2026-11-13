@@ -23,6 +23,8 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 - A 404 page (“No moves left.”) and real 404 statuses on the server.
 - `npm run bench`: plays seeded games with the AI and a first-legal-move baseline and fails unless the AI scores at least 1.5× more (it scores about 3.4×, reaching level 14 in 400 moves against the baseline’s 8).
 - Supplied sound set in `audio-src/`, a provenance sheet (`audio-src/voltline-sounds.xlsx`) and a generated `CREDITS.md`.
+- Sound engine (`src/audio`): a cue manifest (bus, gain, voices, cooldown, variants, chain set) and a Web Audio `AudioEngine` with unlock-on-first-input, voice limits, small pitch and gain variation, chain pitch rise, mute and volume. Missing files degrade to silence. Not yet wired into the game.
+- `npm run audio`: encodes `audio-src/` to Opus/WebM and AAC/M4A in `public/audio/`, loudness-matched to -20 dBFS RMS with a -3 dBTP limiter (`--report`, `--only`, `--force`). The encoded files are committed.
 - Spec and implementation plan for the rebuild under `docs/superpowers/`.
 - CI and deploy: `ci.yml` (lint, type-check, tests with coverage thresholds on `src/engine` and `src/ai`, build, AI bench run, bundle hygiene check), a tag-triggered `deploy.yml` that rsyncs `dist/` to `https://voltline.mrballistic.com` and creates the GitHub Release from the CHANGELOG section (`scripts/release-notes.mjs`), Dependabot config, Apache vhosts in `deploy/`, and `DEPLOY.md`.
 - A funny, self-contained 404 page (`public/404.html`, no script) in the Voltline look. The Apache vhost now returns real 404s for unknown paths (no SPA fallback) and serves it; the deploy smoke test checks the status and page.
