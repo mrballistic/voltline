@@ -55,7 +55,9 @@ describe('specials', () => {
       row: 0, col: 3,
     });
     const vertical: MatchGroup = { key: 'red', shape: 'line4', cells: [2, 3, 4, 5].map((row) => ({ row, col: 1 })) };
-    expect(specialCell(vertical, [])).toEqual({ row: 3, col: 1 });
+    expect(specialCell(vertical, [])).toEqual({ row: 4, col: 1 });
+    const vertical3: MatchGroup = { key: 'red', shape: 'line3', cells: [2, 3, 4].map((row) => ({ row, col: 1 })) };
+    expect(specialCell(vertical3, [])).toEqual({ row: 3, col: 1 });
   });
 
   it('specialCell for cross is intersection', () => {

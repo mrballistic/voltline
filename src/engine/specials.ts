@@ -39,7 +39,8 @@ function crossCenter(group: MatchGroup): Pos | null {
   return null;
 }
 
-// Middle of the group's longest straight run, lower index on ties.
+// Middle of the group's longest straight run. Ties: left for a row, lower on screen
+// (higher row index) for a column.
 function lineCenter(group: MatchGroup): Pos {
   const set = new Set(group.cells.map(keyOf));
   let best: Pos[] = [];
@@ -49,7 +50,8 @@ function lineCenter(group: MatchGroup): Pos {
       if (run.length > best.length) best = run;
     }
   }
-  return best[Math.floor((best.length - 1) / 2)];
+  const vertical = best.length > 1 && best[0].col === best[1].col;
+  return best[vertical ? Math.floor(best.length / 2) : Math.floor((best.length - 1) / 2)];
 }
 
 export function specialCell(group: MatchGroup, moved: Pos[]): Pos {
