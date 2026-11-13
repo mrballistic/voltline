@@ -6,15 +6,16 @@
 
 **Architecture:** A pure, seeded TypeScript rules engine (`src/engine`) turns a move into an ordered event script. A pure planner (`src/render/plan.ts`) turns that script into timed actions. A PixiJS renderer executes them with GSAP timelines, firing sound cues at the same timestamps. A search AI (`src/ai`) ranks moves in a Web Worker using only visible information. A non-React `GameController` orchestrates engine, renderer, AI and audio; React 19 + MUI 9 render the chrome around the canvas.
 
-**Tech Stack:** Node 24 LTS, React 19.3.1, TypeScript 6.0.3, Vite 8.3.8, PixiJS 8.23.0, GSAP 3.15.1, MUI 9.5.0, Vitest 5.1.0, ESLint 10.14.0 + typescript-eslint 8.72.2, tsx 4.23.15, Playwright 1.65.0, ffmpeg (Homebrew).
+**Tech Stack:** Node 26 LTS, React 19.3.1, TypeScript 6.0.3, Vite 8.3.8, PixiJS 8.23.0, GSAP 3.15.1, MUI 9.5.0, Vitest 5.1.0, ESLint 10.14.0 + typescript-eslint 8.72.2, tsx 4.23.15, Playwright 1.65.0, ffmpeg (Homebrew).
 
 **Spec:** `docs/superpowers/specs/2026-11-13-voltline-rebuild-design.md` (read it before any task; section numbers below refer to it).
 
 ## Global Constraints
 
 - Work on branch `voltline-rebuild`. Commit author email is `mrballistic@gmail.com` (already set in repo config); verify with `git config user.email` before the first commit.
-- Commit style: concise, lowercase, imperative (`add match detection`), ending with the line `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
-- Exact versions: react/react-dom `19.3.1`, @types/react/@types/react-dom `19.3.0`, typescript `6.0.3` (NOT 7.x: typescript-eslint 8.72.2 peers `typescript <6.1.0`), vite `8.3.8`, @vitejs/plugin-react `6.3.0`, vitest `5.1.0`, pixi.js `8.23.0`, gsap `3.15.1`, @mui/material `9.5.0`, @emotion/react `11.14.0`, @emotion/styled `11.14.1`, eslint `10.14.0`, @eslint/js `10.0.1`, typescript-eslint `8.72.2`, eslint-plugin-react-hooks `7.1.1`, globals `17.14.0`, jsdom `31.0.1`, @testing-library/react `16.3.3`, @testing-library/jest-dom (latest 6.x), tsx `4.23.15`, @playwright/test `1.65.0`, @types/node `24.x`, @fontsource/orbitron `5.3.0`, @fontsource/rajdhani `5.3.0`. Use caret ranges at these versions.
+- Commit style: concise, lowercase, imperative (`add match detection`), ending with a `Co-Authored-By:` line naming the model that wrote the commit.
+- Node 26 LTS (26.13.1 at planning time): `.nvmrc` `26`, `engines.node ">=26"`, `@types/node` `^26`, CI `node-version: 26`. (Tasks 1–19 started on 24; Task 20 moves the repo to 26.)
+- Exact versions: react/react-dom `19.3.1`, @types/react/@types/react-dom `19.3.0`, typescript `6.0.3` (NOT 7.x: typescript-eslint 8.72.2 peers `typescript <6.1.0`), vite `8.3.8`, @vitejs/plugin-react `6.3.0`, vitest `5.1.0`, pixi.js `8.23.0`, gsap `3.15.1`, @mui/material `9.5.0`, @emotion/react `11.14.0`, @emotion/styled `11.14.1`, eslint `10.14.0`, @eslint/js `10.0.1`, typescript-eslint `8.72.2`, eslint-plugin-react-hooks `7.1.1`, globals `17.14.0`, jsdom `31.0.1`, @testing-library/react `16.3.3`, @testing-library/jest-dom (latest 6.x), tsx `4.23.15`, @playwright/test `1.65.0`, @types/node `26.x` (from Task 20; `24.x` before), @vitest/coverage-v8 `5.1.0` (exact pair with vitest; Task 20), @fontsource/orbitron `5.3.0`, @fontsource/rajdhani `5.3.0`. Use caret ranges at these versions.
 - No LLM code, no API keys, no network calls at runtime (fonts are self-hosted via @fontsource).
 - Vite `base: './'`. TypeScript `strict`, `noUnusedLocals`, `noUnusedParameters`.
 - `src/engine/**` and `src/ai/**` import nothing from DOM, React, Pixi, GSAP or audio; they must run in Node and in a Worker.
@@ -541,14 +542,73 @@ export interface PrefsStore { load(): Prefs; save(p: Prefs): void }
 
 **Files:**
 - Rewrite: `README.md`, `CLAUDE.md`, `AGENTS.md`
-- Modify: `deploy.sh`, `package.json`
-- Create: `scripts/smoke.spec.ts`, `playwright.config.ts`
+- Modify: `package.json` (`"license": "MIT"`), `LICENSE` (copyright line → `Copyright (c) 2025–2026 Todd Greco`)
+- Create: `scripts/smoke.spec.ts`, `playwright.config.ts`, `AI-ASSISTANCE.md`
 
 **Interfaces:**
 - Produces: `npm run smoke` (`playwright test scripts/smoke.spec.ts`) against `vite preview`: loads the page, waits for the canvas, makes three swaps from `productiveMoves` exposed via a dev-only `window.__voltline` handle (only when `import.meta.env.DEV || ?debug=1`), presses Hint, toggles AI for 10 s, asserts no console errors and that `moves > 0`, and saves screenshots at 1440×900 and 390×844 under `.playwright-mcp/`.
 
 - [ ] **Step 1:** Ask Todd to confirm he has renamed the GitHub repo to `mrballistic/voltline` (Settings → General → Repository name). Do not proceed with Step 2 until he confirms.
-- [ ] **Step 2:** `git remote set-url origin https://github.com/mrballistic/voltline.git`; `git remote -v` shows the new URL. Update `deploy.sh`'s printed URL logic (it derives from the remote, so verify it prints `https://mrballistic.github.io/voltline`).
-- [ ] **Step 3:** Rewrite `README.md` (what Voltline is, features, controls, AI/hint explanation, sound pipeline, commands, live URL `mrballistic.github.io/voltline/`), `CLAUDE.md` (the architecture, module map, invariants from this plan's Global Constraints, commands; drop every Anthropic/Gemini/react-dnd/MUI 6 instruction) and `AGENTS.md` (short pointer to CLAUDE.md conventions).
+- [ ] **Step 2:** `git remote set-url origin https://github.com/mrballistic/voltline.git`; `git remote -v` shows the new URL. (`deploy.sh` is retired in Task 20 in favour of the Pages workflow; leave it untouched here.)
+- [ ] **Step 3:** Rewrite `README.md` (what Voltline is, features, controls, AI/hint explanation, sound pipeline, commands, live URL `mrballistic.github.io/voltline/`), `CLAUDE.md` (the architecture, module map, invariants from this plan's Global Constraints, commands; drop every Anthropic/Gemini/react-dnd/MUI 6 instruction) and `AGENTS.md` (short pointer to CLAUDE.md conventions). README notes that `base: './'` lets the same build serve from `mrballistic.github.io/voltline/` now and `mrballistic.com/voltline` later, links `LICENSE` (MIT) and has an **AI assistance** heading linking `AI-ASSISTANCE.md`.
+- [ ] **Step 3b:** Write `AI-ASSISTANCE.md`: design, code, tests and docs were produced with Anthropic's Claude via Claude Code under Todd's direction and review; piece art is drawn in code from mockups made the same way; the in-game AI and hints are a deterministic search engine, not generative AI, and make no network calls; a line for the sound files reading `Sound effects: supplied by Todd Greco. Origin: TODO (Todd to fill in).` Public copy: no em-dashes, never the phrase "load bearing". Update `LICENSE` and `package.json` as listed above.
 - [ ] **Step 4:** Run the full gate: `npm run lint && npm run test:run && npm run build && npm run bench -- --games 5 --max-moves 200 && npm run smoke`. Expected: all exit 0. View the smoke screenshots.
 - [ ] **Step 5:** Commit `rewrite docs and add smoke test for voltline`. Do not push or deploy until Todd asks.
+
+---
+
+### Task 20: CI/CD pipeline and Node 26
+
+Modeled on `~/current_work/brass-lantern/.github/` (read its `ci.yml`, `pages.yml`, `release.yml`, `dependabot.yml` first; same conventions: SHA-pinned actions with the version in a comment, `persist-credentials: false`, least-privilege `permissions`, comments explaining each non-obvious step).
+
+**Files:**
+- Create: `.github/workflows/ci.yml`, `.github/workflows/pages.yml`, `.github/workflows/release.yml`, `.github/dependabot.yml`, `.nvmrc`, `CHANGELOG.md`, `scripts/release-notes.mjs`
+- Modify: `package.json` (engines, @types/node, @vitest/coverage-v8, `test:coverage`, `type-check`), `vite.config.ts` (coverage config), `README.md`/`CLAUDE.md` (CI, release and deploy sections)
+- Delete: `deploy.sh`
+
+**Interfaces:**
+- Produces: scripts `type-check` (`tsc --noEmit`), `test:coverage` (`vitest run --coverage`). Coverage (v8) thresholds apply to `src/engine/**` and `src/ai/**` only: lines 90, branches 85, functions 90. `scripts/release-notes.mjs <version>` prints the `## <version>` section of `CHANGELOG.md` and exits 1 if missing. `CHANGELOG.md` starts with `## 1.0.0` describing the rebuild; `package.json` version becomes `1.0.0`.
+- `ci.yml` (push to main, PRs to main, `workflow_call`; `contents: read`): job `check` on ubuntu-latest, Node 26: `npm ci`, `lint`, `type-check`, `test:coverage`, `build`, `npm run bench -- --games 5 --max-moves 200`, bundle hygiene (fail if `dist/` contains `AIza[0-9A-Za-z_-]{35}`, `sk-ant-`, `generativelanguage.googleapis`, `api.anthropic.com`, or any `fonts.googleapis.com`), then `npx playwright install --with-deps chromium` and `npm run smoke`; on failure upload the Playwright report and `.playwright-mcp/` screenshots with `actions/upload-artifact` (v7).
+- `pages.yml` (push to main + `workflow_dispatch`; `contents: read, pages: write, id-token: write`; concurrency group `pages`): build job calls the CI checks first (`uses: ./.github/workflows/ci.yml`), then `npm ci && npm run build`, `actions/configure-pages` (v6), `actions/upload-pages-artifact` (v5) with `dist`; deploy job with `environment: github-pages` and `actions/deploy-pages` (v5).
+- `release.yml` (tags `v*`; `contents: read` at top, `contents: write` only on the release job): verify the tag is on main and equals `package.json` version, `release-notes.mjs` succeeds, full gate (same steps as ci), then `gh release create "$TAG" --verify-tag --title "Voltline $version" --notes-file …` (prerelease when the version has a `-`), leaving an existing release alone. The release job also attaches nothing yet; Task 21 adds the macOS artifact flow.
+- `dependabot.yml`: npm monthly with minor/patch grouped; ignore `typescript` and `@types/node` semver-major (comment why: TS held on 6.x until typescript-eslint accepts 7; @types/node follows the Node runtime major); github-actions monthly.
+- Action versions verified at planning time (re-check with `gh api repos/<owner>/<repo>/releases/latest --jq .tag_name` and pin the SHA of that tag): checkout v7.0.1, setup-node v7.1.0, configure-pages v6.0.0, upload-pages-artifact v5.0.0, deploy-pages v5.0.1, upload-artifact v7.0.2. Read each intervening major's release notes if any differs from brass-lantern's pins.
+
+- [ ] **Step 1:** Node 26: write `.nvmrc` (`26`), set `engines.node` to `>=26`, `npm i -D @types/node@^26 @vitest/coverage-v8@5.1.0`; `nvm use` then `npm ci && npm run test:run && npm run build` → exit 0.
+- [ ] **Step 2:** Add `type-check`, `test:coverage` and the coverage thresholds; `npm run test:coverage` → exit 0 with thresholds met (if not, add the missing engine/AI tests rather than lowering thresholds).
+- [ ] **Step 3:** Write `release-notes.mjs` and `CHANGELOG.md`; `node scripts/release-notes.mjs 1.0.0` prints the section; `node scripts/release-notes.mjs 9.9.9` exits 1.
+- [ ] **Step 4:** Write the three workflows and `dependabot.yml`; delete `deploy.sh`. `actionlint` (install with `brew install actionlint` if missing) → no findings.
+- [ ] **Step 5:** Docs: README/CLAUDE.md describe CI, the Pages deploy (one-time owner step: repo Settings → Pages → Source: GitHub Actions), and the release steps (bump version, add CHANGELOG section, merge to main, `git tag vX.Y.Z && git push --tags`).
+- [ ] **Step 6:** Commit `add ci, pages deploy and release workflows on node 26`. Do not push; the workflows first run when Todd pushes.
+
+---
+
+### Task 21: Desktop app (Tauri 2) and signed universal macOS build
+
+Modeled on Snipes (`~/current_work/Snipes/scripts/make-macos-app.sh`, `.github/workflows/macos-universal.yml`, `BUILDING.md`): CI builds an unsigned universal app; Todd signs and notarizes locally with his Developer ID and notary keychain profile.
+
+**Files:**
+- Create: `src-tauri/` (`Cargo.toml`, `build.rs`, `src/main.rs`, `tauri.conf.json`, `capabilities/default.json`, `icons/` generated with `npx tauri icon` from a 1024 px PNG rendered from `public/icon.svg`), `scripts/make-macos-app.sh`, `.github/workflows/macos-universal.yml`, `BUILDING.md`
+- Modify: `package.json` (`@tauri-apps/cli` `2.12.4` dev dep; scripts `desktop:dev` = `tauri dev`, `desktop:build` = `tauri build`), `.gitignore` (`src-tauri/target`), `README.md` (download/build section)
+
+**Interfaces:**
+- `tauri.conf.json`: `productName` `Voltline`, `identifier` `com.mrballistic.voltline`, `version` read from `../package.json`, `build.frontendDist` `../dist`, `build.devUrl` `http://localhost:5173`, `beforeDevCommand` `npm run dev`, `beforeBuildCommand` `npm run build`; one window titled `Voltline`, 1100×900, min 380×640, resizable; `bundle.targets` `["app", "dmg"]`, `bundle.category` `public.app-category.puzzle-games`, `bundle.license` `MIT`, `bundle.copyright` `Copyright (c) 2025–2026 Todd Greco`, `bundle.macOS.minimumSystemVersion` `13.0`. CSP: `default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:`. No Tauri plugins or IPC commands (the game is a pure web app); `capabilities/default.json` grants only `core:default`.
+- `scripts/make-macos-app.sh` (same CLI shape as Snipes): `--no-sign` builds `dist-desktop/Voltline.app` for the current arch; `--universal` builds `--target universal-apple-darwin` (needs `rustup target add aarch64-apple-darwin x86_64-apple-darwin`); `--app PATH` signs an existing app. Signing: `SIGN_IDENTITY` (default: first `Developer ID Application` identity in the keychain), `codesign --force --options runtime --timestamp --sign`; then, if `NOTARY_PROFILE` is set, `xcrun notarytool submit --keychain-profile "$NOTARY_PROFILE" --wait` and `xcrun stapler staple`. Packages `dist-desktop/Voltline-<version>-macos-universal.zip` and, if `create-dmg` is installed, a signed and notarized drag-to-Applications `.dmg`. Verifies with `spctl -a -vvv -t exec` and `codesign --verify --deep --strict`.
+- `macos-universal.yml` (push to main + `workflow_dispatch`, macos-latest, `contents: read`): Node 26, Rust stable with both Apple targets, `npm ci`, `npm run build`, `scripts/make-macos-app.sh --universal --no-sign`, upload `Voltline-universal-unsigned.zip` (upload-artifact v7).
+- `BUILDING.md`: web build, desktop dev, the unsigned CI artifact, and Todd's local sign/notarize/package steps (`gh run download … --name Voltline-universal-unsigned`, then `NOTARY_PROFILE=<profile> scripts/make-macos-app.sh --app …`).
+
+- [ ] **Step 1:** `npm i -D @tauri-apps/cli@2.12.4`; `npx tauri init` non-interactively (or hand-write) the files above; `npm run desktop:dev` opens the game in a native window; the board animates, sound unlocks on first click, best score persists across relaunch.
+- [ ] **Step 2:** `scripts/make-macos-app.sh --universal --no-sign` → `dist-desktop/Voltline.app`; `lipo -archs dist-desktop/Voltline.app/Contents/MacOS/*` shows `x86_64 arm64`; the app launches.
+- [ ] **Step 3:** Local signing only: `scripts/make-macos-app.sh --app dist-desktop/Voltline.app` with no `NOTARY_PROFILE` → `codesign --verify --deep --strict` passes. **Stop here and ask Todd before notarizing**: notarization uploads the binary to Apple. When he confirms (and names the profile, e.g. the existing `snipes-notary`), run with `NOTARY_PROFILE` set and confirm `spctl` reports `source=Notarized Developer ID`.
+- [ ] **Step 4:** Write `macos-universal.yml`; `actionlint` clean. Write `BUILDING.md` and the README section.
+- [ ] **Step 5:** Commit `add tauri desktop app and signed universal macos build`. Do not push or publish a release.
+
+---
+
+### Task 22 (POST-RELEASE — do not execute in the initial run): Windows and Linux build path
+
+**Files:** Modify `BUILDING.md`, `.github/workflows/` (new `desktop-other.yml`).
+
+- Document building from source on Windows (WebView2, MSVC build tools, `npm ci && npm run desktop:build` → `.msi`/NSIS) and Linux (WebKitGTK 4.1 packages for Debian/Ubuntu and Fedora, `npm run desktop:build` → AppImage/.deb). Note the WebKitGTK WebGL caveat and how to report rendering problems.
+- `desktop-other.yml` (`workflow_dispatch` only): ubuntu-latest and windows-latest matrix building unsigned bundles and uploading them as artifacts, so the documented path is exercised. No signing for these platforms.
+- Smoke-test each artifact by launching it (Linux under `xvfb-run`), and record results in BUILDING.md.
