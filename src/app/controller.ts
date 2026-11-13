@@ -25,6 +25,12 @@ export interface UiSnapshot {
   aiOn: boolean;
   aiSpeed: AISpeed;
   aiMoves: number;
+  muted: boolean;
+  volume: number;
+  /** Set when the game just ended: its score beat the saved best for its kind (strictly). */
+  newBest: boolean;
+  /** The kind of the game that last ended (AI mode moved in it), which picks the best to show. */
+  overAI: boolean;
   best: { player: number; ai: number };
   notice: { kind: 'tray-full' | 'level-up' | 'game-over'; level?: number } | null;
 }
@@ -48,6 +54,9 @@ export interface GameControllerDeps {
 
 /** What the player currently sees, which lags the engine state while a script plays. */
 interface Shown { score: number; level: number; levelStart: number; levelTarget: number; tray: Color[]; over: boolean }
+
+/** How long the level-up line stays up (belongs in render/constants.ts ANIM; see report). */
+const LEVEL_NOTICE_MS = 2000;
 
 const randomSeed = () => Math.floor(Math.random() * 2 ** 32);
 const same = (a: Pos, b: Pos) => a.row === b.row && a.col === b.col;
@@ -73,6 +82,8 @@ export class GameController {
   /** Bumped whenever the state changes, so a hint ranked for an old state is dropped. */
   private version = 0;
   private disposed = false;
+  private newBest = false;
+  private noticeTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(deps: GameControllerDeps) {
     this.d = deps;
@@ -101,6 +112,10 @@ export class GameController {
       aiOn: this.aiOn,
       aiSpeed: this.prefs.aiSpeed,
       aiMoves: this.aiMoves,
+      muted: this.prefs.muted,
+      volume: this.prefs.volume,
+      newBest: this.newBest,
+      overAI: this.aiMoves > 0,
       best: { player: this.prefs.bestPlayer, ai: this.prefs.bestAI },
       notice: this.notice,
     };
@@ -119,6 +134,17 @@ export class GameController {
       case 'notice':
         this.notice = a.level === undefined ? { kind: a.kind } : { kind: a.kind, level: a.level };
         if (a.kind === 'game-over') s.over = true;
+        if (this.noticeTimer) clearTimeout(this.noticeTimer);
+        this.noticeTimer = null;
+        if (a.kind === 'level-up') {
+          const shownNotice = this.notice;
+          this.noticeTimer = setTimeout(() => {
+            this.noticeTimer = null;
+            if (this.notice !== shownNotice) return;
+            this.notice = null;
+            this.emit();
+          }, LEVEL_NOTICE_MS);
+        }
         if (a.kind === 'level-up' && a.level !== undefined) {
           s.level = a.level;
           // Only one level-up per move, so the engine's new state holds its range.
@@ -194,7 +220,7 @@ export class GameController {
     this.d.hint.clear();
     this.selected = null;
     this.selectedSlot = null;
-    this.notice = null;
+    this.clearNotice();
     if (next !== this._state) this.version++;
     this._state = next;
     if (move.type === 'place') this.shown.tray = this.shown.tray.filter((_, i) => i !== move.slot);
@@ -225,7 +251,8 @@ export class GameController {
     this.shown = this.shownFrom(this._state);
     this.selected = null;
     this.selectedSlot = null;
-    this.notice = null;
+    this.clearNotice();
+    this.newBest = false;
     this.aiMoves = 0;
     const { board, tray } = this._state;
     await this.run(() => this.d.player.show({ board, tray }));
@@ -260,6 +287,17 @@ export class GameController {
     this.emit();
   }
 
+  /** Sound settings persist through prefs; the audio engine reads them in a later task. */
+  setMuted(m: boolean): void {
+    this.savePrefs({ muted: m });
+    this.emit();
+  }
+
+  setVolume(v: number): void {
+    this.savePrefs({ volume: Math.min(1, Math.max(0, v)) });
+    this.emit();
+  }
+
   /** The canvas changed size. Deferred to the end of the running timeline. */
   relayout(): void {
     if (this.busy) this.relayoutPending = true;
@@ -268,6 +306,7 @@ export class GameController {
 
   dispose(): void {
     this.disposed = true;
+    this.clearNotice();
     this.d.ai.dispose();
     this.d.hint.clear();
   }
@@ -318,10 +357,19 @@ export class GameController {
     await task;
   }
 
+  private clearNotice(): void {
+    this.notice = null;
+    if (this.noticeTimer) clearTimeout(this.noticeTimer);
+    this.noticeTimer = null;
+  }
+
   /** Keeps the game's score as the best for its kind (an AI game is any game AI mode moved in). */
   private recordBest(): void {
     const key = this.aiMoves > 0 ? 'bestAI' : 'bestPlayer';
-    if (this._state.score > this.prefs[key]) this.savePrefs({ [key]: this._state.score });
+    if (this._state.score > this.prefs[key]) {
+      this.newBest = true; // only ever set here: a repeat call (New Game after game over) must not clear it
+      this.savePrefs({ [key]: this._state.score });
+    }
   }
 
   /** Keeps the new prefs for this session even when storing them fails (quota, private mode). */

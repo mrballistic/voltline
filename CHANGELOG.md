@@ -38,6 +38,9 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 - Desktop app for macOS (Tauri 2, `src-tauri/`): the web build in a native 1100×900 window, with no plugins or IPC commands and the server’s CSP. `npm run desktop:dev` and `npm run desktop:build`.
 - `scripts/make-macos-app.sh`: builds a universal (Apple Silicon and Intel) `Voltline.app`, signs it with a Developer ID under the hardened runtime, optionally notarizes it, and packages a zip and a drag-to-Applications disk image (background from `scripts/dmg-background.swift`). A `macos-universal.yml` workflow builds the unsigned universal app on pushes to `main`; `BUILDING.md` covers signing and notarizing it locally.
 - App icon: the Prism ring around a magenta diamond (`src-tauri/icons/source.svg`), rendered by `scripts/render-icon.ts`.
+- Game chrome in MUI: header with title, a score that counts up, best score, level bar, level-up line, mute and volume; Hint and New game under the tray; a persistent “Tray full” notice; a “No moves left” dialog with score, level and best (AI games show AI best). The page uses Orbitron and Rajdhani, self-hosted. Credits and MIT License links in the footer.
+- Saved prefs in `localStorage` (`voltline.prefs.v1`): player best, AI best, AI speed, mute and volume. Unavailable or corrupt storage falls back to defaults.
+- Favicon (`public/icon.svg`, the Prism ring mark).
 
 ### Changed
 

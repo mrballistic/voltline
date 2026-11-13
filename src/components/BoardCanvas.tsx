@@ -1,38 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
-import { createGame } from '../app/bootstrap';
+import type { RefObject } from 'react';
 
 /** Shown in the canvas area when the renderer can't start (no WebGL, a blocked GPU, …). */
 export const GRAPHICS_FAILED = 'Voltline couldn’t start the graphics. Try another browser.';
 
-/** The Pixi board. React owns only this host element; the renderer owns everything inside it. */
-export default function BoardCanvas({ seed }: { seed?: number }) {
-  const host = useRef<HTMLDivElement>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    const el = host.current;
-    if (!el) return;
-    let disposed = false;
-    let destroy: (() => void) | null = null;
-    // init is async: if we unmount first, tear the game down as soon as it exists.
-    createGame(el, { seed }).then(
-      (game) => {
-        if (disposed) game.destroy();
-        else destroy = () => game.destroy();
-      },
-      (err: unknown) => {
-        console.error('Voltline failed to start', err);
-        if (!disposed) setFailed(true);
-      },
-    );
-    return () => {
-      disposed = true;
-      destroy?.();
-    };
-  }, [seed]);
-
+/**
+ * The Pixi board's host element. React owns only this element; the renderer owns everything
+ * inside it and sizes itself from the host (see render/layout.ts), so the host just fills its slot.
+ */
+export default function BoardCanvas({ host, failed }: { host: RefObject<HTMLDivElement | null>; failed: boolean }) {
   return (
-    <div ref={host} style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+    <div ref={host} style={{ position: 'relative', flex: '1 1 0', minHeight: 0, width: '100%', overflow: 'hidden' }}>
       {failed && (
         <p
           role="alert"

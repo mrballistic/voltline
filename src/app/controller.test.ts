@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyMove, newGame, productiveMoves } from '../engine';
 import type { GameState, Move, Pos, Step } from '../engine';
 import { boardWith, makeState } from '../engine/testing';
@@ -350,6 +350,52 @@ describe('GameController', () => {
     await player.finish();
     expect(prefs.load().bestPlayer).toBe(900);
     expect(prefs.saved).toHaveLength(0);
+  });
+
+  it('newBest is set only for a strictly higher score, and clears on a new game', async () => {
+    const tie = rig({ prefs: memoryPrefs({ bestPlayer: 500 }), initial: makeState(boardWith(), { tray: ['red'], score: 500 }) });
+    void tie.c.submit({ type: 'place', slot: 0, at: { row: 0, col: 5 } });
+    await tie.player.finish();
+    expect(tie.c.snapshot()).toMatchObject({ over: true, newBest: false, overAI: false });
+
+    const win = rig({ prefs: memoryPrefs({ bestPlayer: 499 }), initial: makeState(boardWith(), { tray: ['red'], score: 500 }) });
+    void win.c.submit({ type: 'place', slot: 0, at: { row: 0, col: 5 } });
+    await win.player.finish();
+    expect(win.c.snapshot().newBest).toBe(true);
+    await win.c.newGame(); // its own recordBest must not clear or repeat the flag mid-flight
+    expect(win.c.snapshot().newBest).toBe(false);
+  });
+
+  it('the finished game keeps its kind when AI mode is toggled afterwards', async () => {
+    const { c, player } = rig({ initial: makeState(boardWith(), { tray: ['red'], score: 500 }) });
+    c.setAI(true);
+    void c.submit({ type: 'place', slot: 0, at: { row: 0, col: 5 } });
+    await player.finish();
+    c.setAI(false);
+    // AI mode merely being on or off doesn't change the finished game's kind (aiMoves does).
+    expect(c.snapshot()).toMatchObject({ over: true, newBest: true, overAI: false });
+    expect(c.snapshot().best).toEqual({ player: 500, ai: 0 });
+  });
+
+  describe('level-up notice', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('clears itself after 2 s, or on the next move', () => {
+      vi.useFakeTimers();
+      const { c, player } = rig();
+      player.emit({ a: 'notice', kind: 'level-up', level: 2 });
+      expect(c.snapshot().notice).toEqual({ kind: 'level-up', level: 2 });
+      vi.advanceTimersByTime(1999);
+      expect(c.snapshot().notice).not.toBeNull();
+      vi.advanceTimersByTime(2);
+      expect(c.snapshot().notice).toBeNull();
+
+      player.emit({ a: 'notice', kind: 'level-up', level: 3 });
+      void c.newGame();
+      expect(c.snapshot().notice).toBeNull();
+      vi.advanceTimersByTime(5000); // the old timer must not fire into the new game
+      expect(c.snapshot().notice).toBeNull();
+    });
   });
 
   it('input is ignored while AI mode is on', () => {

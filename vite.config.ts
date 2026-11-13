@@ -6,7 +6,7 @@ export default defineConfig({
   base: './',
   test: {
     environment: 'node',
-    setupFiles: [],
+    setupFiles: ['./src/test/setup.ts'],
     // Agent worktrees live inside the repo; never collect their copies of the tests.
     exclude: ['**/node_modules/**', '**/dist/**', '.claude/**', '.worktrees/**'],
     // Coverage gates only the pure rules engine and the search AI, the code

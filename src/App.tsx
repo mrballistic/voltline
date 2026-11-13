@@ -1,5 +1,17 @@
+import { useRef } from 'react';
+import Box from '@mui/material/Box';
+import CssBaseline from '@mui/material/CssBaseline';
 import GlobalStyles from '@mui/material/GlobalStyles';
+import Link from '@mui/material/Link';
+import { ThemeProvider } from '@mui/material/styles';
+import Typography from '@mui/material/Typography';
+import { useGame } from './app/useGame';
 import BoardCanvas from './components/BoardCanvas';
+import GameControls from './components/GameControls';
+import GameOverDialog from './components/GameOverDialog';
+import Header from './components/Header';
+import TrayNotice from './components/TrayNotice';
+import { theme } from './theme';
 
 /** Optional `?seed=N` for a reproducible board (handy for screenshots and bug reports). */
 function seedFromUrl(): number | undefined {
@@ -9,6 +21,7 @@ function seedFromUrl(): number | undefined {
 }
 
 const seed = seedFromUrl();
+const CREDITS_URL = 'https://github.com/mrballistic/voltline/blob/main/CREDITS.md';
 
 // Dark circuit-grid page (spec §6.3).
 const pageStyles = {
@@ -23,12 +36,41 @@ const pageStyles = {
 } as const;
 
 export default function App() {
+  const host = useRef<HTMLDivElement>(null);
+  const { ui, actions, failed } = useGame(host, seed);
+  const over = ui?.over ?? false;
+  // The best of the game that ended (recordBest's rule), not of the mode toggled afterwards.
+  const best = ui ? (ui.overAI ? ui.best.ai : ui.best.player) : 0;
+
   return (
-    <>
+    <ThemeProvider theme={theme}>
+      <CssBaseline enableColorScheme />
       <GlobalStyles styles={pageStyles} />
-      <main style={{ position: 'fixed', inset: 0 }}>
-        <BoardCanvas seed={seed} />
-      </main>
-    </>
+      <Box
+        component="main"
+        sx={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+      >
+        <Box sx={{ width: '100%', maxWidth: 640, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Header ui={ui} onMuted={actions.setMuted} onVolume={actions.setVolume} />
+          <BoardCanvas host={host} failed={failed} />
+          <TrayNotice trayFull={ui?.trayFull ?? false} />
+          <GameControls busy={ui?.busy ?? true} over={over} onHint={actions.hint} onNewGame={actions.newGame} />
+          <Typography component="footer" sx={{ py: 1, fontSize: 13, color: 'text.secondary' }}>
+            <Link href={CREDITS_URL} target="_blank" rel="noopener noreferrer" color="inherit">Credits</Link>
+            {' · '}
+            <Link href={`${CREDITS_URL.replace('CREDITS.md', 'LICENSE')}`} target="_blank" rel="noopener noreferrer" color="inherit">MIT License</Link>
+          </Typography>
+        </Box>
+      </Box>
+      <GameOverDialog
+        open={over}
+        score={ui?.score ?? 0}
+        level={ui?.level ?? 1}
+        best={best}
+        newBest={ui?.newBest ?? false}
+        ai={ui?.overAI ?? false}
+        onPlayAgain={actions.newGame}
+      />
+    </ThemeProvider>
   );
 }
