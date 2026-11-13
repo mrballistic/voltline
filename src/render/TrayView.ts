@@ -81,6 +81,11 @@ export class TrayView {
     return null;
   }
 
+  /** The color in slot `slot`, or null when the slot is empty. */
+  slotColor(slot: number): Color | null {
+    return this.tray[slot] ?? null;
+  }
+
   /** Scale of a tray piece relative to a board piece. */
   slotScale(): number {
     if (!this.layout) throw new Error('TrayView: setLayout before placing pieces');

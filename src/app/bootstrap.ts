@@ -106,6 +106,8 @@ export async function createGame(
     tapCell: (p) => controller.tapCell(p),
     tapSlot: (slot) => controller.tapSlot(slot),
     swap: (a, b) => controller.swap(a, b),
+    place: (slot, at) => controller.place(slot, at),
+    canAcceptInput: () => controller.canAcceptInput,
   });
 
   // Textures are drawn for one cell size, so a new size means new textures. The views keep every

@@ -196,6 +196,29 @@ describe('GameController', () => {
     expect(c.snapshot().selected).toBeNull();
   });
 
+  it('place from a tray drag submits without a prior slot selection', async () => {
+    const { c, player } = rig({ initial: withTray(true) });
+    const target = { row: 3, col: 3 };
+    c.place(0, target);
+    expect(player.scripts[0][0]).toMatchObject({ t: 'place', slot: 0, at: target });
+    await player.finish();
+    expect(c.state.moves).toBe(1);
+  });
+
+  it('place ignores an illegal cell, an empty slot and busy input', async () => {
+    const { c, player } = rig({ initial: withTray(false) });
+    c.place(0, { row: 3, col: 3 });
+    c.place(2, { row: 3, col: 3 });
+    expect(player.scripts).toHaveLength(0);
+    const busy = rig({ initial: withTray(true) });
+    void busy.c.submit(firstSwap(busy.c.state));
+    expect(busy.c.canAcceptInput).toBe(false);
+    busy.c.place(0, { row: 3, col: 3 });
+    expect(busy.player.scripts).toHaveLength(1);
+    await busy.player.finish();
+    expect(player.scripts).toHaveLength(0);
+  });
+
   it('new game waits for current move', async () => {
     const { c, player } = rig();
     void c.submit(firstSwap(c.state));

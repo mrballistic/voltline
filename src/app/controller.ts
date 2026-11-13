@@ -162,6 +162,21 @@ export class GameController {
     this.emit();
   }
 
+  /** Places tray slot `slot` on `at` (a drag from the tray). Anything illegal just clears the selection. */
+  place(slot: number, at: Pos): void {
+    if (!this.acceptsInput()) return;
+    this.d.hint.clear();
+    this.selected = null;
+    this.selectedSlot = null;
+    if (slot < this._state.tray.length && canPlace(this._state.board, this._state.tray, slot, at)) this.fire({ type: 'place', slot, at });
+    else this.emit();
+  }
+
+  /** Whether player input would be taken right now (not while a move plays, in AI mode, or over). */
+  get canAcceptInput(): boolean {
+    return this.acceptsInput();
+  }
+
   swap(a: Pos, b: Pos): void {
     if (!this.acceptsInput()) return;
     this.d.hint.clear();

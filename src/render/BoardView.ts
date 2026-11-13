@@ -71,6 +71,19 @@ export class BoardView {
     return this.sprites.get(id);
   }
 
+  /** The sprite resting on cell (row, col): the live one nearest its center, within half a cell. */
+  spriteAtCell(row: number, col: number): PieceSprite | undefined {
+    const { x, y } = this.cellXY(row, col);
+    const half = this.cellPx / 2;
+    let best: PieceSprite | undefined;
+    let bestD = Infinity;
+    for (const s of this.sprites.values()) {
+      const d = Math.hypot(s.x - x, s.y - y);
+      if (d < half && d < bestD) { best = s; bestD = d; }
+    }
+    return best;
+  }
+
   /** Every live piece sprite, in no particular order. */
   allSprites(): PieceSprite[] {
     return [...this.sprites.values()];

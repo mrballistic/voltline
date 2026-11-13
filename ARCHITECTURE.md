@@ -2,7 +2,7 @@
 
 How Voltline is put together. For what the game is and how to play it, see [README.md](./README.md). Sound provenance is in [CREDITS.md](./CREDITS.md).
 
-Voltline is a work in progress. The rules engine, the search AI, the renderer and a click-to-play controller exist and are tested. Effects, drag input, the hint layer, the sound engine, the MUI chrome and the desktop app are **planned** and marked as such below. The design is in `docs/superpowers/specs/2026-11-13-voltline-rebuild-design.md` and the task plan in `docs/superpowers/plans/2026-11-13-voltline-rebuild.md`.
+Voltline is a work in progress. The rules engine, the search AI, the renderer and a controller with click, drag and swipe input exist and are tested. Effects, the hint layer, the sound engine, the MUI chrome and the desktop app are **planned** and marked as such below. The design is in `docs/superpowers/specs/2026-11-13-voltline-rebuild-design.md` and the task plan in `docs/superpowers/plans/2026-11-13-voltline-rebuild.md`.
 
 - [Overview](#overview)
 - [From tap to animation](#from-tap-to-animation)
@@ -30,7 +30,7 @@ The client is static and offline: no server, no LLM, no API key, no runtime netw
 
 ## From tap to animation
 
-1. **Input** (`render/input.ts`): a tap on a cell or a tray slot goes to the controller, which owns the selection rules (tap selects, a neighbor swaps, a far cell moves the selection, the same cell deselects; a selected tray slot then a cell places). Drag and swipe are planned.
+1. **Input** (`render/input.ts`): a tap on a cell or a tray slot goes to the controller, which owns the selection rules (tap selects, a neighbor swaps, a far cell moves the selection, the same cell deselects; a selected tray slot then a cell places). A drag past 0.3 cell along its dominant axis swaps with that neighbor at once (`gestureToMove`); a shorter one is a tap. A drag from a tray slot onto a cell places it.
 2. **Controller** (`app/controller.ts`): drops input while a script is playing or AI mode is on, then calls `applyMove(state, move)`.
 3. **Engine**: returns the new `GameState` and a `Step[]` script. Illegal swaps return a `swap-invalid` step and an unchanged state.
 4. **Plan** (`render/plan.ts`): turns the script into timed actions, as pure code.
@@ -89,7 +89,7 @@ PixiJS 8 draws the board; GSAP timelines move it, on one clock.
   - Pops swell to `popScale` and collapse to nothing, and the sprite is released when the pop ends. Morphs restyle the sprite in place. Tray flights, placements and lost pieces are loose sprites in the unmasked tray layer.
   - Selection and the idle glow animate the sprite's own children (`PieceSprite`), never the properties a timeline drives.
 - **`src/render/clock.ts`**: `driveGsapFrom(ticker)` unhooks GSAP's own requestAnimationFrame loop and steps GSAP from Pixi's ticker (high priority, before the render) by the ticker's capped `deltaMS`. Every tween and every frame share one clock, and a hitch slows a frame instead of jumping a cascade to its end. Only the newest ticker drives, so a StrictMode double mount can't double the speed.
-- **`src/render/input.ts`**: `attachInput(app, board, tray, handlers)` turns `pointertap` on the stage into `tapCell` or `tapSlot` via `BoardView.cellAt` and `TrayView.slotAt`.
+- **`src/render/input.ts`**: `attachInput(app, board, tray, handlers)` turns pointer gestures on the stage into `tapCell`, `tapSlot`, `swap` or `place` via `BoardView.cellAt` and `TrayView.slotAt`. Only the first pointer counts; pointer capture plus window-level move/up/cancel listeners let a drag leave the canvas and still finish or cancel; the canvas has `touch-action: none`. While a drag is under way the grabbed piece follows the pointer (dominant axis, capped at `DRAG.maxOffsetCells`, never toward a board edge) by shifting its `pivot`, which the script player never writes. On a swap the offset eases to zero over `ANIM.swapMs` while the player's tween runs from the cell, so the piece never snaps; a cancelled or ignored drag eases home over `ANIM.dragReturnMs`. Nothing is drawn while `controller.canAcceptInput` is false (a move playing, AI mode, game over). `scripts/input-check.ts` drives mouse, touch, tap, invalid and busy cases in Playwright against the dev server.
 - **`src/render/BoardView.ts`, `TrayView.ts`, `PieceSprite.ts`, `textures.ts`, `layout.ts`**: the masked board panel and its sprites keyed by engine id, the tray strip, textures drawn from vector code at the device pixel ratio (rebuilt when the cell size changes) with a pre-rendered halo per piece type for the breathing glow, and the pure layout.
 - **`src/audio/cues.ts`** declares `CueName` and the `CueSink` the player sends cues to; the game uses a silent sink until the sound engine exists.
 - **Planned:** particle, blast and shake effects (the player already calls the `Effects` port, a no-op for now), drag and swipe, and the hint layer.

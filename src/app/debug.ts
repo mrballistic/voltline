@@ -8,7 +8,7 @@ import type { BoardView } from '../render/BoardView';
 import type { TrayView } from '../render/TrayView';
 import type { GameController } from './controller';
 
-/** One sprite as drawn in one frame, in canvas CSS px. */
+/** One sprite as drawn in one frame, in canvas CSS px (position less pivot, so a dragged piece shows its offset). */
 export interface SpriteSample { id: number; x: number; y: number; sx: number; sy: number; alpha: number; visible: boolean }
 export interface FrameSample { t: number; sprites: SpriteSample[] }
 
@@ -32,7 +32,7 @@ export function installDebugHandle(deps: { app: Application; board: BoardView; t
     frames?.push({
       t: performance.now(),
       sprites: board.allSprites().map((s) => ({
-        id: s.id, x: s.x, y: s.y, sx: s.scale.x, sy: s.scale.y, alpha: s.alpha, visible: s.visible,
+        id: s.id, x: s.x - s.pivot.x, y: s.y - s.pivot.y, sx: s.scale.x, sy: s.scale.y, alpha: s.alpha, visible: s.visible,
       })),
     });
   };

@@ -1,6 +1,7 @@
 // Every animation timing value (spec §6.2). Tune the feel here and nowhere else.
 export const ANIM = {
   swapMs: 180,
+  dragReturnMs: 120, // a grabbed piece easing back to its cell after a cancelled or ignored drag
   invalidMs: 160,
   popGrowMs: 110,
   popScale: 1.15,
@@ -32,3 +33,6 @@ export const ANIM = {
 export function fallDurationMs(cells: number): number {
   return 1000 * Math.sqrt((2 * cells) / ANIM.gravity);
 }
+
+/** Drag input geometry, in cells: a drag past `thresholdCells` swaps, and the grabbed piece follows the pointer up to `maxOffsetCells`. */
+export const DRAG = { thresholdCells: 0.3, maxOffsetCells: 0.5 } as const;
