@@ -144,18 +144,27 @@ class Planner {
   }
 
   // Matched cells pop at the round start; blasted cells pop when their blast reaches them.
+  // A blast seeded on a special created this step (a prism-converted gem) waits `createMs`
+  // so its morph shows first; blasts it chains into inherit that delay.
   private clear(s: ClearStep): void {
     const start = this.t;
     let end = start + POP_MS;
+    const createdAt = new Set(s.created.map((c) => keyOf(c.at)));
     const hitAt = new Map<string, number>();
+    const delayOf = new Map<string, number>(); // cell → delay of the blast that claimed it
     for (const b of s.blasts) {
-      const fireAt = start + b.order * ANIM.blastStaggerMs;
+      // Blasts arrive breadth-first, so a chained blast's parent (whoever claimed its cell) is already in.
+      const own = createdAt.has(keyOf(b.at)) ? ANIM.createMs : 0;
+      const inherited = b.order > 0 ? (delayOf.get(keyOf(b.at)) ?? 0) : 0;
+      const delay = Math.max(own, inherited);
+      const fireAt = start + delay + b.order * ANIM.blastStaggerMs;
       const durMs = blastDurationMs(b);
       this.put(fireAt, durMs, { a: 'blast', blast: b });
       this.cue(fireAt, BLAST_CUE[b.kind]);
       b.cells.forEach((c, i) => {
         const k = keyOf(c);
         if (!hitAt.has(k)) hitAt.set(k, fireAt + hitOffsetMs(b, i));
+        if (!delayOf.has(k)) delayOf.set(k, delay);
       });
       end = Math.max(end, fireAt + durMs);
     }

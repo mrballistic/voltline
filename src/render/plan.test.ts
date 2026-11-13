@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BOARD_SIZE, applyMove, newGame, productiveMoves } from '../engine';
 import type { Blast, Cleared, Color, Piece, Pos, Spawn, Step } from '../engine';
+import { boardWith, makeState } from '../engine/testing';
 import { ANIM, fallDurationMs } from './constants';
 import { planScript } from './plan';
 import type { Action, Planned } from './plan';
@@ -137,6 +138,51 @@ describe('planScript', () => {
     expect(cues(items, 'prism-supernova').map((p) => p.atMs)).toEqual([ANIM.blastStaggerMs]);
     expect(Number.isFinite(totalMs)).toBe(true);
     for (const p of items) expect(Number.isFinite(p.atMs) && Number.isFinite(p.durMs)).toBe(true);
+  });
+
+  it('prism-converted specials morph first and detonate createMs later', () => {
+    const charge = (id: number): Piece => ({ id, kind: 'gem', color: 'red', special: 'charge' });
+    const blasts: Blast[] = [
+      // Seeds on just-converted charges, and an arc one of them chains into.
+      { kind: 'charge', at: at(2, 2), cells: [at(2, 2), at(2, 3)], order: 0 },
+      { kind: 'charge', at: at(5, 5), cells: [at(5, 5)], order: 0 },
+      { kind: 'arc', at: at(2, 3), cells: [at(2, 7)], order: 1 },
+      // A seed that was not created this step keeps its normal time.
+      { kind: 'charge', at: at(7, 0), cells: [at(7, 1)], order: 0 },
+    ];
+    const step = clear(
+      [blasted(1, 0, 0, 'prism'), blasted(2, 2, 2), blasted(3, 2, 3), blasted(4, 5, 5), blasted(5, 2, 7), blasted(6, 7, 1)],
+      { blasts, created: [{ at: at(2, 2), piece: charge(2) }, { at: at(5, 5), piece: charge(4) }] },
+    );
+    const { items } = planScript([swap, step]);
+    const start = ANIM.swapMs;
+    const late = start + ANIM.createMs;
+    expect(of(items, 'blast').map((p) => p.atMs)).toEqual([start, late, late, late + ANIM.blastStaggerMs]);
+    expect(of(items, 'blast').find((p) => p.action.blast === blasts[3])!.atMs).toBe(start);
+    expect(cues(items, 'charge-blast').map((p) => p.atMs)).toEqual([start, late, late]);
+    expect(cues(items, 'arc-blast').map((p) => p.atMs)).toEqual([late + ANIM.blastStaggerMs]);
+    const popAt = (id: number) => of(items, 'pop').find((p) => p.action.id === id)!.atMs;
+    expect([popAt(2), popAt(3), popAt(4), popAt(5), popAt(6)]).toEqual([late, late, late, late + ANIM.blastStaggerMs, start]);
+    expect(popAt(1)).toBe(start); // the spent prism, claimed by no blast
+    for (const m of of(items, 'morph')) expect(m).toMatchObject({ atMs: start, durMs: ANIM.createMs });
+    const fallStart = late + ANIM.blastStaggerMs + POP_MS;
+    expect(planScript([swap, step, refill]).items.find((p) => p.action.a === 'fall')!.atMs).toBe(fallStart);
+  });
+
+  it('a real prism + charge swap detonates its converted charges after the morph', () => {
+    const state = makeState(boardWith({ '0,0': 'P', '0,1': 'Rc' }));
+    const { script } = applyMove(state, { type: 'swap', a: at(0, 0), b: at(0, 1) });
+    const first = script.find((s) => s.t === 'clear')!;
+    if (first.t !== 'clear') throw new Error('expected a clear');
+    expect(first.created.length).toBeGreaterThan(1);
+    const { items } = planScript(script);
+    const opening = of(items, 'blast').filter((p) => first.blasts.includes(p.action.blast));
+    expect(opening).toHaveLength(first.blasts.length);
+    for (const p of opening) {
+      expect(p.atMs).toBe(ANIM.swapMs + ANIM.createMs + p.action.blast.order * ANIM.blastStaggerMs);
+    }
+    const morphs = of(items, 'morph').filter((p) => first.created.some((c) => c.piece.id === p.action.id));
+    for (const m of morphs) expect(m.atMs).toBe(ANIM.swapMs);
   });
 
   it('invalid swap is out-and-back with cue at the back leg', () => {
