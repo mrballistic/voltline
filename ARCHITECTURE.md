@@ -156,6 +156,8 @@ Engine tests cover matches (3/4/5, L/T), specials and priority, blasts and chain
 - **Release steps:** bump `version` in `package.json`, rename `## Unreleased` in `CHANGELOG.md` to `## <version> (date)`, merge to main, then `git tag -a vX.Y.Z -m "…" && git push origin vX.Y.Z`.
 - **Dependabot** updates npm and actions monthly, holding TypeScript and `@types/node` majors.
 
+The site has no client-side routes, so Apache has no SPA fallback: any unknown path returns a real 404 status with `public/404.html` (a self-contained page with inline CSS and no script, shipped to `dist/404.html`; `ErrorDocument 404`). Missing `/assets` and `/audio` files therefore 404 too, which the audio loader relies on. The deploy smoke test checks both.
+
 Server layout, the deploy user, secrets, one-time setup and rollback are in [DEPLOY.md](./DEPLOY.md).
 
 ## Conventions

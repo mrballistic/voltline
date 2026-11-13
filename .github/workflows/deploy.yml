@@ -128,8 +128,9 @@ jobs:
       # Saved to files rather than piped into grep -q: under pipefail, grep
       # exiting early can SIGPIPE curl and fail a healthy check. The asset
       # name comes from the freshly built dist/index.html, and Apache answers
-      # a missing /assets file with 404 (not the index.html fallback), so a
-      # 200 with a javascript type proves the new bundle is really live.
+      # a missing /assets file with 404 (there is no index.html fallback), so a
+      # 200 with a javascript type proves the new bundle is really live. An
+      # unknown path must also be a real 404 carrying the 404 page.
       - name: Smoke test the public site
         run: |
           curl -fsS -o "$RUNNER_TEMP/index.html" "$SITE_URL/"
@@ -142,6 +143,10 @@ jobs:
             "200 "*javascript*) ;;
             *) echo "::error::$asset did not come back as 200 JavaScript."; exit 1 ;;
           esac
+          status=$(curl -sS -o "$RUNNER_TEMP/404.html" -w '%{http_code}' "$SITE_URL/definitely-not-a-page")
+          echo "/definitely-not-a-page -> $status"
+          test "$status" = 404 || { echo "::error::An unknown path did not return 404."; exit 1; }
+          grep -q '<title>404 · No moves left · Voltline</title>' "$RUNNER_TEMP/404.html" || { echo "::error::The 404 page body is wrong."; exit 1; }
 
   # After the deploy, so a release exists only for a version that is live. Its
   # notes are that version's CHANGELOG section. A release that already exists

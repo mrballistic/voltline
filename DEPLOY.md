@@ -58,7 +58,7 @@ CI also runs on every PR to `main` and every push to `main`. The Playwright brow
 | Logs | `/var/log/apache2/voltline-{access,error}.log` |
 | Node on the server | Not needed. The site is built in CI; the server only holds the output. |
 
-Apache serves static files only: no proxy modules, no `.htaccess` (`AllowOverride None`). The vhost sets `FallbackResource /index.html`, a year-long immutable cache for hashed bundles and sounds (matched by file extension; `/assets` and `/audio` answer 404 for missing files instead of falling back), `no-cache` for `index.html`, HSTS, `nosniff`, a referrer policy, MIME types for `.webm` and `.m4a`, and a Content-Security-Policy matching the desktop app's: `default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:`.
+Apache serves static files only: no proxy modules, no `.htaccess` (`AllowOverride None`). The vhost has no SPA fallback (Voltline has no client-side routes): any unknown path returns a real 404 status with the funny `404.html` (`ErrorDocument 404 /404.html`), a year-long immutable cache for hashed bundles and sounds (matched by file extension), `no-cache` for `index.html` and `404.html`, HSTS, `nosniff`, a referrer policy, MIME types for `.webm` and `.m4a`, and a Content-Security-Policy matching the desktop app's: `default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:`.
 
 ### The deploy user
 
@@ -168,7 +168,7 @@ What carried over from the initech pipeline and applies to a static site.
 - **certbot's generated 443 vhost is unreliable.** It copies the port-80 vhost, so a redirect-only port-80 vhost yields a redirect-only 443 vhost: an infinite https to https loop. Always replace it with `deploy/apache-voltline-le-ssl.conf`.
 - **Keep the ACME path out of the redirect.** The port-80 vhost redirects everything except `/.well-known/acme-challenge/`, so renewals keep working. Check with `sudo certbot renew --dry-run`.
 - **`index.html` goes last.** Uploading it first would serve a page whose hashed assets are not there yet. The workflow's two-pass rsync exists for this.
-- **A missing asset must 404.** `FallbackResource` would answer any unknown path with `index.html` as a 200, so the vhost disables it under `/assets` and `/audio`, and the cache header is matched by file extension, not URL. Otherwise HTML could be served (and cached for a year) as a JS module or a sound.
+- **A missing asset must 404.** The vhost has no `FallbackResource`, so any unknown path, including a missing file under `/assets` or `/audio`, answers 404 (with `404.html` as the body). Never add a fallback to `index.html`: HTML would be served as a JS module or a sound, and the audio loader relies on the status. The cache header is matched by file extension, not URL, so the error page never gets the immutable header.
 - **The deploy user has no sudo, on purpose.** If a future step needs Apache config or certbot, do it by hand as your admin account instead of widening the deploy user.
 - **ssh only offers keys it knows about.** A key with a non-default filename needs a `Host` entry with `IdentityFile` in `~/.ssh/config`; without one, ssh falls back to a password prompt, which the server refuses.
 - **ssh flattens its arguments into one string.** `ssh host bash -s -- "$PUBKEY"` splits the key at its spaces on the far side, which silently wrote a broken `authorized_keys` once. Copy files with `scp` instead.
