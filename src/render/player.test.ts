@@ -6,8 +6,10 @@ import type { Color, GameState, Move, Step } from '../engine';
 import type { CueName } from '../audio/cues';
 import { createAIClient } from '../ai/client';
 import { GameController } from '../app/controller';
-import { noopEffects } from '../app/ports';
+import { fixture } from '../app/devFixtures';
+import { noopEffects, type Effects } from '../app/ports';
 import { BoardView } from './BoardView';
+import type { PieceSprite } from './PieceSprite';
 import { ANIM } from './constants';
 import { computeLayout } from './layout';
 import type { Action } from './plan';
@@ -35,7 +37,7 @@ const frame = () => {
 interface Sample { y: number; sx: number; sy: number }
 type Frame = Map<number, Sample>;
 
-function rig() {
+function rig(opts: { effects?: Effects; reducedMotion?: boolean } = {}) {
   const board = new BoardView(tex, true);
   const tray = new TrayView(tex, true);
   const layout = computeLayout(600, 700);
@@ -45,7 +47,7 @@ function rig() {
   const cues: CueName[] = [];
   let frames = 0;
   const player = new ScriptPlayer({
-    board, tray, effects: noopEffects, reducedMotion: false,
+    board, tray, effects: opts.effects ?? noopEffects, reducedMotion: opts.reducedMotion ?? false,
     audio: { cue: (name) => cues.push(name) },
     onAction: (action) => actions.push({ frame: frames, action }),
   });
@@ -222,26 +224,121 @@ describe('ScriptPlayer', () => {
     expect(r.cues.at(-1)).toBe('game-over');
   });
 
-  it('an invalid swap goes out and comes back', async () => {
+  /** Plays an invalid swap of (0,0)-(0,1), returning the x of both sprites on every frame. */
+  async function invalidSwap(rr: ReturnType<typeof rig>) {
     const state = newGame(5);
-    await deal(r, state);
+    await deal(rr, state);
     const a = { row: 0, col: 0 };
     const b = { row: 0, col: 1 };
     const ids: [number, number] = [state.board[0][0]!.id, state.board[0][1]!.id];
-    const s0 = r.board.sprite(ids[0])!;
-    const x0 = s0.x;
-    let maxX = x0;
-    const p = r.player.play([{ t: 'swap-invalid', a, b, ids }], state);
+    const s0 = rr.board.sprite(ids[0])!;
+    const s1 = rr.board.sprite(ids[1])!;
+    const rest = [s0.x, s1.x];
+    const xs: [number, number][] = [];
+    const p = rr.player.play([{ t: 'swap-invalid', a, b, ids }], state);
     let done = false;
     void p.then(() => { done = true; });
     for (let i = 0; i < 100 && !done; i++) {
       frame();
-      maxX = Math.max(maxX, s0.x);
+      xs.push([s0.x, s1.x]);
       await Promise.resolve();
     }
     expect(done).toBe(true);
-    expect(maxX).toBeCloseTo(r.board.cellXY(0, 1).x, 0);
-    expect(s0.x).toBe(x0);
+    return { xs, rest, end: [s0.x, s1.x], cellX1: rr.board.cellXY(0, 1).x, cellPx: rr.board.cellPx };
+  }
+
+  it('an invalid swap goes out, comes back, and shakes both pieces on return', async () => {
+    const { xs, rest, end, cellX1, cellPx } = await invalidSwap(r);
+    expect(Math.max(...xs.map((x) => x[0]))).toBeCloseTo(cellX1, 0);
+    expect(end).toEqual(rest);
+    // After the back leg (no earlier), each piece swings both sides of its cell, within the amplitude.
+    const backFrame = Math.ceil((2 * ANIM.invalidMs) / FRAME_MS);
+    const amp = ANIM.invalidShake.cells * cellPx;
+    for (const k of [0, 1]) {
+      const after = xs.slice(backFrame).map((x) => x[k] - rest[k]);
+      expect(Math.min(...after)).toBeLessThan(-amp / 4);
+      expect(Math.max(...after)).toBeGreaterThan(amp / 4);
+      for (const d of after) expect(Math.abs(d)).toBeLessThanOrEqual(amp + 1e-6);
+    }
+    // The shake fits in its own budget after the two legs.
+    expect(xs.length).toBeLessThanOrEqual(Math.ceil((2 * ANIM.invalidMs + ANIM.invalidShake.ms) / FRAME_MS) + 2);
+  });
+
+  it('reduced motion drops the invalid-swap shake', async () => {
+    const rr = rig({ reducedMotion: true });
+    const { xs, rest, end } = await invalidSwap(rr);
+    expect(end).toEqual(rest);
+    expect(Math.min(...xs.map((x) => x[0]))).toBeGreaterThanOrEqual(rest[0] - 1e-6);
+    expect(xs.length).toBeLessThanOrEqual(Math.ceil((2 * ANIM.invalidMs) / ANIM.reducedMotionTimeScale / FRAME_MS) + 2);
+  });
+
+  /** Effects that record every call; blast promises never resolve, so a play awaiting one would hang. */
+  function recordingEffects() {
+    const calls = {
+      pops: [] as { at: { x: number; y: number }; color: number }[],
+      blasts: [] as string[],
+      shakes: [] as [number, number][],
+      morphs: [] as PieceSprite[],
+    };
+    const effects: Effects = {
+      pop: (at, color) => calls.pops.push({ at, color }),
+      blast: (b) => { calls.blasts.push(b.kind); return new Promise(() => {}); },
+      shake: (px, ms) => calls.shakes.push([px, ms]),
+      morph: (s) => calls.morphs.push(s),
+    };
+    return { effects, calls };
+  }
+
+  it('fires pops, blasts and shakes from the timeline without waiting on them', async () => {
+    for (const name of ['charge', 'supernova'] as const) {
+      const { effects, calls } = recordingEffects();
+      const rr = rig({ effects });
+      const { state, move } = fixture(name);
+      await deal(rr, state);
+      const { script, state: next } = applyMove(state, move);
+      await rr.run(rr.player.play(script, next));
+      const clears = script.filter((s): s is Extract<Step, { t: 'clear' }> => s.t === 'clear');
+      expect(calls.pops).toHaveLength(clears.reduce((n, c) => n + c.cleared.length, 0));
+      expect(calls.blasts).toEqual(clears.flatMap((c) => c.blasts.map((b) => b.kind)));
+      const first = clears[0];
+      if (name === 'charge') {
+        expect(calls.shakes).toEqual(first.blasts.map(() => [ANIM.chargeShake.px, ANIM.chargeShake.ms]));
+        // Each spark burst is at its cell, in its piece's color.
+        const c0 = first.cleared[0];
+        const xy = rr.board.cellXY(c0.at.row, c0.at.col);
+        expect(calls.pops.some((p) => p.at.x === xy.x && p.at.y === xy.y)).toBe(true);
+      } else {
+        expect(calls.shakes).toContainEqual([ANIM.supernovaShake.px, ANIM.supernovaShake.ms]);
+      }
+    }
+  });
+
+  it('reduced motion never asks for a screen shake', async () => {
+    const { effects, calls } = recordingEffects();
+    const rr = rig({ effects, reducedMotion: true });
+    const { state, move } = fixture('charge');
+    await deal(rr, state);
+    const { script, state: next } = applyMove(state, move);
+    await rr.run(rr.player.play(script, next));
+    expect(calls.blasts.length).toBeGreaterThan(0);
+    expect(calls.shakes).toEqual([]);
+  });
+
+  it('a new special flares through effects.morph', async () => {
+    const { effects, calls } = recordingEffects();
+    const rr = rig({ effects });
+    for (let seed = 1; seed < 300; seed++) {
+      const state = newGame(seed);
+      const move = productiveMoves(state).find((m) => applyMove(state, m).script.some((s) => s.t === 'clear' && s.created.length > 0));
+      if (!move) continue;
+      await deal(rr, state);
+      const { script, state: next } = applyMove(state, move);
+      await rr.run(rr.player.play(script, next));
+      const created = script.flatMap((s) => (s.t === 'clear' ? s.created.map((c) => c.piece.id) : []));
+      expect(calls.morphs.map((s) => s.id)).toEqual(created);
+      return;
+    }
+    throw new Error('no fixture creates a special');
   });
 
   it('a tray placement swaps the piece in and empties the slot', async () => {

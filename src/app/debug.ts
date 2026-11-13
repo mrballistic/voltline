@@ -23,6 +23,10 @@ export interface DebugHandle {
   stop(): FrameSample[];
   /** Global GSAP time scale, for slow-motion frame captures. */
   timeScale(k: number): void;
+  /** Starts timing each frame's work (tweens, effects and render, on the main thread). */
+  profile(): void;
+  /** Stops profiling; returns each frame's work in ms. */
+  stopProfile(): number[];
 }
 
 export function installDebugHandle(deps: { app: Application; board: BoardView; tray: TrayView; controller: GameController }): () => void {
@@ -38,6 +42,14 @@ export function installDebugHandle(deps: { app: Application; board: BoardView; t
   };
   // After the render, so a sample is exactly what that frame drew.
   app.ticker.add(sample, undefined, UPDATE_PRIORITY.UTILITY);
+
+  // Frame work: from before anything else on the ticker (GSAP runs at HIGH) to after the render.
+  let work: number[] | null = null;
+  let tickStart = 0;
+  const workStart = () => { tickStart = performance.now(); };
+  const workEnd = () => { work?.push(performance.now() - tickStart); };
+  app.ticker.add(workStart, undefined, UPDATE_PRIORITY.INTERACTION + 1);
+  app.ticker.add(workEnd, undefined, UPDATE_PRIORITY.UTILITY);
 
   const handle: DebugHandle = {
     controller,
@@ -68,10 +80,20 @@ export function installDebugHandle(deps: { app: Application; board: BoardView; t
     timeScale(k) {
       gsap.globalTimeline.timeScale(k);
     },
+    profile() {
+      work = [];
+    },
+    stopProfile() {
+      const out = work ?? [];
+      work = null;
+      return out;
+    },
   };
   (window as unknown as { __voltline?: DebugHandle }).__voltline = handle;
   return () => {
     app.ticker.remove(sample);
+    app.ticker.remove(workStart);
+    app.ticker.remove(workEnd);
     delete (window as unknown as { __voltline?: DebugHandle }).__voltline;
   };
 }

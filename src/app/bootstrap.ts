@@ -3,18 +3,19 @@
 // Pixi's eval-free shader/uniform path, needed under the strict CSP (no 'unsafe-eval') that
 // production and the desktop app serve. Must load before the Application is created.
 import 'pixi.js/unsafe-eval';
-import { Application } from 'pixi.js';
+import { Application, Container } from 'pixi.js';
 import { createAIClient } from '../ai/client';
 import { silentCues } from '../audio/cues';
 import { BoardView } from '../render/BoardView';
 import { driveGsapFrom } from '../render/clock';
+import { PixiEffects } from '../render/effects';
 import { attachInput } from '../render/input';
 import { computeLayout } from '../render/layout';
 import { ScriptPlayer } from '../render/player';
 import { buildTextures, type PieceTextures } from '../render/textures';
 import { TrayView } from '../render/TrayView';
 import { GameController, type UiSnapshot } from './controller';
-import { noopEffects, type HintViewLike, type Prefs, type PrefsStore } from './ports';
+import type { HintViewLike, Prefs, PrefsStore } from './ports';
 
 export interface GameHandle {
   controller: GameController;
@@ -86,8 +87,17 @@ export async function createGame(
     }
   };
 
+  // Effects draw above the board and tray, unmasked; shakes move the whole stage.
+  const fxLayer = new Container();
+  app.stage.addChild(fxLayer);
+  const effects = new PixiEffects(fxLayer, app.stage, reducedMotion, { cellPx: () => board.cellPx });
+  // Dev only: `?fixture=charge|arc|prism|supernova` starts one swap away from that effect.
+  const initial = import.meta.env.DEV
+    ? (await import('./devFixtures')).fixtureFromSearch(window.location.search)
+    : undefined;
+
   const player = new ScriptPlayer({
-    board, tray, effects: noopEffects, audio: silentCues, reducedMotion,
+    board, tray, effects, audio: silentCues, reducedMotion,
     onAction: (a) => controller.onAction(a),
   });
   const controller: GameController = new GameController({
@@ -96,6 +106,7 @@ export async function createGame(
     hint: noHint,
     prefs: sessionPrefs(),
     seed: opts.seed,
+    initial,
     doc: document,
     onChange: (s) => {
       showSelection(s);
@@ -142,6 +153,7 @@ export async function createGame(
       stopInput();
       controller.dispose();
       player.dispose();
+      effects.destroy();
       observer.disconnect();
       app.renderer.off('resize', relayout);
       stopClock();

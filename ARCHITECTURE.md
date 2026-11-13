@@ -2,7 +2,7 @@
 
 How Voltline is put together. For what the game is and how to play it, see [README.md](./README.md). Sound provenance is in [CREDITS.md](./CREDITS.md).
 
-Voltline is a work in progress. The rules engine, the search AI, the renderer and a click-to-play controller exist and are tested. Effects, drag input, the hint layer, the sound engine, the MUI chrome and the desktop app are **planned** and marked as such below. The design is in `docs/superpowers/specs/2026-11-13-voltline-rebuild-design.md` and the task plan in `docs/superpowers/plans/2026-11-13-voltline-rebuild.md`.
+Voltline is a work in progress. The rules engine, the search AI, the renderer with its effects and a click-to-play controller exist and are tested. Drag input, the hint layer, the sound engine, the MUI chrome and the desktop app are **planned** and marked as such below. The design is in `docs/superpowers/specs/2026-11-13-voltline-rebuild-design.md` and the task plan in `docs/superpowers/plans/2026-11-13-voltline-rebuild.md`.
 
 - [Overview](#overview)
 - [From tap to animation](#from-tap-to-animation)
@@ -87,12 +87,19 @@ PixiJS 8 draws the board; GSAP timelines move it, on one clock.
   - Fall and spawn tweens are `power2.in` over `√(2d/g)` on the row only, which is exactly constant gravity. A spawned sprite is created when its fall starts, at its `fromRow` above the masked top edge, so refills enter one cell apart as if the column continued upward.
   - `land` squashes to `ANIM.landSquash` with the bottom planted, rebounds `landReboundCells` and settles (`ANIM.landPhases` split `landMs`); no `bounce` ease.
   - Pops swell to `popScale` and collapse to nothing, and the sprite is released when the pop ends. Morphs restyle the sprite in place. Tray flights, placements and lost pieces are loose sprites in the unmasked tray layer.
+  - An invalid swap ends with both pieces shaking side to side on their cells (`ANIM.invalidShake`, after the back leg; none with reduced motion).
+  - Effects are called from the timeline and never awaited: a spark burst as each pop peaks, `blast` when a blast fires (its promise is ignored; the pops it causes are already planned), `morph` when a special is made, and a screen shake for Charge (`chargeShake`) and supernova (`supernovaShake`) blasts unless reduced motion is on.
   - Selection and the idle glow animate the sprite's own children (`PieceSprite`), never the properties a timeline drives.
 - **`src/render/clock.ts`**: `driveGsapFrom(ticker)` unhooks GSAP's own requestAnimationFrame loop and steps GSAP from Pixi's ticker (high priority, before the render) by the ticker's capped `deltaMS`. Every tween and every frame share one clock, and a hitch slows a frame instead of jumping a cascade to its end. Only the newest ticker drives, so a StrictMode double mount can't double the speed.
+- **`src/render/effects.ts`**: `PixiEffects` implements the `Effects` port on its own layer above the board and tray (unmasked, so sparks can fly past the edge); `shake` jitters the whole stage and puts it back. Everything is additive and drawn from fixed pools made up front (`ANIM.fx.sparkPool` sparks, `decalPool` rings, flashes and beams, `boltPool` lightning `Graphics`), so nothing is allocated per frame and a pool running dry just draws less. Soft white textures (spark, glow, ring, beam, flash) are drawn once on a 2D canvas and tinted per use.
+  - **Pop:** `ANIM.sparks` sparks (8–14) in the piece color, some half-way to white for hot cores, each a streak along its velocity under drag and a little gravity, in closed form over time so a slow frame can't throw one off course.
+  - **Charge:** a 3×3 flash, a hot core, two shockwave rings, electric sparks and short lightning crackles. **Arc:** four half-beams from the Arc to each board edge at one speed, the longest arriving at `arcBeamMs`, with glowing heads, then a fade. **Prism:** a jagged bolt from the Prism to each target, `prismBoltStaggerMs` apart, re-jagged as it flickers out, with an impact glow. **Supernova:** all the Prism's bolts in rainbow colors, a whole-board flash at detonation and again as the last bolt lands, and a wide shockwave. **Morph:** a ring and sparks in the new special's color (rainbow for a Prism).
+  - Motion runs on GSAP tweens, so it shares the board's clock and follows the global time scale in slow-motion captures. Reduced motion halves every spark count and turns `shake` into a no-op. Effect-only values live in `ANIM.fx`; none of them delays a play.
 - **`src/render/input.ts`**: `attachInput(app, board, tray, handlers)` turns `pointertap` on the stage into `tapCell` or `tapSlot` via `BoardView.cellAt` and `TrayView.slotAt`.
 - **`src/render/BoardView.ts`, `TrayView.ts`, `PieceSprite.ts`, `textures.ts`, `layout.ts`**: the masked board panel and its sprites keyed by engine id, the tray strip, textures drawn from vector code at the device pixel ratio (rebuilt when the cell size changes) with a pre-rendered halo per piece type for the breathing glow, and the pure layout.
 - **`src/audio/cues.ts`** declares `CueName` and the `CueSink` the player sends cues to; the game uses a silent sink until the sound engine exists.
-- **Planned:** particle, blast and shake effects (the player already calls the `Effects` port, a no-op for now), drag and swipe, and the hint layer.
+- **Dev fixtures** (`src/app/devFixtures.ts`, dev build only): `?fixture=charge|arc|prism|supernova` starts the game one swap from that effect (the charge one chains three Charges). `bootstrap.ts` loads it behind `import.meta.env.DEV`, so it isn't in a production bundle. The dev debug handle (`src/app/debug.ts`) also has `profile()`/`stopProfile()`, which time each frame's main-thread work from the first ticker callback to the end of the render.
+- **Planned:** drag and swipe, and the hint layer.
 
 ## Sound
 
@@ -109,7 +116,7 @@ Planned: wiring the engine into the player, hints, controller and header (mute a
 
 - **`src/app/bootstrap.ts`**: `createGame(host, { seed, onChange })` creates the Pixi application (or, if it can't, destroys the half-made one and throws `GraphicsUnavailableError`), drives GSAP from its ticker, builds the board and tray views, the `ScriptPlayer`, the `GameController` and tap input, and deals the first board. On resize it recomputes the layout, rebuilds textures for a new cell size, calls `setLayout` on both views, then `controller.relayout()`, which waits for the running timeline to finish. It draws the selection on the selected sprite from each `UiSnapshot`. Returns `{ controller, destroy() }`.
 - **`src/app/controller.ts`**: `GameController` is plain TypeScript, no React. It owns the `GameState`, applies moves, plays their scripts, and publishes a `UiSnapshot` (displayed score, level and progress, tray, notices, selection, busy, AI settings, best scores) through `onChange`. A second move while one is playing is dropped; `newGame()` waits for the current move; a hint ranked for an older state is discarded. The best score for the game's kind is saved when a game ends (game over or New Game). AI mode currently only blocks player input; its loop arrives with the hint layer.
-- **`src/app/ports.ts`**: the interfaces later pieces implement: `Effects` (with `noopEffects`), `HintViewLike`, `AISpeed`, `Prefs` and `PrefsStore`. Until persistence lands, bootstrap keeps prefs in memory for the session and the hint view is a no-op.
+- **`src/app/ports.ts`**: the interfaces later pieces implement: `Effects` (with `noopEffects`, used by tests; the game uses `PixiEffects`), `HintViewLike`, `AISpeed`, `Prefs` and `PrefsStore`. Until persistence lands, bootstrap keeps prefs in memory for the session and the hint view is a no-op.
 - **`src/app/debug.ts`** (dev builds only, loaded behind `import.meta.env.DEV`): `window.__voltline` exposes the controller, board geometry, a cascading move finder, per-frame sprite sampling and the GSAP time scale, for `scripts/feel-check.ts`.
 - **`src/components/BoardCanvas.tsx`**: the React host element for the canvas. If `createGame` fails it shows “Voltline couldn’t start the graphics. Try another browser.” in the canvas area.
 
@@ -144,13 +151,13 @@ src/
   engine/        types, rules, rng, matches, board, gravity, specials, scoring,
                  tray, moves, resolve, testing (fixture helpers), index (public API)
   ai/            weights, hash, search (rankMoves), worker, client
-  render/        constants, plan, player, clock, input, layout, textures,
+  render/        constants, plan, player, effects, clock, input, layout, textures,
                  PieceSprite, BoardView, TrayView
   audio/         cues (cue names, CueSink)
-  app/           bootstrap, controller, ports, debug (dev only)
+  app/           bootstrap, controller, ports, debug and devFixtures (dev only)
   components/    BoardCanvas
   App.tsx, main.tsx   page shell
-scripts/         bench.ts, feel-check.ts, screenshot-board.ts, board-showcase.*,
+scripts/         bench.ts, feel-check.ts, effects-check.ts, screenshot-board.ts, board-showcase.*,
                  make-sound-sheet.py, sound-credits.py
 audio-src/       supplied sounds and voltline-sounds.xlsx
 docs/superpowers/  design spec and implementation plan
@@ -185,13 +192,19 @@ Coverage thresholds (lines 90, branches 85, functions 90) apply to `src/engine/*
 
 Engine tests cover matches (3/4/5, L/T), specials and priority, blasts and chaining, Prism rules, gravity and refills, rock spawning, tray rules, scoring, levels, game over and replay determinism. AI tests check that it never returns an illegal move, picks the known best move on fixtures, and does not depend on hidden randomness. Board fixtures come from `parseBoard` and `boardToString` in `src/engine/testing.ts`.
 
-Planner tests pin every timing guarantee listed under [The renderer](#the-renderer). Player tests (`src/render/player.test.ts`) step GSAP by hand at 60 fps over real Pixi containers and real engine cascades, and check that every fall and refill in a round starts on the same frame, falls monotonically and accelerating, never shows at its destination early, enters one cell apart above the top edge, lands with a squash and rebound, and never overlaps another piece. Controller tests use a fake player that holds each play until released (input while busy, invalid swaps, displayed score, tray placement, New Game mid-move, deferred relayout, best scores).
+Planner tests pin every timing guarantee listed under [The renderer](#the-renderer). Player tests (`src/render/player.test.ts`) step GSAP by hand at 60 fps over real Pixi containers and real engine cascades, and check that every fall and refill in a round starts on the same frame, falls monotonically and accelerating, never shows at its destination early, enters one cell apart above the top edge, lands with a squash and rebound, and never overlaps another piece. Player tests also check that pops, blasts, morphs and shakes go through the `Effects` port without the play waiting on them (a blast promise that never settles), the invalid-swap shake, and that reduced motion asks for no shake. Effects tests (`src/render/effects.test.ts`) step GSAP the same way over real Pixi containers with stub textures: spark counts and colors, the fixed pools, reduced motion, shake bounds and reset, each blast kind's shape (Charge ring and flash, Arc beams reaching the edges by `arcBeamMs`, staggered Prism bolts, the supernova's board flash), and clean teardown. Controller tests use a fake player that holds each play until released (input while busy, invalid swaps, displayed score, tray placement, New Game mid-move, deferred relayout, best scores).
 
 In the browser, with `npm run dev` running:
 
 ```bash
 npx tsx scripts/feel-check.ts [baseUrl] [outDir]      # fall physics from per-frame sprite samples, 12 clicked moves, slow-motion frames
 npx tsx scripts/screenshot-board.ts [baseUrl] [outDir] # static board, breathing and resize screenshots (--csp against npm run preview)
+npx tsx scripts/effects-check.ts [baseUrl] [outDir]   # slow-motion frames and contact sheets of each effect fixture, then the supernova frame check
+```
+
+The effects check fails if, over 2 s of the supernova at full speed, any frame is dropped or the 95th-percentile frame work is 16.7 ms or more. It gates on frame work rather than the rAF delta because with vsync on every delta reads ~16.7 ms however cheap the frame. On an Apple Silicon Mac (headless Chromium, Metal, 2× DPR): 120 frames, rAF delta p95 16.8 ms, 0 dropped, frame work p50 0.7–1.3 ms and p95 1.2–2.7 ms.
+
+```bash
 ```
 
 ## CI, deploy and release

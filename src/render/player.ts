@@ -5,9 +5,12 @@
 // BoardView.cellXY on every update, so a fall is measured in real cells and a resize mid-cascade
 // moves nothing off course. Fall and spawn tweens use power2.in over √(2d/g), which is exactly
 // constant acceleration from rest; every one in a round starts at the same planned instant.
+//
+// Effects (sparks, blasts, shakes) are called from the timeline and never awaited, so they can
+// never hold up a play.
 import { gsap } from 'gsap';
 import { BOARD_SIZE } from '../engine';
-import type { Board, Color, Pos, Step } from '../engine';
+import type { Blast, Board, Color, Pos, Step } from '../engine';
 import type { CueSink } from '../audio/cues';
 import type { Effects } from '../app/ports';
 import type { BoardView } from './BoardView';
@@ -42,6 +45,10 @@ export interface ScriptPlayerDeps {
 type Tl = gsap.core.Timeline;
 const S = (ms: number) => ms / 1000;
 const FORWARDED = new Set<Action['a']>(['score', 'notice', 'tray-fly', 'tray-lost']);
+/** Screen shake per blast kind (none with reduced motion). */
+const SHAKE: Partial<Record<Blast['kind'], { px: number; ms: number }>> = {
+  charge: ANIM.chargeShake, supernova: ANIM.supernovaShake,
+};
 
 export class ScriptPlayer implements ScriptPlayerLike {
   private readonly d: ScriptPlayerDeps;
@@ -153,11 +160,11 @@ class PlayContext {
     shown.board.forEach((row, r) => row.forEach((p, c) => { if (p) this.cellOf.set(p.id, { row: r, col: c }); }));
   }
 
-  /** Puts sprite `id` at fractional cell (row, col), `dy` cells below it. */
-  private place(id: number, row: number, col: number, dy = 0): void {
+  /** Puts sprite `id` at fractional cell (row, col), `dy` cells below it and `dx` to the right. */
+  private place(id: number, row: number, col: number, dy = 0, dx = 0): void {
     const s = this.d.board.sprite(id);
     if (!s) return;
-    const { x, y } = this.d.board.cellXY(row + dy, col);
+    const { x, y } = this.d.board.cellXY(row + dy, col + dx);
     s.position.set(x, y);
   }
 
@@ -173,6 +180,7 @@ class PlayContext {
       case 'swap-back':
         this.slide(tl, a.ids[0], a.a1, at, dur);
         this.slide(tl, a.ids[1], a.b1, at, dur);
+        if (!this.d.reducedMotion) this.refuse(tl, [a.ids[0], a.ids[1]], at + dur);
         break;
       case 'place':
         this.placeFromTray(tl, a, at, dur);
@@ -184,9 +192,11 @@ class PlayContext {
         this.morph(tl, a, at, dur);
         break;
       case 'blast':
+        // Fire-and-forget: the blast's visuals never hold the timeline (the pops are planned).
         tl.call(() => {
           void this.d.effects.blast(a.blast, (r, c) => this.d.board.cellXY(r, c));
-          if (a.blast.kind === 'charge' && !this.d.reducedMotion) this.d.effects.shake(ANIM.chargeShake.px, ANIM.chargeShake.ms);
+          const shake = SHAKE[a.blast.kind];
+          if (shake && !this.d.reducedMotion) this.d.effects.shake(shake.px, shake.ms);
         }, undefined, at);
         break;
       case 'fall':
@@ -242,6 +252,20 @@ class PlayContext {
       r: toRow, duration: dur, ease: 'power2.in',
       onStart, onUpdate: () => this.place(id, q.r, col),
     }, at);
+  }
+
+  /** The "no" after an invalid swap: both pieces shake side to side on their cells, dying away. */
+  private refuse(tl: Tl, ids: number[], at: number): void {
+    const { cells, ms, cycles } = ANIM.invalidShake;
+    const q = { k: 0 };
+    const apply = () => {
+      const dx = cells * Math.sin(2 * Math.PI * cycles * q.k) * (1 - q.k);
+      for (const id of ids) {
+        const c = this.cellOf.get(id);
+        if (c) this.place(id, c.row, c.col, 0, dx);
+      }
+    };
+    tl.to(q, { k: 1, duration: S(ms) / this.timeScale, ease: 'none', onUpdate: apply }, at);
   }
 
   /** Squash on impact (bottom planted), then a small rebound and back to rest, for `ids` together. */

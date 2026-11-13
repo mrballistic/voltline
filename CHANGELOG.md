@@ -27,6 +27,9 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 - One clock for the board: Pixi’s ticker drives GSAP (`src/render/clock.ts`).
 - If the graphics can’t start, the canvas area says so (“Voltline couldn’t start the graphics. Try another browser.”) instead of staying blank.
 - `scripts/feel-check.ts`: a Playwright check of the fall animation from per-frame sprite samples, with a slow-motion frame capture.
+- Explosions (`src/render/effects.ts`): every pop throws 8–14 additive sparks in the piece’s color; a Charge goes off with a 3×3 flash, shockwave rings, lightning crackles and a small screen shake; an Arc sweeps beams along its row and column; a Prism throws a lightning bolt to every piece it clears; a supernova does all that in rainbow colors with whole-board flashes and a bigger shake. Making a special flares it. All of it comes from fixed sprite pools and never delays a move. Reduced motion halves the sparks and drops the shakes.
+- An invalid swap now ends with a short side-to-side shake of both pieces (none with reduced motion).
+- Dev-only `?fixture=charge|arc|prism|supernova` boards, one swap from each effect, and `scripts/effects-check.ts`: slow-motion captures of each, plus a supernova frame check (no dropped frames, p95 frame work under 16.7 ms).
 - Supplied sound set in `audio-src/`, a provenance sheet (`audio-src/voltline-sounds.xlsx`) and a generated `CREDITS.md`.
 - Sound engine (`src/audio`): a cue manifest (bus, gain, voices, cooldown, variants, chain set) and a Web Audio `AudioEngine` with unlock-on-first-input, voice limits, small pitch and gain variation, chain pitch rise, mute and volume. Missing files degrade to silence. Not yet wired into the game.
 - `npm run audio`: encodes `audio-src/` to Opus/WebM and AAC/M4A in `public/audio/`, loudness-matched to -20 dBFS RMS with a -3 dBTP limiter (`--report`, `--only`, `--force`). The encoded files are committed.
