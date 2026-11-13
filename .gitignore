@@ -30,3 +30,8 @@ dist-ssr
 # brainstorming mockups
 .superpowers/
 .playwright-mcp/
+
+# Desktop app (Tauri)
+src-tauri/target
+src-tauri/gen
+dist-desktop

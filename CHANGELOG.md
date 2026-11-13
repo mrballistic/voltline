@@ -27,6 +27,9 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 - CI and deploy: `ci.yml` (lint, type-check, tests with coverage thresholds on `src/engine` and `src/ai`, build, AI bench run, bundle hygiene check), a tag-triggered `deploy.yml` that rsyncs `dist/` to `https://voltline.mrballistic.com` and creates the GitHub Release from the CHANGELOG section (`scripts/release-notes.mjs`), Dependabot config, Apache vhosts in `deploy/`, and `DEPLOY.md`.
 - A funny, self-contained 404 page (`public/404.html`, no script) in the Voltline look. The Apache vhost now returns real 404s for unknown paths (no SPA fallback) and serves it; the deploy smoke test checks the status and page.
 - Tooling: ESLint 10 with typescript-eslint, a `bench` script, and an `audio` script (planned encoding pipeline).
+- Desktop app for macOS (Tauri 2, `src-tauri/`): the web build in a native 1100×900 window, with no plugins or IPC commands and the server’s CSP. `npm run desktop:dev` and `npm run desktop:build`.
+- `scripts/make-macos-app.sh`: builds a universal (Apple Silicon and Intel) `Voltline.app`, signs it with a Developer ID under the hardened runtime, optionally notarizes it, and packages a zip and a drag-to-Applications disk image (background from `scripts/dmg-background.swift`). A `macos-universal.yml` workflow builds the unsigned universal app on pushes to `main`; `BUILDING.md` covers signing and notarizing it locally.
+- App icon: the Prism ring around a magenta diamond (`src-tauri/icons/source.svg`), rendered by `scripts/render-icon.ts`.
 
 ### Changed
 

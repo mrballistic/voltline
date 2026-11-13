@@ -95,7 +95,17 @@ Planned: `npm run audio` encodes the sources to Opus/WebM with an AAC fallback i
 
 ## App shell (planned)
 
-`app/` (controller, bootstrap, local storage for prefs and best scores) and `components/` (header, score, level bar, AI controls, game-over dialog, tray notice) with MUI. Best score for player games and a separate best for AI games persist in `localStorage`; corrupt or unavailable storage falls back to defaults. A desktop app is also planned.
+`app/` (controller, bootstrap, local storage for prefs and best scores) and `components/` (header, score, level bar, AI controls, game-over dialog, tray notice) with MUI. Best score for player games and a separate best for AI games persist in `localStorage`; corrupt or unavailable storage falls back to defaults.
+
+## Desktop app
+
+A Tauri 2 shell in `src-tauri/` wraps the web build unchanged: `tauri.conf.json` points `frontendDist` at `../dist`, and the Rust side (`src/main.rs`) only opens one window. There are no Tauri plugins and no IPC commands, and `capabilities/default.json` grants only `core:default`, so the page has no more reach than it has in a browser.
+
+- **Origin and storage.** The bundled app serves `dist/` from `tauri://localhost`; WKWebView keeps that origin’s `localStorage` across launches (checked by relaunching the bundled app), so whatever the game saves there persists as it does on the web. (`npm run desktop:dev` loads the Vite server instead, a different origin with its own storage.)
+- **CSP.** `app.security.csp` is the server’s policy from `deploy/apache-voltline-le-ssl.conf`, verbatim. At runtime Tauri adds a `script-src 'self'` plus hashes of its own injected scripts; nothing else changes. No `connect-src` for Tauri’s IPC (`ipc:` / `http://ipc.localhost`) is needed because the game never calls into Tauri; add it if a future change uses `@tauri-apps/api`. The policy only applies to the bundled build: in dev the window loads the Vite server directly.
+- **Version.** `tauri.conf.json` reads `version` from `package.json`, so the app, the zip and the disk image carry the release version.
+- **Icon.** `src-tauri/icons/source.svg` (the Prism ring around a magenta diamond on the circuit-grid page) is rendered at 1024 px by `scripts/render-icon.ts` (Chromium via Playwright, for the SVG blur filters), which then runs `npx tauri icon` to regenerate every size in `src-tauri/icons/`.
+- **macOS build.** `scripts/make-macos-app.sh` builds (`--universal` for `universal-apple-darwin`), signs with a Developer ID under the hardened runtime, optionally notarizes, and packages a zip and a drag-to-Applications disk image (`scripts/dmg-background.swift` draws its background). `.github/workflows/macos-universal.yml` builds the unsigned universal app on pushes to `main`. The release steps are in [BUILDING.md](./BUILDING.md).
 
 ## Stack
 
@@ -134,6 +144,8 @@ npm run build      # tsc --noEmit && vite build
 npm run lint
 npm run bench      # headless AI benchmark (scripts/bench.ts)
 npm run type-check # tsc --noEmit
+npm run desktop:dev   # the game in a native window (Tauri; needs Rust)
+npm run desktop:build # Tauri release build of the app and a plain disk image
 ```
 
 Use Node 26 (`nvm use` reads `.nvmrc`).
