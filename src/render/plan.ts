@@ -146,18 +146,23 @@ class Planner {
   // Matched cells pop at the round start; blasted cells pop when their blast reaches them.
   // A blast seeded on a special created this step (a prism-converted gem) waits `createMs`
   // so its morph shows first; blasts it chains into inherit that delay.
+  // A chained blast never fires before its parent reaches its seed cell: a prism or supernova
+  // bolt can arrive well after `order × blastStaggerMs`, so it fires `blastStaggerMs` after the hit.
   private clear(s: ClearStep): void {
     const start = this.t;
     let end = start + POP_MS;
     const createdAt = new Set(s.created.map((c) => keyOf(c.at)));
-    const hitAt = new Map<string, number>();
+    const hitAt = new Map<string, number>(); // cell → when the blast that claimed it reaches it
     const delayOf = new Map<string, number>(); // cell → delay of the blast that claimed it
     for (const b of s.blasts) {
       // Blasts arrive breadth-first, so a chained blast's parent (whoever claimed its cell) is already in.
-      const own = createdAt.has(keyOf(b.at)) ? ANIM.createMs : 0;
-      const inherited = b.order > 0 ? (delayOf.get(keyOf(b.at)) ?? 0) : 0;
+      const seed = keyOf(b.at);
+      const own = createdAt.has(seed) ? ANIM.createMs : 0;
+      const inherited = b.order > 0 ? (delayOf.get(seed) ?? 0) : 0;
       const delay = Math.max(own, inherited);
-      const fireAt = start + delay + b.order * ANIM.blastStaggerMs;
+      const scheduled = start + delay + b.order * ANIM.blastStaggerMs;
+      const reached = b.order > 0 ? hitAt.get(seed) : undefined;
+      const fireAt = reached === undefined ? scheduled : Math.max(scheduled, reached + ANIM.blastStaggerMs);
       const durMs = blastDurationMs(b);
       this.put(fireAt, durMs, { a: 'blast', blast: b });
       this.cue(fireAt, BLAST_CUE[b.kind]);

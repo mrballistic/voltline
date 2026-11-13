@@ -169,6 +169,44 @@ describe('planScript', () => {
     expect(planScript([swap, step, refill]).items.find((p) => p.action.a === 'fall')!.atMs).toBe(fallStart);
   });
 
+  it('a blast chained from a prism fires after the bolt reaches it, and so do its own chains', () => {
+    const diagonal = [0, 1, 2, 3, 4, 5].map((i) => at(i, i));
+    const blasts: Blast[] = [
+      { kind: 'prism', at: at(0, 0), cells: diagonal, order: 0, color: 'red' },
+      { kind: 'charge', at: at(5, 5), cells: [at(5, 6), at(6, 6)], order: 1 }, // the prism's 6th cell
+      { kind: 'charge', at: at(6, 6), cells: [at(7, 7)], order: 2 }, // chained off the charge
+    ];
+    const cleared = [
+      ...diagonal.map((p, i) => blasted(i + 1, p.row, p.col, i === 0 ? 'prism' : 'red')),
+      blasted(50, 5, 6), blasted(51, 6, 6), blasted(52, 7, 7),
+    ];
+    const { items } = planScript([clear(cleared, { blasts })]);
+    const popAt = (id: number) => of(items, 'pop').find((p) => p.action.id === id)!.atMs;
+    const fired = (b: Blast) => of(items, 'blast').find((p) => p.action.blast === b)!.atMs;
+    const hit = 5 * ANIM.prismBoltStaggerMs;
+    expect(popAt(6)).toBe(hit); // the charge piece itself, struck by the 6th bolt
+    expect(fired(blasts[1])).toBe(hit + ANIM.blastStaggerMs);
+    expect(fired(blasts[1])).toBeGreaterThanOrEqual(popAt(6));
+    expect(popAt(50)).toBe(hit + ANIM.blastStaggerMs);
+    expect(popAt(51)).toBe(hit + ANIM.blastStaggerMs);
+    expect(fired(blasts[2])).toBe(hit + 2 * ANIM.blastStaggerMs);
+    expect(popAt(52)).toBe(hit + 2 * ANIM.blastStaggerMs);
+    expect(cues(items, 'charge-blast').map((p) => p.atMs)).toEqual([hit + ANIM.blastStaggerMs, hit + 2 * ANIM.blastStaggerMs]);
+  });
+
+  it('a blast chained from a supernova fires after the bolt reaches it', () => {
+    const board = Array.from({ length: BOARD_SIZE * BOARD_SIZE }, (_, i) => at(Math.floor(i / BOARD_SIZE), i % BOARD_SIZE));
+    const blasts: Blast[] = [
+      { kind: 'supernova', at: at(0, 0), cells: board, order: 0 },
+      { kind: 'arc', at: at(3, 4), cells: [], order: 1 }, // everything was already claimed
+    ];
+    const { items } = planScript([clear(board.map((p, i) => blasted(i + 1, p.row, p.col)), { blasts })]);
+    const hit = (3 * BOARD_SIZE + 4) * ANIM.prismBoltStaggerMs;
+    expect(of(items, 'pop').find((p) => p.action.id === 3 * BOARD_SIZE + 5)!.atMs).toBe(hit);
+    expect(of(items, 'blast').find((p) => p.action.blast === blasts[1])!.atMs).toBe(hit + ANIM.blastStaggerMs);
+    expect(cues(items, 'arc-blast').map((p) => p.atMs)).toEqual([hit + ANIM.blastStaggerMs]);
+  });
+
   it('a real prism + charge swap detonates its converted charges after the morph', () => {
     const state = makeState(boardWith({ '0,0': 'P', '0,1': 'Rc' }));
     const { script } = applyMove(state, { type: 'swap', a: at(0, 0), b: at(0, 1) });
@@ -318,20 +356,60 @@ describe('planScript', () => {
     expect(planScript([])).toEqual({ items: [], totalMs: 0 });
   });
 
+  // Ordering and causality that every real script must satisfy.
+  function expectSound(script: Step[]): void {
+    const { items, totalMs } = planScript(script);
+    for (let i = 1; i < items.length; i++) expect(items[i].atMs).toBeGreaterThanOrEqual(items[i - 1].atMs);
+    for (const p of items) {
+      expect(Number.isFinite(p.atMs) && Number.isFinite(p.durMs)).toBe(true);
+      expect(end(p)).toBeLessThanOrEqual(totalMs + 1e-9);
+    }
+    const pops = of(items, 'pop');
+    expect(pops).toHaveLength(script.flatMap((s) => (s.t === 'clear' ? s.cleared : [])).length);
+    const popOf = (id: number) => pops.find((p) => p.action.id === id)!;
+    let lastPopEnd = 0;
+    for (const s of script) {
+      if (s.t === 'clear') {
+        // A blasted cell never pops before the blast that claimed it fires, and a chained
+        // blast never fires before its own piece (struck by its parent) pops.
+        const clearedAt = (p: Pos) => s.cleared.find((x) => x.at.row === p.row && x.at.col === p.col);
+        for (const b of s.blasts) {
+          const fired = of(items, 'blast').find((p) => p.action.blast === b)!.atMs;
+          const seed = clearedAt(b.at);
+          if (b.order > 0 && seed) expect(fired).toBeGreaterThanOrEqual(popOf(seed.id).atMs);
+          for (const cell of b.cells) {
+            expect(popOf(clearedAt(cell)!.id).atMs).toBeGreaterThanOrEqual(fired);
+          }
+        }
+        lastPopEnd = Math.max(...s.cleared.map((c) => end(popOf(c.id))));
+      }
+      if (s.t === 'fall' && s.spawns.length > 0) {
+        // The round's falls start together (tested above); its first spawn gives that instant.
+        const fallStart = of(items, 'spawn').find((p) => p.action.piece.id === s.spawns[0].piece.id)!.atMs;
+        expect(fallStart).toBeGreaterThanOrEqual(lastPopEnd);
+      }
+    }
+  }
+
   it('plans a real engine script in time order', () => {
     let state = newGame(7);
     for (let n = 0; n < 5; n++) {
-      const move = productiveMoves(state)[0];
-      const result = applyMove(state, move);
-      const { items, totalMs } = planScript(result.script);
-      for (let i = 1; i < items.length; i++) expect(items[i].atMs).toBeGreaterThanOrEqual(items[i - 1].atMs);
-      for (const p of items) {
-        expect(Number.isFinite(p.atMs) && Number.isFinite(p.durMs)).toBe(true);
-        expect(end(p)).toBeLessThanOrEqual(totalMs + 1e-9);
-      }
-      const cleared = result.script.flatMap((s) => (s.t === 'clear' ? s.cleared : []));
-      expect(of(items, 'pop')).toHaveLength(cleared.length);
+      const result = applyMove(state, productiveMoves(state)[0]);
+      expectSound(result.script);
       state = result.state;
+    }
+  });
+
+  it('plans real special swaps causally', () => {
+    const swaps: Record<string, string>[] = [
+      { '0,0': 'P', '0,1': 'Rc' }, // prism + charge: converted charges
+      { '0,0': 'P', '0,1': 'R', '6,6': 'Rc' }, // prism bolt chains into a charge
+      { '0,0': 'P', '0,1': 'P', '5,5': 'Bc', '6,2': 'Ga' }, // supernova chains into specials
+    ];
+    for (const cells of swaps) {
+      const { script } = applyMove(makeState(boardWith(cells)), { type: 'swap', a: at(0, 0), b: at(0, 1) });
+      expect(script.some((s) => s.t === 'clear' && s.blasts.length > 0)).toBe(true);
+      expectSound(script);
     }
   });
 });
