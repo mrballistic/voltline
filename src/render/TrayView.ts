@@ -17,6 +17,8 @@ const SLOT = {
 
 /** Tray pieces are not on the board, so they get ids no engine piece can have. */
 const slotId = (slot: number) => -1 - slot;
+/** Flying pieces belong to no slot and no cell. */
+const FLYER_ID = -1000;
 
 export class TrayView {
   readonly root = new Container();
@@ -29,6 +31,7 @@ export class TrayView {
   private tray: Color[] = [];
   private selected: number | null = null;
   private hinted = new Set<number>();
+  private readonly flyers = new Set<PieceSprite>();
 
   constructor(tex: PieceTextures, reducedMotion: boolean) {
     this.tex = tex;
@@ -45,6 +48,8 @@ export class TrayView {
   setLayout(l: Layout, tex: PieceTextures): void {
     this.layout = l;
     this.tex = tex;
+    // The old textures are about to be destroyed; a piece in flight must not keep them.
+    for (const f of this.flyers) f.setPiece(f.piece, tex);
     const { x, y, w, h } = l.tray;
     this.panel.clear()
       .roundRect(x, y, w, h, PANEL.radius).fill({ color: PANEL.fill, alpha: PANEL.fillAlpha })
@@ -62,6 +67,36 @@ export class TrayView {
   slotXY(slot: number): { x: number; y: number } {
     if (!this.layout) throw new Error('TrayView: setLayout before placing pieces');
     return traySlotCenter(this.layout, slot);
+  }
+
+  /** The slot under canvas point (x, y), or null. */
+  slotAt(x: number, y: number): number | null {
+    const l = this.layout;
+    if (!l) return null;
+    const half = l.tray.slotPx / 2;
+    for (let slot = 0; slot < TRAY_CAPACITY; slot++) {
+      const c = this.slotXY(slot);
+      if (Math.abs(x - c.x) <= half && Math.abs(y - c.y) <= half) return slot;
+    }
+    return null;
+  }
+
+  /** Scale of a tray piece relative to a board piece. */
+  slotScale(): number {
+    if (!this.layout) throw new Error('TrayView: setLayout before placing pieces');
+    return this.layout.tray.slotPx / this.layout.cellPx;
+  }
+
+  /**
+   * A loose plain piece drawn above the board (the tray root is unmasked and shares the
+   * board's coordinates), for pieces flying between a cell and a slot. The caller destroys it.
+   */
+  flyer(color: Color): PieceSprite {
+    const s = new PieceSprite({ id: FLYER_ID, kind: 'gem', color, special: 'none' }, this.tex);
+    this.flyers.add(s);
+    s.once('destroyed', () => this.flyers.delete(s));
+    this.root.addChild(s);
+    return s;
   }
 
   setSelected(slot: number | null): void {

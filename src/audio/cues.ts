@@ -68,3 +68,6 @@ export const CUES: Record<ManifestCue, CueSpec> = {
   'ui-toggle': ui(),
   'music-loop': { bus: 'music', gain: -3, voices: 1, cooldownMs: 0, loop: true, stereo: true },
 };
+
+/** Plays nothing; the stand-in where no sound engine is attached (tests, early boot). */
+export const silentCues: CueSink = { cue() {} };

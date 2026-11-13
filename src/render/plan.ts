@@ -1,7 +1,7 @@
 // Turns an engine script into exact timed actions. Pure: no DOM, Pixi or GSAP, so every
 // timing property (all columns start falling on the same frame, landings, cue sync) is unit-testable.
 import { BOARD_SIZE } from '../engine';
-import type { Blast, BlastKind, Board, Color, Piece, Pos, Step } from '../engine';
+import type { Blast, BlastKind, Board, Cleared, Color, Piece, Pos, Step } from '../engine';
 import type { CueName } from '../audio/cues';
 import { ANIM, fallDurationMs } from './constants';
 
@@ -9,7 +9,7 @@ export type Action =
   | { a: 'swap'; ids: [number, number]; to: [Pos, Pos] }
   | { a: 'swap-back'; ids: [number, number]; a1: Pos; b1: Pos }
   | { a: 'place'; removedId: number; piece: Piece; slot: number; at: Pos }
-  | { a: 'pop'; id: number; at: Pos; key: string }
+  | { a: 'pop'; id: number; at: Pos; key: Cleared['key'] }
   | { a: 'morph'; id: number; piece: Piece }
   | { a: 'blast'; blast: Blast }
   | { a: 'fall'; id: number; col: number; fromRow: number; toRow: number }
@@ -62,6 +62,8 @@ class Planner {
   readonly items: Planned[] = [];
   t = 0;
   private round: Round | null = null;
+  /** When the last tray fly (earn or loss) lands; level-up and game-over wait for it. */
+  private trayEnd = 0;
 
   put(atMs: number, durMs: number, action: Action): void {
     this.items.push({ atMs, durMs, action });
@@ -108,6 +110,7 @@ class Planner {
         this.put(round.popsEnd, ANIM.trayFlyMs, { a: 'tray-fly', color: s.color, from: s.from, slot: s.slot });
         this.cue(flyEnd, 'tray-earn');
         this.round = { ...round, flyEnd: Math.max(round.flyEnd, flyEnd) };
+        this.trayEnd = Math.max(this.trayEnd, flyEnd);
         break;
       }
       case 'tray-full': {
@@ -120,26 +123,32 @@ class Planner {
         const { popsEnd } = this.current();
         this.put(popsEnd, ANIM.trayFlyMs, { a: 'tray-lost', color: s.color, from: s.from });
         this.cue(popsEnd + ANIM.trayFlyMs, 'tray-lost');
+        this.trayEnd = Math.max(this.trayEnd, popsEnd + ANIM.trayFlyMs);
         break;
       }
       case 'fall':
         this.fall(s);
         break;
       case 'level-up': {
-        const inAt = t + ANIM.boardOutMs;
+        // Never before a tray fly lands, so the tray-full notice can't trail the celebration.
+        const at = Math.max(t, this.trayEnd);
+        const inAt = at + ANIM.boardOutMs;
         const inMs = fallDurationMs(BOARD_SIZE) + ANIM.landMs;
-        this.put(t, 0, { a: 'notice', kind: 'level-up', level: s.level });
-        this.cue(t, 'level-up');
-        this.put(t, ANIM.boardOutMs, { a: 'board-out' });
+        this.put(at, 0, { a: 'notice', kind: 'level-up', level: s.level });
+        this.cue(at, 'level-up');
+        this.put(at, ANIM.boardOutMs, { a: 'board-out' });
         this.put(inAt, inMs, { a: 'board-in', board: s.board });
         this.cue(inAt, 'board-in');
         this.t = inAt + inMs;
         break;
       }
-      case 'game-over':
-        this.put(t, 0, { a: 'notice', kind: 'game-over' });
-        this.cue(t, 'game-over');
+      case 'game-over': {
+        const at = Math.max(t, this.trayEnd);
+        this.put(at, 0, { a: 'notice', kind: 'game-over' });
+        this.cue(at, 'game-over');
+        this.t = at;
         break;
+      }
     }
   }
 
@@ -150,7 +159,8 @@ class Planner {
   // bolt can arrive well after `order × blastStaggerMs`, so it fires `blastStaggerMs` after the hit.
   private clear(s: ClearStep): void {
     const start = this.t;
-    let end = start + POP_MS;
+    // A created special's morph must finish before anything falls past it.
+    let end = start + Math.max(POP_MS, s.created.length > 0 ? ANIM.createMs : 0);
     const createdAt = new Set(s.created.map((c) => keyOf(c.at)));
     const hitAt = new Map<string, number>(); // cell → when the blast that claimed it reaches it
     const delayOf = new Map<string, number>(); // cell → delay of the blast that claimed it
@@ -226,6 +236,7 @@ class Planner {
 
 export function planScript(script: Step[], opts: { timeScale?: number } = {}): { items: Planned[]; totalMs: number } {
   const scale = opts.timeScale ?? 1;
+  if (!Number.isFinite(scale) || scale <= 0) throw new RangeError(`planScript: timeScale must be a positive finite number, got ${scale}`);
   const planner = new Planner();
   for (const s of script) planner.step(s);
   let totalMs = planner.t;

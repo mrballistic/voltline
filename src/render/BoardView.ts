@@ -3,7 +3,7 @@
 // layers can all share one coordinate space.
 import { Container, Graphics } from 'pixi.js';
 import { BOARD_SIZE } from '../engine';
-import type { Board, Piece } from '../engine';
+import type { Board, Piece, Pos } from '../engine';
 import type { Layout } from './layout';
 import { PieceSprite } from './PieceSprite';
 import type { PieceTextures } from './textures';
@@ -53,8 +53,34 @@ export class BoardView {
     return { x: l.board.x + (col + 0.5) * l.cellPx, y: l.board.y + (row + 0.5) * l.cellPx };
   }
 
+  /** Cell size in CSS px. */
+  get cellPx(): number {
+    return this.need().cellPx;
+  }
+
+  /** The cell under canvas point (x, y), or null off the board. */
+  cellAt(x: number, y: number): Pos | null {
+    const l = this.layout;
+    if (!l) return null;
+    const col = Math.floor((x - l.board.x) / l.cellPx);
+    const row = Math.floor((y - l.board.y) / l.cellPx);
+    return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE ? { row, col } : null;
+  }
+
   sprite(id: number): PieceSprite | undefined {
     return this.sprites.get(id);
+  }
+
+  /** Every live piece sprite, in no particular order. */
+  allSprites(): PieceSprite[] {
+    return [...this.sprites.values()];
+  }
+
+  /** Gives sprite `id` a new look (a match made it a special) without moving it. */
+  restyle(id: number, p: Piece): PieceSprite | undefined {
+    const s = this.sprites.get(id);
+    s?.setPiece(p, this.tex);
+    return s;
   }
 
   /** Shows `b` as is: reuses sprites by id, creates missing ones, releases the rest. */
