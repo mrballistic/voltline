@@ -17,6 +17,8 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
   - levels, and game over when no productive move remains (tray placements included);
   - `applyMove` returns the next state plus an ordered event script for a renderer to play back, and never mutates its input.
 - Search AI (`src/ai`): ranks every productive move with Monte Carlo rollouts over refills it samples itself, never reading the game’s hidden randomness. Its own RNG is seeded from a hash of the visible state, so the same board gives the same ranking. About 35 ms per decision on a Mac.
+- AI worker and client (`src/ai/worker.ts`, `src/ai/client.ts`): moves are ranked off the main thread; if the worker fails, the client rejects what was pending and carries on in-process.
+- Animation timing constants (`src/render/constants.ts`) and a pure script planner (`src/render/plan.ts`) that turns engine event scripts into timed actions and sound cues: every column starts falling on the same frame, explosions reach cells before they pop, chained blasts wait for the bolt that triggers them, and specials converted by a Prism show their change before they detonate.
 - Supplied sound set in `audio-src/`, a provenance sheet (`audio-src/voltline-sounds.xlsx`) and a generated `CREDITS.md`.
 - Spec and implementation plan for the rebuild under `docs/superpowers/`.
 - Tooling: ESLint 10 with typescript-eslint, a `bench` script, and an `audio` script (planned encoding pipeline).

@@ -69,17 +69,23 @@ All rule numbers live in `src/engine/rules.ts`.
 - **Evaluation.** Each candidate is simulated with `applyMove`. The exactly known part is resolved as is; refills are sampled by Monte Carlo rollouts and averaged. The value combines expected points, level progress, bonuses for specials that survive on the board, rocks cleared and board health (how many productive moves remain), minus the value of a spent tray piece.
 - **Budget.** The rollout budget is shared across candidates within a per-candidate minimum and maximum. Tray placements are costly in bulk, so only the best few get full rollouts. On a Mac a decision takes about 35 ms.
 - **Weights.** Every weight lives in `src/ai/weights.ts` and is being tuned with the benchmark, so this document does not quote them.
-- **Planned.** `worker.ts` and `client.ts` will run the search in a Web Worker with an inline fallback, discard stale results after New Game or AI toggle, and pause while the tab is hidden.
+- **Worker.** `worker.ts` runs `rankMoves` in a module Web Worker (request `{id, state}`, response `{id, ranked}`); `client.ts` (`createAIClient`) matches replies by id. On a worker `error` or `messageerror`, or if the worker can't be created, it rejects pending calls, terminates the worker and ranks in-process from then on. `dispose()` rejects pending and later calls with `Error('disposed')`. Tests inject a fake worker through `workerFactory`.
+- **Planned.** The controller will discard stale results after New Game or an AI toggle, and pause the AI while the tab is hidden.
 
-## The renderer (planned)
+## The renderer
 
-PixiJS 8 draws the board, with GSAP timelines driving Pixi properties on one clock.
+PixiJS 8 will draw the board, with GSAP timelines driving Pixi properties on one clock (planned). What exists now is the timing layer it will execute.
 
-- Falls start at the same instant in every column under constant gravity, with distance measured in real cell units; refills stack one cell apart above a masked top edge.
-- Piece textures are generated from vector code at the device pixel ratio; idle glow is a pre-rendered halo sprite per type, not a live filter.
-- Every timing value lives in `src/render/constants.ts`.
-- `prefers-reduced-motion` disables breathing and shake.
-- Hint layer: faint arrows labeled with value, weaker ones fading until the best remains.
+- **`src/render/constants.ts`** holds every animation timing value (`ANIM`) and `fallDurationMs(cells) = 1000·√(2·cells / gravity)`, constant acceleration from rest at 60 cells/s².
+- **`src/render/plan.ts`**: `planScript(script, { timeScale })` is pure. It turns each engine step into `Planned { atMs, durMs, action }` items (swap, pop, morph, blast, fall, spawn, land, tray fly, score, notice, board in/out, sound cue) and a `totalMs`. Guarantees, each pinned by tests:
+  - every fall and spawn in a round starts at the same instant, the end of that round's pops and blasts, and each ends in a `land`;
+  - one `land` (or `rock-drop`, when the column's new pieces include a rock) cue per column, at its last landing;
+  - the next round starts `cascadeOverlapMs` before the last landing ends;
+  - blasts fire at `order × blastStaggerMs`, Charge and Arc cells pop when the blast fires, Prism and supernova cells pop as each bolt arrives (`prismBoltStaggerMs` apart), and a chained blast fires `blastStaggerMs` after its parent reaches its seed cell;
+  - specials created by a Prism swap morph first and detonate `createMs` later;
+  - `timeScale` divides every time (reduced motion uses `ANIM.reducedMotionTimeScale`).
+- **`src/audio/cues.ts`** declares `CueName`; the cue manifest arrives with the sound engine.
+- **Planned:** textures generated from vector code at the device pixel ratio, a pre-rendered halo per piece type for the idle glow, a masked board so refills enter from above the top edge, `prefers-reduced-motion` support, and the hint layer.
 
 ## Sound
 
