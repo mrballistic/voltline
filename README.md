@@ -4,7 +4,7 @@ A neon match-three puzzle game with explosive special pieces, chain reactions, a
 
 **Play it:** https://voltline.mrballistic.com
 
-![The Voltline board: neon circles, squares, triangles, hexagons, diamonds, plus signs and stars glowing on a dark circuit grid, with the empty tray below](docs/screenshots/board-desktop.webp)
+![Voltline in a desktop browser: the title, score and level bar above a glowing neon board of circles, squares, triangles, hexagons, diamonds, plus signs and stars, the tray below, and Hint and New game buttons](docs/screenshots/app-desktop.webp)
 
 Voltline is an original game. It has its own pieces, its own look and its own sounds; it borrows only the genre’s mechanics.
 
@@ -59,6 +59,10 @@ The AI is a search, not a chatbot. It looks at exactly what you can see (the boa
 ## Controls
 
 Click or tap a piece, then a neighbor, to swap. Or just drag (or swipe) a piece toward a neighbor: the swap happens as soon as you pull past a third of a cell. Tap a tray piece, then a board piece, to place it, or drag it straight onto the board. A drag that goes nowhere eases back.
+
+Your best score is saved on this device, separately for you and for AI mode. Sound can be muted or turned down from the header.
+
+<img src="docs/screenshots/app-phone.webp" alt="Voltline on a phone: the same board filling the width, with the score above and the buttons below" width="260">
 
 ## Credits and license
 
