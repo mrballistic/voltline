@@ -4,6 +4,8 @@ import { gsap } from 'gsap';
 import { applyMove, newGame, productiveMoves } from '../engine';
 import type { Color, GameState, Move, Step } from '../engine';
 import type { CueName } from '../audio/cues';
+import { createAIClient } from '../ai/client';
+import { GameController } from '../app/controller';
 import { noopEffects } from '../app/ports';
 import { BoardView } from './BoardView';
 import { ANIM } from './constants';
@@ -256,6 +258,55 @@ describe('ScriptPlayer', () => {
     const placed = script[0] as Extract<Step, { t: 'place' }>;
     expect(next.board.flat().some((p) => p?.id === placed.piece.id) || script.some((s) => s.t === 'clear')).toBe(true);
     expect(r.board.allSprites()).toHaveLength(64);
+  });
+
+  /** True once `p` has settled, checked after letting pending microtasks and timers run. */
+  async function settled(p: Promise<unknown>): Promise<boolean> {
+    let done = false;
+    void p.then(() => { done = true; }, () => { done = true; });
+    await new Promise((res) => setTimeout(res, 0));
+    return done;
+  }
+
+  it('dispose mid-play resolves the play, so nothing waits on it forever', async () => {
+    const { state, move, next } = cascadeMove();
+    await deal(r, state);
+    const p = r.player.play(applyMove(state, move).script, next);
+    frame();
+    expect(await settled(p)).toBe(false);
+    r.player.dispose();
+    expect(await settled(p)).toBe(true);
+  });
+
+  it('a new run replacing a playing timeline resolves the old play and starts from its end', async () => {
+    const { state, move, next } = cascadeMove();
+    await deal(r, state);
+    const p = r.player.play(applyMove(state, move).script, next);
+    frame();
+    const fresh = newGame(77);
+    const dealt = r.run(r.player.show({ board: fresh.board, tray: fresh.tray }));
+    expect(await settled(p)).toBe(true);
+    await dealt;
+    fresh.board.forEach((row, ri) => row.forEach((piece, ci) => {
+      expect(r.board.sprite(piece!.id)!.y).toBe(r.board.cellXY(ri, ci).y);
+    }));
+    expect(r.board.allSprites()).toHaveLength(64);
+  });
+
+  it('new game after disposing mid-move does not hang', async () => {
+    const { state, move } = cascadeMove();
+    const c = new GameController({
+      player: r.player, ai: createAIClient({ inline: true }), hint: { show: async () => {}, clear() {} },
+      prefs: { load: () => ({ bestPlayer: 0, bestAI: 0, aiSpeed: 'medium', muted: false, volume: 0.8 }), save() {} },
+      onChange() {}, initial: state,
+    });
+    await r.run(c.start());
+    const moving = c.submit(move);
+    frame();
+    c.dispose();
+    r.player.dispose();
+    expect(await settled(moving)).toBe(true);
+    expect(await settled(c.newGame())).toBe(true);
   });
 
   it('an empty script resolves at once', async () => {

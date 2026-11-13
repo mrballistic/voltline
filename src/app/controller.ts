@@ -261,22 +261,26 @@ export class GameController {
   private async run(animate: () => Promise<void>, after?: () => void): Promise<void> {
     this.busy = true;
     this.emit();
-    const task = (async () => {
-      try {
-        await animate();
-      } finally {
-        this.busy = false;
-        this.shown = this.shownFrom(this._state);
-        if (this._state.over) this.notice = { kind: 'game-over' };
-        after?.();
-        if (this.relayoutPending) {
-          this.relayoutPending = false;
-          this.d.player.relayout();
-        }
-        this.current = null;
-        this.emit();
+    // The player is started synchronously (its script reaches the board this tick), but a sync
+    // throw becomes a rejection, so the cleanup below always runs after `current` is set.
+    let started: Promise<void>;
+    try {
+      started = animate();
+    } catch (err) {
+      started = Promise.reject(err);
+    }
+    const task: Promise<void> = started.finally(() => {
+      this.busy = false;
+      this.shown = this.shownFrom(this._state);
+      if (this._state.over) this.notice = { kind: 'game-over' };
+      after?.();
+      if (this.relayoutPending) {
+        this.relayoutPending = false;
+        this.d.player.relayout();
       }
-    })();
+      if (this.current === task) this.current = null;
+      this.emit();
+    });
     this.current = task;
     await task;
   }

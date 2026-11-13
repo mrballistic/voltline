@@ -209,6 +209,29 @@ describe('GameController', () => {
     expect(player.shows[0].board).toEqual(c.state.board);
   });
 
+  it('a play that throws synchronously never wedges new game', async () => {
+    const { c, player } = rig();
+    player.play = () => { throw new Error('boom'); };
+    await expect(c.submit(firstSwap(c.state))).rejects.toThrow('boom');
+    expect(c.snapshot().busy).toBe(false);
+    expect(c.snapshot().score).toBe(c.state.score); // shows the engine state it committed
+    await c.newGame();
+    expect(player.shows).toHaveLength(1);
+    expect(c.snapshot()).toMatchObject({ busy: false, score: 0, moves: 0 });
+  });
+
+  it('a deal that throws synchronously never wedges the next new game', async () => {
+    const { c, player } = rig();
+    const show = player.show.bind(player);
+    player.show = () => { throw new Error('boom'); };
+    await expect(c.newGame()).rejects.toThrow('boom');
+    expect(c.snapshot().busy).toBe(false);
+    player.show = show;
+    await c.newGame();
+    expect(player.shows).toHaveLength(1);
+    expect(c.snapshot().busy).toBe(false);
+  });
+
   it('resize during play re-lays out after timeline', async () => {
     const { c, player } = rig();
     void c.submit(firstSwap(c.state));

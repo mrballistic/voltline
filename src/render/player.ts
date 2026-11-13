@@ -47,7 +47,8 @@ export class ScriptPlayer implements ScriptPlayerLike {
   private readonly d: ScriptPlayerDeps;
   private readonly timeScale: number;
   private shown: ShownState = { board: [], tray: [] };
-  private timeline: Tl | null = null;
+  /** The timeline playing now, the state it ends on, and the promise it owes. */
+  private active: { tl: Tl; end: ShownState; resolve: () => void } | null = null;
   private readonly flyers = new Set<PieceSprite>();
 
   constructor(deps: ScriptPlayerDeps) {
@@ -61,6 +62,7 @@ export class ScriptPlayer implements ScriptPlayerLike {
   }
 
   show(state: ShownState): Promise<void> {
+    this.interrupt(true);
     const outMs = this.d.board.allSprites().length > 0 ? ANIM.boardOutMs / this.timeScale : 0;
     const inMs = (fallDurationMs(BOARD_SIZE) + ANIM.landMs) / this.timeScale;
     const items: Planned[] = [];
@@ -76,15 +78,27 @@ export class ScriptPlayer implements ScriptPlayerLike {
     this.d.tray.setTray(this.shown.tray);
   }
 
+  /** Stops playing. A play in progress resolves at once, so nothing waits on it forever. */
   dispose(): void {
-    this.timeline?.kill();
-    this.timeline = null;
+    this.interrupt(false);
     this.clearFlyers();
   }
 
+  /**
+   * Kills the running timeline and resolves its play. With `snap`, first jumps the board to that
+   * play's end state, so whatever runs next starts from a consistent model.
+   */
+  private interrupt(snap: boolean): void {
+    const a = this.active;
+    if (!a) return;
+    this.active = null;
+    a.tl.kill();
+    if (snap) this.finish(a.end);
+    a.resolve();
+  }
+
   private run(items: Planned[], totalMs: number, end: ShownState): Promise<void> {
-    this.timeline?.kill();
-    this.timeline = null;
+    this.interrupt(true);
     if (items.length === 0) {
       this.finish(end);
       return Promise.resolve();
@@ -94,10 +108,11 @@ export class ScriptPlayer implements ScriptPlayerLike {
     for (const p of items) ctx.schedule(tl, p);
     // Pins the timeline's length to the plan's, even when it ends on an instant (a notice).
     tl.set({}, {}, S(totalMs));
-    this.timeline = tl;
     return new Promise((resolve) => {
+      this.active = { tl, end, resolve };
       tl.eventCallback('onComplete', () => {
-        if (this.timeline === tl) this.timeline = null;
+        if (this.active?.tl !== tl) return;
+        this.active = null;
         this.finish(end);
         resolve();
       });
