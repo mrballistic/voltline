@@ -11,3 +11,9 @@ export type CueName =
   | 'level-up' | 'board-in' | 'game-over' | 'new-best'
   | 'ui-click' | 'ui-toggle'
   | 'music-loop';
+
+/** Where the player sends cues; the Web Audio engine implements it (Task 18). */
+export interface CueSink { cue(name: CueName, opts?: { chain?: number }): void }
+
+/** Plays nothing; the stand-in until the sound engine exists. */
+export const silentCues: CueSink = { cue() {} };

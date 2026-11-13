@@ -21,6 +21,11 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 - Animation timing constants (`src/render/constants.ts`) and a pure script planner (`src/render/plan.ts`) that turns engine event scripts into timed actions and sound cues: every column starts falling on the same frame, explosions reach cells before they pop, chained blasts wait for the bolt that triggers them, and specials converted by a Prism show their change before they detonate.
 - The board is drawn for the first time: a PixiJS 8 canvas with the neon pieces (seven gems, Charge and Arc overlays, Prism, rock) on a dark circuit-grid page, the tray strip under the board, and soft halos that breathe out of phase (off with reduced motion). It re-lays out on resize and runs under a strict CSP without `unsafe-eval`.
 - A 404 page (“No moves left.”) and real 404 statuses on the server.
+- The game is playable by clicking or tapping: select a piece, tap a neighbor to swap; tap a tray piece, then a board piece, to place it. Moves play back with real gravity. After a clear, every piece above a gap in every column starts falling on the same frame, accelerating at a constant rate. Refills enter from above the top edge, one cell apart, and every piece lands with a squash and a small rebound. Nothing blinks, snaps or overlaps between cascade rounds. A new board drops in from above.
+- Script player (`src/render/player.ts`), game controller (`src/app/controller.ts`), tap input (`src/render/input.ts`) and the shared ports for effects, hint, sound and saved preferences (`src/app/ports.ts`, `CueSink` in `src/audio/cues.ts`).
+- One clock for the board: Pixi’s ticker drives GSAP (`src/render/clock.ts`).
+- If the graphics can’t start, the canvas area says so (“Voltline couldn’t start the graphics. Try another browser.”) instead of staying blank.
+- `scripts/feel-check.ts`: a Playwright check of the fall animation from per-frame sprite samples, with a slow-motion frame capture.
 - Supplied sound set in `audio-src/`, a provenance sheet (`audio-src/voltline-sounds.xlsx`) and a generated `CREDITS.md`.
 - Spec and implementation plan for the rebuild under `docs/superpowers/`.
 - CI and deploy: `ci.yml` (lint, type-check, tests with coverage thresholds on `src/engine` and `src/ai`, build, AI bench run, bundle hygiene check), a tag-triggered `deploy.yml` that rsyncs `dist/` to `https://voltline.mrballistic.com` and creates the GitHub Release from the CHANGELOG section (`scripts/release-notes.mjs`), Dependabot config, Apache vhosts in `deploy/`, and `DEPLOY.md`.
@@ -29,6 +34,7 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 
 ### Changed
 
+- The planner holds level-up and game-over until any tray flight lands, so the “tray full” notice can’t trail them. A clear that creates a special lasts at least the special’s morph. `planScript` rejects a time scale that isn’t a positive, finite number.
 - Node 26 LTS everywhere (`.nvmrc`, `engines`, `@types/node` 26, CI). The `gh-pages` force-push in `deploy.sh` is retired in favor of the server deploy.
 - Repo renamed from `bejeweled-ai` to Voltline; package renamed `voltline`.
 - Dependencies brought current: React 19.3, TypeScript 6.0 (held below 7 until typescript-eslint supports it), Vite 8, Vitest 5, PixiJS 8, GSAP 3.15, MUI 9.

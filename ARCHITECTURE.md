@@ -2,15 +2,15 @@
 
 How Voltline is put together. For what the game is and how to play it, see [README.md](./README.md). Sound provenance is in [CREDITS.md](./CREDITS.md).
 
-Voltline is a work in progress. The rules engine and the search AI exist and are tested. The renderer, sound engine, app shell and UI, the desktop app and deployment are **planned** and marked as such below. The design is in `docs/superpowers/specs/2026-11-13-voltline-rebuild-design.md` and the task plan in `docs/superpowers/plans/2026-11-13-voltline-rebuild.md`.
+Voltline is a work in progress. The rules engine, the search AI, the renderer and a click-to-play controller exist and are tested. Effects, drag input, the hint layer, the sound engine, the MUI chrome and the desktop app are **planned** and marked as such below. The design is in `docs/superpowers/specs/2026-11-13-voltline-rebuild-design.md` and the task plan in `docs/superpowers/plans/2026-11-13-voltline-rebuild.md`.
 
 - [Overview](#overview)
 - [From tap to animation](#from-tap-to-animation)
 - [The engine](#the-engine)
 - [The AI](#the-ai)
-- [The renderer (planned)](#the-renderer-planned)
+- [The renderer](#the-renderer)
 - [Sound](#sound)
-- [App shell (planned)](#app-shell-planned)
+- [App shell](#app-shell)
 - [Stack](#stack)
 - [Project layout](#project-layout)
 - [Local development](#local-development)
@@ -24,22 +24,20 @@ Three concerns, kept apart:
 
 1. **A pure rules engine** (`src/engine`). A move in, the next state plus an ordered **event script** out. Deterministic for a given seed. No DOM, React, Pixi, GSAP or audio imports, so it runs on the main thread and in a Web Worker.
 2. **A search AI** (`src/ai`) built on that engine. It powers both AI mode and Hint.
-3. **A presentation layer** (planned): a PixiJS canvas board that only plays the script back, with React and MUI around it, and a Web Audio sound engine fed from the same script.
+3. **A presentation layer**: a PixiJS canvas board that only plays the script back, driven by a non-React controller, with React and MUI around it (planned) and a Web Audio sound engine fed from the same script (planned).
 
 The client is static and offline: no server, no LLM, no API key, no runtime network calls.
 
 ## From tap to animation
 
-This is the intended flow; steps 1 to 3 exist, the rest are planned.
-
-1. **Input** (planned `render/input.ts`): a tap, drag, swipe or tray tap becomes a `Move`, either `{ type: 'swap', a, b }` or `{ type: 'place', slot, at }`.
-2. **Controller** (planned `app/controller.ts`): ignores input while a script is playing, then calls `applyMove(state, move)`.
+1. **Input** (`render/input.ts`): a tap on a cell or a tray slot goes to the controller, which owns the selection rules (tap selects, a neighbor swaps, a far cell moves the selection, the same cell deselects; a selected tray slot then a cell places). Drag and swipe are planned.
+2. **Controller** (`app/controller.ts`): drops input while a script is playing or AI mode is on, then calls `applyMove(state, move)`.
 3. **Engine**: returns the new `GameState` and a `Step[]` script. Illegal swaps return a `swap-invalid` step and an unchanged state.
-4. **Plan** (planned `render/plan.ts`): turns the script into timed animation, as pure code.
-5. **Player** (planned `render/player.ts`): runs the plan with GSAP over Pixi display objects and fires sound cues at the moment their visual happens.
-6. The controller commits the new state when the timeline ends.
+4. **Plan** (`render/plan.ts`): turns the script into timed actions, as pure code.
+5. **Player** (`render/player.ts`): runs the plan as one GSAP timeline over Pixi display objects, fires sound cues and forwards score, notice and tray actions to the controller at their planned instants.
+6. When the timeline ends the player snaps every sprite to the engine's board and the controller clears `busy`.
 
-The renderer owns every on-screen position. React never lays out the board, so there is no commit-then-animate blink, and a moved piece is the same sprite tweened, keyed by its engine id.
+The engine state advances as soon as a move is accepted; what the player sees (score, level, tray, notices) follows the planned actions and matches the engine state once `busy` is false. The renderer owns every on-screen position. React never lays out the board, so there is no commit-then-animate blink, and a moved piece is the same sprite tweened, keyed by its engine id.
 
 Script steps: `swap`, `swap-invalid`, `place`, `clear` (match groups, blasts, cleared pieces, created specials), `score`, `tray-earn`, `tray-full`, `tray-lost`, `fall` (falls and spawns), `level-up`, `game-over`.
 
@@ -74,7 +72,7 @@ All rule numbers live in `src/engine/rules.ts`.
 
 ## The renderer
 
-PixiJS 8 will draw the board, with GSAP timelines driving Pixi properties on one clock (planned). What exists now is the timing layer it will execute.
+PixiJS 8 draws the board; GSAP timelines move it, on one clock.
 
 - **`src/render/constants.ts`** holds every animation timing value (`ANIM`) and `fallDurationMs(cells) = 1000·√(2·cells / gravity)`, constant acceleration from rest at 60 cells/s².
 - **`src/render/plan.ts`**: `planScript(script, { timeScale })` is pure. It turns each engine step into `Planned { atMs, durMs, action }` items (swap, pop, morph, blast, fall, spawn, land, tray fly, score, notice, board in/out, sound cue) and a `totalMs`. Guarantees, each pinned by tests:
@@ -82,10 +80,19 @@ PixiJS 8 will draw the board, with GSAP timelines driving Pixi properties on one
   - one `land` (or `rock-drop`, when the column's new pieces include a rock) cue per column, at its last landing;
   - the next round starts `cascadeOverlapMs` before the last landing ends;
   - blasts fire at `order × blastStaggerMs`, Charge and Arc cells pop when the blast fires, Prism and supernova cells pop as each bolt arrives (`prismBoltStaggerMs` apart), and a chained blast fires `blastStaggerMs` after its parent reaches its seed cell;
-  - specials created by a Prism swap morph first and detonate `createMs` later;
-  - `timeScale` divides every time (reduced motion uses `ANIM.reducedMotionTimeScale`).
-- **`src/audio/cues.ts`** declares `CueName`; the cue manifest arrives with the sound engine.
-- **Planned:** textures generated from vector code at the device pixel ratio, a pre-rendered halo per piece type for the idle glow, a masked board so refills enter from above the top edge, `prefers-reduced-motion` support, and the hint layer.
+  - specials created by a Prism swap morph first and detonate `createMs` later, and a clear that creates a special lasts at least `createMs`;
+  - level-up and game-over wait for any tray flight to land, so the tray-full notice never follows them;
+  - `timeScale` divides every time (reduced motion uses `ANIM.reducedMotionTimeScale`); it must be positive and finite.
+- **`src/render/player.ts`**: `ScriptPlayer` builds one GSAP timeline per `play(script, end)` and resolves when it completes, then snaps every sprite to `end` (the engine's board and tray). `show(state)` deals a fresh board: the old one falls out of the bottom edge under the same gravity, the new one drops in from above as one block. Positions are tweened in cell units through proxy objects and mapped to pixels with `BoardView.cellXY` on every update, so falls are measured in real cells and a resize mid-cascade stays on course.
+  - Fall and spawn tweens are `power2.in` over `√(2d/g)` on the row only, which is exactly constant gravity. A spawned sprite is created when its fall starts, at its `fromRow` above the masked top edge, so refills enter one cell apart as if the column continued upward.
+  - `land` squashes to `ANIM.landSquash` with the bottom planted, rebounds `landReboundCells` and settles (`ANIM.landPhases` split `landMs`); no `bounce` ease.
+  - Pops swell to `popScale` and collapse to nothing, and the sprite is released when the pop ends. Morphs restyle the sprite in place. Tray flights, placements and lost pieces are loose sprites in the unmasked tray layer.
+  - Selection and the idle glow animate the sprite's own children (`PieceSprite`), never the properties a timeline drives.
+- **`src/render/clock.ts`**: `driveGsapFrom(ticker)` unhooks GSAP's own requestAnimationFrame loop and steps GSAP from Pixi's ticker (high priority, before the render) by the ticker's capped `deltaMS`. Every tween and every frame share one clock, and a hitch slows a frame instead of jumping a cascade to its end. Only the newest ticker drives, so a StrictMode double mount can't double the speed.
+- **`src/render/input.ts`**: `attachInput(app, board, tray, handlers)` turns `pointertap` on the stage into `tapCell` or `tapSlot` via `BoardView.cellAt` and `TrayView.slotAt`.
+- **`src/render/BoardView.ts`, `TrayView.ts`, `PieceSprite.ts`, `textures.ts`, `layout.ts`**: the masked board panel and its sprites keyed by engine id, the tray strip, textures drawn from vector code at the device pixel ratio (rebuilt when the cell size changes) with a pre-rendered halo per piece type for the breathing glow, and the pure layout.
+- **`src/audio/cues.ts`** declares `CueName` and the `CueSink` the player sends cues to; the game uses a silent sink until the sound engine exists.
+- **Planned:** particle, blast and shake effects (the player already calls the `Effects` port, a no-op for now), drag and swipe, and the hint layer.
 
 ## Sound
 
@@ -93,9 +100,15 @@ Exists: the supplied sound files in `audio-src/` and the provenance sheet `audio
 
 Planned: `npm run audio` encodes the sources to Opus/WebM with an AAC fallback in `public/audio/` (loudness-normalized, per the plan), and a small Web Audio `AudioEngine` with sfx, ui and music buses, cues scheduled from the same timeline as the animation, small pitch and gain variation, voice limits and cooldowns, and a mute toggle. Missing files degrade to silence.
 
-## App shell (planned)
+## App shell
 
-`app/` (controller, bootstrap, local storage for prefs and best scores) and `components/` (header, score, level bar, AI controls, game-over dialog, tray notice) with MUI. Best score for player games and a separate best for AI games persist in `localStorage`; corrupt or unavailable storage falls back to defaults. A desktop app is also planned.
+- **`src/app/bootstrap.ts`**: `createGame(host, { seed, onChange })` creates the Pixi application (or, if it can't, destroys the half-made one and throws `GraphicsUnavailableError`), drives GSAP from its ticker, builds the board and tray views, the `ScriptPlayer`, the `GameController` and tap input, and deals the first board. On resize it recomputes the layout, rebuilds textures for a new cell size, calls `setLayout` on both views, then `controller.relayout()`, which waits for the running timeline to finish. It draws the selection on the selected sprite from each `UiSnapshot`. Returns `{ controller, destroy() }`.
+- **`src/app/controller.ts`**: `GameController` is plain TypeScript, no React. It owns the `GameState`, applies moves, plays their scripts, and publishes a `UiSnapshot` (displayed score, level and progress, tray, notices, selection, busy, AI settings, best scores) through `onChange`. A second move while one is playing is dropped; `newGame()` waits for the current move; a hint ranked for an older state is discarded. The best score for the game's kind is saved when a game ends (game over or New Game). AI mode currently only blocks player input; its loop arrives with the hint layer.
+- **`src/app/ports.ts`**: the interfaces later pieces implement: `Effects` (with `noopEffects`), `HintViewLike`, `AISpeed`, `Prefs` and `PrefsStore`. Until persistence lands, bootstrap keeps prefs in memory for the session and the hint view is a no-op.
+- **`src/app/debug.ts`** (dev builds only, loaded behind `import.meta.env.DEV`): `window.__voltline` exposes the controller, board geometry, a cascading move finder, per-frame sprite sampling and the GSAP time scale, for `scripts/feel-check.ts`.
+- **`src/components/BoardCanvas.tsx`**: the React host element for the canvas. If `createGame` fails it shows “Voltline couldn’t start the graphics. Try another browser.” in the canvas area.
+
+Planned: `components/` chrome (header, score, level bar, AI controls, game-over dialog, tray notice) with MUI, and `localStorage` prefs (a player best and a separate AI best, the AI speed); corrupt or unavailable storage will fall back to defaults. A desktop app is also planned.
 
 ## Stack
 
@@ -105,7 +118,7 @@ Planned: `npm run audio` encodes the sources to Opus/WebM with an AAC fallback i
 | Runtime | Node `>=26` for tooling (`.nvmrc`, CI and the deploy build all use 26) |
 | Build | Vite 8, `base: './'`, ES-module workers |
 | UI | React 19.3, MUI 9 (shell), fonts via `@fontsource` (Orbitron, Rajdhani) |
-| Board | PixiJS 8 and GSAP 3.15 (planned use; installed) |
+| Board | PixiJS 8 and GSAP 3.15, on one clock (Pixi's ticker drives GSAP) |
 | Tests | Vitest 5, Testing Library, jsdom; Playwright for a planned smoke test (`npm run smoke` is not wired into CI yet) |
 | Lint | ESLint 10, typescript-eslint, react-hooks |
 
@@ -115,15 +128,21 @@ Planned: `npm run audio` encodes the sources to Opus/WebM with an AAC fallback i
 src/
   engine/        types, rules, rng, matches, board, gravity, specials, scoring,
                  tray, moves, resolve, testing (fixture helpers), index (public API)
-  ai/            weights, hash, search (rankMoves)
-  App.tsx, main.tsx   placeholder shell
-scripts/         bench.ts, make-sound-sheet.py, sound-credits.py
+  ai/            weights, hash, search (rankMoves), worker, client
+  render/        constants, plan, player, clock, input, layout, textures,
+                 PieceSprite, BoardView, TrayView
+  audio/         cues (cue names, CueSink)
+  app/           bootstrap, controller, ports, debug (dev only)
+  components/    BoardCanvas
+  App.tsx, main.tsx   page shell
+scripts/         bench.ts, feel-check.ts, screenshot-board.ts, board-showcase.*,
+                 make-sound-sheet.py, sound-credits.py
 audio-src/       supplied sounds and voltline-sounds.xlsx
 docs/superpowers/  design spec and implementation plan
 CREDITS.md       generated sound credits
 ```
 
-Planned directories: `src/render/`, `src/audio/`, `src/app/`, `src/components/`, `public/audio/`. Tests sit beside code as `*.test.ts`.
+Planned: `public/audio/`. Tests sit beside code as `*.test.ts`.
 
 ## Local development
 
@@ -149,6 +168,15 @@ Coverage thresholds (lines 90, branches 85, functions 90) apply to `src/engine/*
 
 Engine tests cover matches (3/4/5, L/T), specials and priority, blasts and chaining, Prism rules, gravity and refills, rock spawning, tray rules, scoring, levels, game over and replay determinism. AI tests check that it never returns an illegal move, picks the known best move on fixtures, and does not depend on hidden randomness. Board fixtures come from `parseBoard` and `boardToString` in `src/engine/testing.ts`.
 
+Planner tests pin every timing guarantee listed under [The renderer](#the-renderer). Player tests (`src/render/player.test.ts`) step GSAP by hand at 60 fps over real Pixi containers and real engine cascades, and check that every fall and refill in a round starts on the same frame, falls monotonically and accelerating, never shows at its destination early, enters one cell apart above the top edge, lands with a squash and rebound, and never overlaps another piece. Controller tests use a fake player that holds each play until released (input while busy, invalid swaps, displayed score, tray placement, New Game mid-move, deferred relayout, best scores).
+
+In the browser, with `npm run dev` running:
+
+```bash
+npx tsx scripts/feel-check.ts [baseUrl] [outDir]      # fall physics from per-frame sprite samples, 12 clicked moves, slow-motion frames
+npx tsx scripts/screenshot-board.ts [baseUrl] [outDir] # static board, breathing and resize screenshots (--csp against npm run preview)
+```
+
 ## CI, deploy and release
 
 - **CI** (`.github/workflows/ci.yml`, on PRs to `main`, pushes to `main` and as a reusable workflow): `npm ci`, lint, type-check, tests with coverage thresholds, build, a short AI bench run (`npm run bench -- --games 5 --max-moves 200`), and a bundle hygiene check that fails if `dist/` contains an API key shape, an LLM endpoint or a Google Fonts URL. The Playwright smoke test is planned and is a commented placeholder in the workflow. Actions are pinned to commit SHAs.
@@ -163,7 +191,7 @@ Server layout, the deploy user, secrets, one-time setup and rollback are in [DEP
 ## Conventions
 
 - `src/engine/**` and `src/ai/**` import nothing from DOM, React, Pixi, GSAP or audio.
-- Every rule number lives in `src/engine/rules.ts`, every AI weight in `src/ai/weights.ts`, and (planned) every animation timing in `src/render/constants.ts`.
+- Every rule number lives in `src/engine/rules.ts`, every AI weight in `src/ai/weights.ts`, and every animation timing in `src/render/constants.ts`.
 - User-facing copy uses curly quotes and apostrophes, with sparing closed-up em-dashes. Code comments are exempt.
 - No `console.log` in committed code.
 - Commits are concise, lowercase and imperative.

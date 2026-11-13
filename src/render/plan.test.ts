@@ -352,6 +352,56 @@ describe('planScript', () => {
     expect(cues(items, 'game-over').map((p) => p.atMs)).toEqual([ANIM.swapMs]);
   });
 
+  // A last round that fills the tray: the fly (and its tray-full notice) outlasts the quiet fall.
+  const fillsTray: Step[] = [
+    swap, threeRow, score(),
+    { t: 'tray-earn', color: 'red', from: at(7, 1), slot: 4 },
+    { t: 'tray-full' },
+    { t: 'fall', falls: [], spawns: [] },
+  ];
+
+  it('game-over waits for an in-flight tray fly, so the tray-full notice never follows it', () => {
+    const { items } = planScript([...fillsTray, { t: 'game-over' }]);
+    const fly = of(items, 'tray-fly')[0];
+    const [full, over] = of(items, 'notice');
+    expect(full.action.kind).toBe('tray-full');
+    expect(over.action.kind).toBe('game-over');
+    expect(over.atMs).toBe(end(fly));
+    expect(over.atMs).toBeGreaterThanOrEqual(full.atMs);
+    expect(cues(items, 'game-over').map((p) => p.atMs)).toEqual([end(fly)]);
+  });
+
+  it('level-up waits for an in-flight tray fly', () => {
+    const board = Array.from({ length: BOARD_SIZE }, (_, r) =>
+      Array.from({ length: BOARD_SIZE }, (_, c) => gem(100 + r * BOARD_SIZE + c)));
+    const { items } = planScript([...fillsTray, { t: 'level-up', level: 2, board }]);
+    const fly = of(items, 'tray-fly')[0];
+    const levelUp = of(items, 'notice').find((p) => p.action.kind === 'level-up')!;
+    expect(levelUp.atMs).toBe(end(fly));
+    expect(of(items, 'board-out')[0].atMs).toBe(end(fly));
+  });
+
+  it('a clear that creates a special lasts at least createMs, whatever the pop time', () => {
+    const anim = ANIM as { createMs: number };
+    const saved = anim.createMs;
+    anim.createMs = POP_MS + 100;
+    try {
+      const charge: Piece = { id: 2, kind: 'gem', color: 'red', special: 'charge' };
+      const step = clear([matched(1, 7, 0), matched(3, 7, 2)], { created: [{ at: at(7, 1), piece: charge }] });
+      const { items } = planScript([step, refill]);
+      const morph = of(items, 'morph')[0];
+      for (const p of [...of(items, 'fall'), ...of(items, 'spawn')]) expect(p.atMs).toBe(end(morph));
+    } finally {
+      anim.createMs = saved;
+    }
+  });
+
+  it('rejects a timeScale that is not a positive finite number', () => {
+    for (const timeScale of [0, -1, NaN, Infinity]) {
+      expect(() => planScript([swap], { timeScale })).toThrow(/timeScale/);
+    }
+  });
+
   it('an empty script plans nothing', () => {
     expect(planScript([])).toEqual({ items: [], totalMs: 0 });
   });

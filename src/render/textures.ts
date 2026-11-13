@@ -18,6 +18,13 @@ export const PIECE_COLORS: Record<Color, number> = {
   cyan: 0x4de8ff,
 };
 
+/** Effect color (sparks, flashes) for a cleared piece: its neon color, rock gray or prism white. */
+export function effectColor(key: Color | 'rock' | 'prism'): number {
+  if (key === 'rock') return 0x52525c;
+  if (key === 'prism') return 0xffffff;
+  return PIECE_COLORS[key];
+}
+
 /** Reference glow filters, in glyph units: `vglow` (stdDeviation 2.5 on the 100-unit symbol) and
  * `haloBig` (stdDeviation 10 on a 44-unit cell, i.e. 10/44 of a cell). */
 const GLOW_SIGMA_UNITS = 2.5;
