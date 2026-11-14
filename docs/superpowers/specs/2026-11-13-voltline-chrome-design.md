@@ -29,9 +29,9 @@ Tests: add `src/theme.test.ts` asserting the focus outline, disabled color and d
 
 ### 2. Header (`src/components/Header.tsx`, new `src/components/LogoMark.tsx`)
 
-- Row 1 is 44 tall. Left: `LogoMark` (26 px, `aria-hidden`) + 10 px gap + the existing h1 “Voltline” (unchanged style). Right: volume + 4 px gap + mute.
+- Row 1 is 44 tall. Left: `LogoMark` (26 px, `aria-hidden`) + 10 px gap + the existing h1 “Voltline” (unchanged style). Right: mute. (Was volume + 4 px gap + mute; the volume slider was dropped at Todd’s request after handoff, see below.)
 - `LogoMark`: inline SVG (CSP allows inline SVG), viewBox `0 0 100 100`, a `<g transform="translate(6 3)">` holding path `M16 20 L44 80 L60 48 L48 48 L72 14` (stroke 9, round caps and joins, linear gradient `#4dd8ff` → `#ff4fd8` in user space x 10→80) and two pads: circles at (16,20) and (72,14), r 7, fill `#0a0a11`, stroke 5 in cyan and magenta. Glow: `filter: drop-shadow(0 0 3px #4dd8ff88)`. Give the gradient a `useId()` id so two instances never collide. Reference SVG: `public/logo-mark.svg`.
-- Volume slider: width 70 inside an 88 × 44 hit area (padding `20px 9px`), thumb 18. Muted: `disabled` as today; style the disabled track `rgba(154,163,214,0.22)`, no fill, thumb hollow (`#0a0a11` with a 2 px `#7d86b8` ring).
+- ~~Volume slider~~ (dropped at Todd’s request, 2026-11-13; sound plays at a fixed `MASTER_VOLUME` of 0.8 and the `volume` pref is gone). Original line: width 70 inside an 88 × 44 hit area (padding `20px 9px`), thumb 18. Muted: `disabled` as today; style the disabled track `rgba(154,163,214,0.22)`, no fill, thumb hollow (`#0a0a11` with a 2 px `#7d86b8` ring).
 - Mute: `IconButton` 44 × 44 (theme), icon 24. **Accessible name stays “Mute”** with `aria-pressed={muted}`. Today the name flips to “Unmute” while also using a pressed state, which reads as “Unmute, pressed”. Keep the existing waves/cross shape change and colors.
 
 Tests: update `Header.test.tsx` (name is always “Mute”; `aria-pressed` toggles; the logo is `aria-hidden` and the heading is still “Voltline”).
@@ -167,3 +167,8 @@ No visible strings change. Accessible names:
 1. Replace the Prism-ring favicon and app icon with the V mark? **Yes, both.** `public/icon.svg` becomes the small V mark (from `public/logo-mark-small.svg`), and the Tauri icons are regenerated from `docs/design/voltline-chrome/logo-app-icon.svg` (`npx tauri icon`; update `scripts/render-icon.ts`/`src-tauri/icons/source.svg` to match).
 2. Accept 53 px desktop cells, or use 40 px controls for fine pointers to keep 56? **44 px everywhere; accept ~53 px desktop cells.**
 3. Keep the optional score flare (§4)? **Yes.**
+
+## Changes after handoff (Todd, 2026-11-13)
+
+- **Wordmark kerning.** The V and o of the h1 “Voltline” sit tighter than the rest: the V is wrapped in a span with `margin-right: -0.12em` on top of the 0.18em tracking. The heading’s text and accessible name stay “Voltline”.
+- **No volume slider.** The header keeps only the sound on/off button (§2’s mute button, unchanged). With no control left, volume is fixed at `MASTER_VOLUME` (0.8, in `src/audio/cues.ts`), applied once when the controller starts; the `volume` pref is removed, and older saved prefs that still carry it load normally and ignore it.

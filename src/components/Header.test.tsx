@@ -8,7 +8,7 @@ import Header from './Header';
 afterEach(cleanup);
 
 const base = {
-  score: 1500, level: 2, levelProgress: 0.4, muted: false, volume: 0.8, aiOn: false, best: { player: 900, ai: 0 }, notice: null,
+  score: 1500, level: 2, levelProgress: 0.4, muted: false, aiOn: false, best: { player: 900, ai: 0 }, notice: null,
 } as unknown as UiSnapshot;
 
 describe('Header', () => {
@@ -16,7 +16,7 @@ describe('Header', () => {
     const onMuted = vi.fn();
     function Wrapper() {
       const [muted, setMuted] = useState(false);
-      return <Header ui={{ ...base, muted }} onMuted={(m) => { onMuted(m); setMuted(m); }} onVolume={() => {}} />;
+      return <Header ui={{ ...base, muted }} onMuted={(m) => { onMuted(m); setMuted(m); }} />;
     }
     render(<Wrapper />);
     expect(screen.getByTestId('speaker-icon')).toHaveAttribute('data-muted', 'false');
@@ -33,7 +33,7 @@ describe('Header', () => {
   });
 
   it('shows the logo mark hidden from assistive tech; the heading is still the name', () => {
-    render(<Header ui={base} onMuted={() => {}} onVolume={() => {}} />);
+    render(<Header ui={base} onMuted={() => {}} />);
     const heading = screen.getByRole('heading', { level: 1, name: 'Voltline' });
     // One word for a screen reader: the kerned V is an inline span, not a separate word.
     expect(heading.textContent).toBe('Voltline');
@@ -43,18 +43,20 @@ describe('Header', () => {
     expect(mark.tagName.toLowerCase()).toBe('svg');
   });
 
-  it('disables the volume slider while muted', () => {
-    render(<Header ui={{ ...base, muted: true }} onMuted={() => {}} onVolume={() => {}} />);
-    expect(screen.getByRole('slider', { name: 'Volume' })).toBeDisabled();
+  it('has a single sound control: the mute button, no volume slider', () => {
+    render(<Header ui={base} onMuted={() => {}} />);
+    expect(screen.queryByRole('slider')).toBeNull();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Mute' })).toBeInTheDocument();
   });
 
   it('gives the score an accessible name with the final value', () => {
-    render(<Header ui={base} onMuted={() => {}} onVolume={() => {}} />);
+    render(<Header ui={base} onMuted={() => {}} />);
     expect(screen.getByText('Score 1,500')).toBeInTheDocument();
   });
 
   it('shows the level-up line while the notice is set', () => {
-    render(<Header ui={{ ...base, notice: { kind: 'level-up', level: 3 } }} onMuted={() => {}} onVolume={() => {}} />);
+    render(<Header ui={{ ...base, notice: { kind: 'level-up', level: 3 } }} onMuted={() => {}} />);
     expect(screen.getByText('Level 3!')).toBeInTheDocument();
   });
 });

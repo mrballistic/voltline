@@ -7,14 +7,14 @@ const game = vi.hoisted(() => ({ ui: null as unknown, failed: false }));
 vi.mock('./app/useGame', () => ({
   useGame: () => ({
     ui: game.ui, failed: game.failed,
-    actions: { newGame() {}, hint() {}, uiClick() {}, setAI() {}, setAISpeed() {}, setMuted() {}, setVolume() {} },
+    actions: { newGame() {}, hint() {}, uiClick() {}, setAI() {}, setAISpeed() {}, setMuted() {} },
   }),
 }));
 const { default: App } = await import('./App');
 
 const idle = {
   score: 0, level: 1, levelProgress: 0, tray: [], trayFull: false, moves: 0, over: false, busy: false, selected: null,
-  selectedSlot: null, aiOn: false, aiSpeed: 'medium', aiMoves: 0, aiThinking: false, muted: false, volume: 0.8,
+  selectedSlot: null, aiOn: false, aiSpeed: 'medium', aiMoves: 0, aiThinking: false, muted: false,
   newBest: false, overAI: false, best: { player: 0, ai: 0 }, notice: null,
 } satisfies UiSnapshot;
 

@@ -54,7 +54,7 @@ export default function App() {
         sx={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
       >
         <Box sx={{ width: '100%', maxWidth: 640, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Header ui={ui} onMuted={actions.setMuted} onVolume={actions.setVolume} />
+          <Header ui={ui} onMuted={actions.setMuted} />
           <BoardCanvas host={host} failed={failed} />
           <TrayNotice trayFull={ui?.trayFull ?? false} />
           <GameControls

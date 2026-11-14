@@ -1,10 +1,9 @@
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
-import Slider from '@mui/material/Slider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import SvgIcon from '@mui/material/SvgIcon';
-import { CHROME, DISPLAY_FONT, NEON } from '../theme';
+import { DISPLAY_FONT, NEON } from '../theme';
 import type { UiSnapshot } from '../app/controller';
 import LevelBar from './LevelBar';
 import LogoMark from './LogoMark';
@@ -13,11 +12,10 @@ import ScoreDisplay from './ScoreDisplay';
 export interface HeaderProps {
   ui: UiSnapshot | null;
   onMuted(m: boolean): void;
-  onVolume(v: number): void;
 }
 
-/** Title, score, level bar, best score and the sound controls. Fixed rows so nothing jumps. */
-export default function Header({ ui, onMuted, onVolume }: HeaderProps) {
+/** Title, score, level bar, best score and the mute button. Fixed rows so nothing jumps. */
+export default function Header({ ui, onMuted }: HeaderProps) {
   const muted = ui?.muted ?? false;
   const best = ui ? (ui.aiOn ? ui.best.ai : ui.best.player) : 0;
   const notice = ui?.notice;
@@ -31,16 +29,10 @@ export default function Header({ ui, onMuted, onVolume }: HeaderProps) {
             <Box component="span" sx={{ mr: WORDMARK_VO_KERN }}>V</Box>oltline
           </Typography>
         </Stack>
-        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-          <Slider
-            size="small" min={0} max={1} step={0.05} value={ui?.volume ?? 0.8} disabled={muted}
-            onChange={(_, v) => onVolume(v)} aria-label="Volume" sx={volumeSx}
-          />
-          {/* The name stays “Mute”; aria-pressed carries the state. */}
-          <IconButton aria-label="Mute" aria-pressed={muted} onClick={() => onMuted(!muted)} sx={{ color: muted ? 'text.secondary' : NEON.cyan }}>
-            <SpeakerIcon muted={muted} />
-          </IconButton>
-        </Stack>
+        {/* The only sound control (the volume slider was dropped). The name stays “Mute”; aria-pressed carries the state. */}
+        <IconButton aria-label="Mute" aria-pressed={muted} onClick={() => onMuted(!muted)} sx={{ color: muted ? 'text.secondary' : NEON.cyan }}>
+          <SpeakerIcon muted={muted} />
+        </IconButton>
       </Stack>
       <Stack spacing={0.5} sx={{ mt: 0.5, alignItems: 'center' }}>
         <ScoreDisplay score={ui?.score ?? 0} />
@@ -58,20 +50,6 @@ export default function Header({ ui, onMuted, onVolume }: HeaderProps) {
 
 /** Extra kerning between the wordmark's V and o, on top of its 0.18em tracking. */
 export const WORDMARK_VO_KERN = '-0.12em';
-
-// A 70 px track in an 88 × 44 hit area; muted shows an empty track and a hollow thumb.
-const volumeSx = {
-  width: 70, height: 4, boxSizing: 'content-box', padding: '20px 9px',
-  '@media (pointer: coarse)': { padding: '20px 9px' },
-  '& .MuiSlider-rail': { bgcolor: 'rgba(77,216,255,0.22)', opacity: 1 },
-  '& .MuiSlider-track': { border: 0, boxShadow: `0 0 8px ${NEON.cyan}88` },
-  '& .MuiSlider-thumb': { width: 18, height: 18, boxShadow: `0 0 8px ${NEON.cyan}aa` },
-  '&.Mui-disabled .MuiSlider-rail': { bgcolor: 'rgba(154,163,214,0.22)' },
-  '&.Mui-disabled .MuiSlider-track': { display: 'none' },
-  '&.Mui-disabled .MuiSlider-thumb': {
-    bgcolor: CHROME.page, border: `2px solid ${CHROME.textDisabled}`, boxSizing: 'border-box', boxShadow: 'none',
-  },
-} as const;
 
 /** Speaker with sound waves; muted shows a cross instead, so the state is visible at a glance. */
 function SpeakerIcon({ muted }: { muted: boolean }) {

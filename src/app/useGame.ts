@@ -12,7 +12,6 @@ export interface GameActions {
   setAI(on: boolean): void;
   setAISpeed(s: AISpeed): void;
   setMuted(m: boolean): void;
-  setVolume(v: number): void;
 }
 
 export function useGame(host: RefObject<HTMLElement | null>, seed?: number) {
@@ -60,7 +59,6 @@ export function useGame(host: RefObject<HTMLElement | null>, seed?: number) {
     setAI: (on) => call((c) => c.setAI(on)),
     setAISpeed: (s) => call((c) => c.setAISpeed(s)),
     setMuted: (m) => call((c) => c.setMuted(m)),
-    setVolume: (v) => call((c) => c.setVolume(v)),
   }), [call]);
 
   return { ui, actions, failed };

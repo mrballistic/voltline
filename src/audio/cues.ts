@@ -15,6 +15,12 @@ export type CueName =
 /** Cues with their own manifest entry (the match-chain-N files are variants of `match`, found via `chainSet`). */
 export type ManifestCue = Exclude<CueName, `match-chain-${number}`>;
 
+/**
+ * Master volume. Fixed since the header's volume slider was dropped (chrome spec, Todd's call);
+ * 0.8 keeps the mix where the old slider's default had it.
+ */
+export const MASTER_VOLUME = 0.8;
+
 export interface CueSpec {
   bus: 'sfx' | 'ui' | 'music';
   /** Starting gain in dB; the source files are loudness-matched, so the mix lives here. Tune by ear. */
