@@ -8,7 +8,7 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./src/test/setup.ts'],
     // Agent worktrees live inside the repo; never collect their copies of the tests.
-    exclude: ['**/node_modules/**', '**/dist/**', '.claude/**', '.worktrees/**'],
+    exclude: ['**/node_modules/**', '**/dist/**', '.claude/**', '.worktrees/**', 'scripts/smoke.spec.ts'],
     // Coverage gates only the pure rules engine and the search AI, the code
     // whose bugs are silent. Rendering and UI are checked by the browser smoke test.
     coverage: {
