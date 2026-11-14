@@ -35,9 +35,12 @@ const STYLE = {
 
 const S = (ms: number) => ms / 1000;
 
-/** `≈ 1,240`: the AI's value in points, rounded, with thousands separators. */
+/**
+ * `≈ 1,240`: the AI's value in points, rounded, with thousands separators. Never below 0: a move
+ * that ends the game carries a large negative weight, which ranks it but means nothing as points.
+ */
 export function formatHintValue(value: number): string {
-  return `≈ ${Math.round(value).toLocaleString('en-US')}`;
+  return `≈ ${Math.max(0, Math.round(value)).toLocaleString('en-US')}`;
 }
 
 /**

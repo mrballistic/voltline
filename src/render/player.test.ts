@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Texture } from 'pixi.js';
 import { gsap } from 'gsap';
-import { applyMove, newGame, productiveMoves } from '../engine';
+import { TRAY_THRESHOLD, applyMove, newGame, productiveMoves } from '../engine';
 import type { Color, GameState, Move, Step } from '../engine';
 import type { CueName } from '../audio/cues';
 import { createAIClient } from '../ai/client';
@@ -229,6 +229,25 @@ describe('ScriptPlayer', () => {
     expect(r.cues).toContain('swap');
     expect(r.cues).toContain('match');
     expect(r.cues.at(-1)).toBe('game-over');
+  });
+
+  it('forwards a tray flight when it lands, with the tray-full notice, not when it starts', async () => {
+    // Four pieces in the tray and every counter one short: the first match fills the tray.
+    const base = newGame(3);
+    const counters = Object.fromEntries(Object.keys(base.counters).map((k) => [k, TRAY_THRESHOLD - 1])) as GameState['counters'];
+    const state: GameState = { ...base, tray: ['red', 'blue', 'green', 'yellow'], counters };
+    await deal(r, state);
+    const { script, state: next } = applyMove(state, productiveMoves(state)[0]);
+    expect(script.some((s) => s.t === 'tray-full')).toBe(true);
+    const fly = planScript(script).items.find((p) => p.action.a === 'tray-fly')!;
+    r.actions.length = 0;
+    await r.run(r.player.play(script, next));
+    const flown = r.actions.find((a) => a.action.a === 'tray-fly')!;
+    const full = r.actions.find((a) => a.action.a === 'notice' && a.action.kind === 'tray-full')!;
+    expect(fly.durMs).toBeGreaterThan(0);
+    // `frame` counts the frames completed before the call, so it fired during frame + 1.
+    expect((flown.frame + 1) * FRAME_MS).toBeGreaterThanOrEqual(fly.atMs + fly.durMs - 1e-6);
+    expect(flown.frame).toBe(full.frame);
   });
 
   it('forwards cue actions to the sink at their timeline time', async () => {

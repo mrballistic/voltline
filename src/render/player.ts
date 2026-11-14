@@ -37,7 +37,10 @@ export interface ScriptPlayerDeps {
   tray: TrayView;
   effects: Effects;
   audio: CueSink;
-  /** Receives `score`, `notice`, `tray-fly` and `tray-lost` at their planned instants. */
+  /**
+   * Receives `score`, `notice` and `tray-lost` at their planned instants, and `tray-fly` when the
+   * piece lands in its slot (so the tray, and the “tray full” notice, never run ahead of it).
+   */
   onAction: (a: Action) => void;
   reducedMotion: boolean;
 }
@@ -172,7 +175,7 @@ class PlayContext {
     const at = S(p.atMs);
     const dur = S(p.durMs);
     const a = p.action;
-    if (FORWARDED.has(a.a)) tl.call(() => this.d.onAction(a), undefined, at);
+    if (FORWARDED.has(a.a)) tl.call(() => this.d.onAction(a), undefined, a.a === 'tray-fly' ? at + dur : at);
     switch (a.a) {
       case 'swap':
         a.ids.forEach((id, i) => this.slide(tl, id, a.to[i], at, dur));

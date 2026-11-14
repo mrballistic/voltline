@@ -77,9 +77,22 @@ describe('pickHintArrows', () => {
     expect(formatHintValue(1240.4)).toBe('≈ 1,240');
     expect(formatHintValue(87)).toBe('≈ 87');
   });
+
+  it('labels never go below 0 (a game-ending move ranks last but reads as 0 points)', () => {
+    expect(formatHintValue(-99_812.6)).toBe('≈ 0');
+    expect(formatHintValue(-0.3)).toBe('≈ 0');
+    expect(formatHintValue(0)).toBe('≈ 0');
+  });
 });
 
 describe('HintLayer', () => {
+  it('a game-ending candidate is still ranked last but labelled 0', () => {
+    const r = rig();
+    void r.hint.show([swap(0, 0, -99_812), swap(1, 0, 40)], { revealMs: 900, holdMs: 4000 });
+    expect(r.arrows().map((a) => a.ranked.value)).toEqual([-99_812, 40]);
+    expect(r.arrows().map((a) => a.labelText)).toEqual(['≈ 0', '≈ 40']);
+  });
+
   it('shows every picked arrow, fades the weaker ones lowest first and keeps the best', async () => {
     const r = rig();
     const ranked = [swap(0, 0, 1240), swap(1, 0, 600), place(0, 5, 5, 300), swap(2, 0, 50)];
