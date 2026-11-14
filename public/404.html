@@ -42,7 +42,8 @@
   .tries { animation: swap 3.6s ease-in-out infinite; }
   .tries + svg { animation: swap-back 3.6s ease-in-out infinite; }
   a.btn {
-    display: inline-block; margin-top: 14px; padding: .55em 1.5em;
+    display: inline-flex; align-items: center; justify-content: center; min-height: 48px;
+    margin-top: 14px; padding: 0 1.5em;
     border: 2px solid var(--cyan); border-radius: 10px;
     color: var(--cyan); text-decoration: none; font-weight: 700;
     letter-spacing: .06em; text-transform: uppercase;
@@ -50,7 +51,7 @@
     transition: background .15s, box-shadow .15s, color .15s;
   }
   a.btn:hover, a.btn:focus-visible { background: var(--cyan); color: var(--bg); box-shadow: 0 0 28px rgba(77, 232, 255, .65); }
-  a.btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  a.btn:focus-visible { outline: 2px solid #ffe14d; outline-offset: 3px; }
   small { display: block; margin-top: 28px; font-size: 15px; color: #8084a3; }
   @keyframes swap {
     0%, 10% { transform: translateX(0); }
