@@ -1,4 +1,4 @@
-// Renders the social share image, public/og-image.png (1200x630), the one Open Graph and
+// Renders the social share image, public/og-image.jpg (1200x630, about 190 KB), the one Open Graph and
 // Twitter cards point at. It plays the dev `prism` fixture in slow motion at 2x device pixels,
 // keeps the frame where every lightning bolt is drawn, and lays it out beside the V mark, the
 // wordmark and a one-line pitch, in the game's own fonts.
@@ -7,7 +7,10 @@
 //
 // OG_FRAME picks the slow-motion frame (default 26: every bolt drawn to a still-whole star);
 // OG_KEEP=1 also writes the raw board frames to .playwright-mcp/og-frames for choosing one.
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { resolve } from 'node:path';
 import { chromium, type Page } from '@playwright/test';
 import { DECLINED_CONSENT } from './consent';
@@ -23,7 +26,9 @@ const FRAME = Number(process.env.OG_FRAME ?? 26);
 const KEEP = process.env.OG_KEEP === '1';
 const SLOW = 0.06; // effects-check's time scale; device-scale shots are slower, so frame numbers differ from its sheet
 const ROOT = resolve(import.meta.dirname, '..');
-const OUT = resolve(ROOT, 'public/og-image.png');
+// A JPEG keeps the card well under WhatsApp's ~300 KB preview limit; 4:4:4 (no chroma
+// subsampling) keeps the thin neon strokes from bleeding. Needs ImageMagick's `magick`.
+const OUT = resolve(ROOT, 'public/og-image.jpg');
 const FRAMES_DIR = resolve(ROOT, '.playwright-mcp/og-frames');
 
 async function clickCell(page: Page, p: Pos) {
@@ -104,7 +109,11 @@ try {
   const page = await (await browser.newContext({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 })).newPage();
   await page.setContent(card(board));
   await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: OUT, clip: { x: 0, y: 0, width: 1200, height: 630 } });
+  const tmp = mkdtempSync(join(tmpdir(), 'voltline-og-'));
+  const png = join(tmp, 'card.png');
+  await page.screenshot({ path: png, clip: { x: 0, y: 0, width: 1200, height: 630 } });
+  execFileSync('magick', [png, '-strip', '-sampling-factor', '4:4:4', '-quality', '90', OUT]);
+  rmSync(tmp, { recursive: true, force: true });
   process.stdout.write(`wrote ${OUT} (frame ${FRAME})\n`);
 } finally {
   await browser.close();

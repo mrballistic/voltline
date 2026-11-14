@@ -12,6 +12,17 @@ const meta = (attr: 'name' | 'property', key: string) => {
   return m ? m[1] : undefined;
 };
 
+/** Width and height from a JPEG's first start-of-frame marker. */
+const jpegSize = (buf: Buffer) => {
+  for (let i = 2; i < buf.length - 9; ) {
+    if (buf[i] !== 0xff) throw new Error('not a JPEG marker');
+    const marker = buf[i + 1];
+    if (marker >= 0xc0 && marker <= 0xc3) return { width: buf.readUInt16BE(i + 7), height: buf.readUInt16BE(i + 5) };
+    i += 2 + buf.readUInt16BE(i + 2);
+  }
+  throw new Error('no start-of-frame');
+};
+
 /** Width and height from a PNG's IHDR chunk. */
 const pngSize = (buf: Buffer) => ({ width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) });
 
@@ -27,15 +38,20 @@ describe('index.html metadata', () => {
       expect(meta('property', key), key).toBeTruthy();
     }
     expect(meta('property', 'og:url')).toBe(SITE);
-    expect(meta('property', 'og:image')).toBe(`${SITE}og-image.png`);
+    expect(meta('property', 'og:image')).toBe(`${SITE}og-image.jpg`);
+    expect(meta('property', 'og:image:type')).toBe('image/jpeg');
+    expect(meta('name', 'twitter:description')).toBe(meta('property', 'og:description'));
+    expect(meta('name', 'twitter:image:alt')).toBe(meta('property', 'og:image:alt'));
     expect(meta('name', 'twitter:card')).toBe('summary_large_image');
     expect(meta('name', 'twitter:image')).toBe(meta('property', 'og:image'));
     expect(meta('name', 'twitter:title')).toBe(meta('property', 'og:title'));
   });
 
   it('declares the share image at its real size', () => {
-    const size = pngSize(readFileSync(new URL('../public/og-image.png', import.meta.url)));
+    const file = readFileSync(new URL('../public/og-image.jpg', import.meta.url));
+    const size = jpegSize(file);
     expect(size).toEqual({ width: 1200, height: 630 });
+    expect(file.length).toBeLessThan(300_000); // WhatsApp drops larger preview images
     expect(meta('property', 'og:image:width')).toBe(String(size.width));
     expect(meta('property', 'og:image:height')).toBe(String(size.height));
   });
@@ -46,7 +62,7 @@ describe('index.html metadata', () => {
     const data = JSON.parse(block![1]) as { '@context': string; '@graph': Record<string, unknown>[] };
     expect(data['@context']).toBe('https://schema.org');
     const game = data['@graph'].find((n) => n['@type'] === 'VideoGame')!;
-    expect(game).toMatchObject({ name: 'Voltline', url: SITE, isAccessibleForFree: true, image: `${SITE}og-image.png` });
+    expect(game).toMatchObject({ name: 'Voltline', url: SITE, isAccessibleForFree: true, image: `${SITE}og-image.jpg` });
     expect(game.gamePlatform).toEqual(['Web browser', 'macOS']);
     // Every @id it points at is defined in the graph.
     const ids = new Set(data['@graph'].map((n) => n['@id']));
@@ -67,6 +83,8 @@ describe('index.html metadata', () => {
     // An .ico starts with reserved 0, type 1 (icon), then the image count.
     const ico = readFileSync(new URL('../public/favicon.ico', import.meta.url));
     expect([ico.readUInt16LE(0), ico.readUInt16LE(2), ico.readUInt16LE(4)]).toEqual([0, 1, 3]);
+    // Each 16-byte directory entry starts with its width and height (one byte each).
+    expect([0, 1, 2].map((k) => [ico[6 + 16 * k], ico[7 + 16 * k]])).toEqual([[16, 16], [32, 32], [48, 48]]);
   });
 
   it('keeps every user-facing string in curly punctuation', () => {
