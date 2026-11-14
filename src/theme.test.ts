@@ -47,4 +47,11 @@ describe('theme', () => {
       color: '#ff4fd8', background: 'rgba(255,79,216,0.16)', boxShadow: 'inset 0 0 0 1px #ff4fd8',
     });
   });
+
+  it('draws the AI switch’s focus ring on the switch root, which its overflow:hidden can’t clip', () => {
+    const sw = theme.components?.MuiSwitch?.styleOverrides as { root?: Styles; switchBase?: Styles } | undefined;
+    // MUI's .MuiSwitch-root clips its children, so a ring on the inner switchBase shows as a sliver.
+    expect(sw?.switchBase?.['&.Mui-focusVisible']).toEqual({ outline: 'none' });
+    expect(sw?.root?.['&:has(.Mui-focusVisible)']).toEqual({ outline: '2px solid #ffe14d', outlineOffset: 3, borderRadius: 12 });
+  });
 });

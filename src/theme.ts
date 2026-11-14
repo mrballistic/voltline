@@ -84,6 +84,14 @@ export const theme = createTheme({
         },
       },
     },
+    MuiSwitch: {
+      styleOverrides: {
+        // .MuiSwitch-root has overflow: hidden, which clips a ring on the inner switchBase to a
+        // sliver; with no ripple that sliver would be the only focus cue. Ring the whole switch.
+        root: { '&:has(.Mui-focusVisible)': { outline: `2px solid ${CHROME.focus}`, outlineOffset: 3, borderRadius: 12 } },
+        switchBase: { '&.Mui-focusVisible': { outline: 'none' } },
+      },
+    },
     MuiIconButton: {
       styleOverrides: {
         root: {
