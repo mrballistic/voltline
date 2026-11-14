@@ -1,6 +1,7 @@
 {
   "name": "voltline",
   "private": true,
+  "license": "MIT",
   "version": "1.0.0-dev",
   "type": "module",
   "engines": {
@@ -14,6 +15,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "bench": "tsx scripts/bench.ts",
+    "smoke": "playwright test",
     "audio": "bash scripts/encode-audio.sh",
     "type-check": "tsc --noEmit",
     "test:coverage": "vitest run --coverage",

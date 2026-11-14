@@ -7,6 +7,8 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 ### Added
 
 - Ground-up rebuild as **Voltline**, a neon match-three game with its own pieces, look and sounds.
+- `npm run smoke`: a Playwright end-to-end test of the production build under the production CSP (plays, Hint, AI mode, no console errors or CSP violations); runs in CI.
+- `AI-ASSISTANCE.md`, linked from the README; MIT license metadata and copyright line.
 - Deterministic, seeded rules engine (`src/engine`), pure TypeScript with no DOM:
   - match detection for 3, 4 and 5 in a line, with L and T shapes counted as one match;
   - Charge (4 in a line), Arc (L/T) and Prism (5 in a line) specials, with chaining and the Prism pair rules;

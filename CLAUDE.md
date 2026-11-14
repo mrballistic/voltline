@@ -37,6 +37,7 @@ npm test               # Vitest, watch mode
 npm run test:run       # Vitest, single run
 npm run test:coverage  # Vitest with v8 coverage
 npm run bench          # tsx scripts/bench.ts (AI/engine benchmark)
+npm run smoke          # Playwright against `vite preview` of dist/ (run build first)
 npm run audio          # scripts/encode-audio.sh (encode audio-src/ for the app)
 npm run desktop:dev    # the game in a native window (Tauri 2; needs Rust, see BUILDING.md)
 npm run desktop:build  # tauri build (unsigned); releases use scripts/make-macos-app.sh
@@ -52,8 +53,8 @@ See `ARCHITECTURE.md` for detail.
 - **Planner** (`src/render/plan.ts`): a pure function from the event script to exact timed actions (and sound cues).
 - **Renderer**: a PixiJS canvas that plays the plan back with GSAP timelines. It only plays back; it never decides rules.
 - **AI** (`src/ai`): search over engine simulations, using only visible information (it never reads the hidden RNG). Runs in a Web Worker, with an inline fallback when no Worker is available.
-- **App controller** (planned): a non-React `GameController` orchestrating engine, renderer, AI and audio.
-- **Audio** (planned, cue names in `src/audio/cues.ts`): Web Audio engine fed from the same script.
+- **App controller** (`src/app/controller.ts`): a non-React `GameController` orchestrating engine, renderer, AI and audio.
+- **Audio** (`src/audio`, cue names in `src/audio/cues.ts`): Web Audio engine fed from the same script.
 
 ## Invariants every change must keep
 

@@ -20,4 +20,11 @@ export default defineConfig({
     },
   },
   worker: { format: 'es' },
+  // Same policy as deploy/apache-voltline-le-ssl.conf, so `npm run smoke` runs under it.
+  preview: {
+    headers: {
+      'Content-Security-Policy':
+        "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:",
+    },
+  },
 });

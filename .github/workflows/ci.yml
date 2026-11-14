@@ -49,10 +49,10 @@ jobs:
             exit 1
           fi
 
-      # Browser smoke test: arrives with Task 19 (`npm run smoke` does not
-      # exist yet). Enable these when it does.
-      # - run: npx playwright install --with-deps chromium
-      # - run: npm run smoke
+      # Browser smoke test against `vite preview` of the production build, under
+      # the production CSP: plays, hints, runs AI mode, fails on console errors.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run smoke
 
       # Keeps the Playwright report and screenshots from a failed run.
       - name: Upload Playwright artifacts

@@ -68,6 +68,10 @@ Your best score is saved on this device, separately for you and for AI mode. Sou
 
 <img src="docs/screenshots/app-phone.webp" alt="Voltline on a phone: the same board filling the width, with the score above and the buttons below" width="260">
 
+## AI assistance
+
+Voltline was built with AI assistance; the game’s own AI is a search, not generative AI. See [AI-ASSISTANCE.md](./AI-ASSISTANCE.md).
+
 ## Credits and license
 
 Sound effects come from other creators under their own licenses; see [CREDITS.md](./CREDITS.md). Voltline itself is MIT licensed; see [LICENSE](./LICENSE).

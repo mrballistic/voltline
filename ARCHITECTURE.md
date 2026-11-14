@@ -145,7 +145,7 @@ A Tauri 2 shell in `src-tauri/` wraps the web build unchanged: `tauri.conf.json`
 | Build | Vite 8, `base: './'`, ES-module workers |
 | UI | React 19.3, MUI 9 (shell), fonts via `@fontsource` (Orbitron, Rajdhani) |
 | Board | PixiJS 8 and GSAP 3.15, on one clock (Pixi's ticker drives GSAP) |
-| Tests | Vitest 5, Testing Library, jsdom; Playwright for a planned smoke test (`npm run smoke` is not wired into CI yet) |
+| Tests | Vitest 5, Testing Library, jsdom; Playwright for the browser smoke test (`npm run smoke`, in CI) |
 | Lint | ESLint 10, typescript-eslint, react-hooks |
 
 ## Project layout
@@ -215,7 +215,7 @@ The effects check fails if, over 2 s of the supernova at full speed, any frame i
 
 ## CI, deploy and release
 
-- **CI** (`.github/workflows/ci.yml`, on PRs to `main`, pushes to `main` and as a reusable workflow): `npm ci`, lint, type-check, tests with coverage thresholds, build, a short AI bench run (`npm run bench -- --games 5 --max-moves 200`), and a bundle hygiene check that fails if `dist/` contains an API key shape, an LLM endpoint or a Google Fonts URL. The Playwright smoke test is planned and is a commented placeholder in the workflow. Actions are pinned to commit SHAs.
+- **CI** (`.github/workflows/ci.yml`, on PRs to `main`, pushes to `main` and as a reusable workflow): `npm ci`, lint, type-check, tests with coverage thresholds, build, a short AI bench run (`npm run bench -- --games 5 --max-moves 200`), and a bundle hygiene check that fails if `dist/` contains an API key shape, an LLM endpoint or a Google Fonts URL. Then the Playwright smoke test (`scripts/smoke.spec.ts`): it runs `vite preview` of the production build under the production CSP (`preview.headers` in `vite.config.ts`), clicks real board cells with `computeLayout` math, presses Hint, runs AI mode for 10 s and fails on console errors or CSP violations. Actions are pinned to commit SHAs.
 - **Deploy** (`.github/workflows/deploy.yml`, on `v*` tags): verifies the tag is on `main`, matches `package.json` and has a CHANGELOG section, runs CI, builds, rsyncs `dist/` to the Apache server at `https://voltline.mrballistic.com`, smoke-tests the live site, then creates the GitHub Release from the CHANGELOG section (`scripts/release-notes.mjs`).
 - **Release steps:** bump `version` in `package.json`, rename `## Unreleased` in `CHANGELOG.md` to `## <version> (date)`, merge to main, then `git tag -a vX.Y.Z -m "…" && git push origin vX.Y.Z`.
 - **Dependabot** updates npm and actions monthly, holding TypeScript and `@types/node` majors.
