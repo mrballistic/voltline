@@ -29,6 +29,9 @@ When the tray reaches 5 pieces, **every color's counter resets to 0**, and clear
 ### 5. A Claude Design brief for the UI (Todd)
 `docs/design/claude-design-brief.md`: a self-contained brief Todd can paste into Claude Design. Scope *(my call, Todd may widen it)*: the chrome and overall layout around the board (header, score, level bar, sound, Hint/New game, AI controls, tray-full notice, level-up, game-over dialog, footer, 404 page, graphics-failure message), on desktop and phone. The board and tray are a fixed PixiJS canvas the design frames, not redraws. Contents: product summary and audience; the Voltline look as tokens (colors, fonts, glow values, spacing) taken from the code; every screen and state with today's screenshots; component inventory with current copy; constraints (React 19 + MUI 9 `sx`/theme, strict CSP: no external fonts or scripts, curly punctuation, sparing closed-up em-dashes, accessibility: contrast, focus, live regions, reduced motion); originality rule; what to hand back (mockups per state and breakpoint, tokens, component specs).
 
+### 6. Prism versus rocks (Todd: “the prism should be able to remove the stones”; picked “Swap Prism with a rock”)
+A Prism swapped with a rock is now a legal, productive move: it clears **every rock on the board** (and the Prism). Color clears are unchanged (they still skip rocks), and a Prism caught in an explosion still clears the most common color. The AI considers the new move automatically. The How to play copy and README change from “A Prism can’t be swapped with a rock” to say what the swap does.
+
 ## Release
 Ships as **1.1.0** (CHANGELOG section, version bump, PR, green CI, merge, tag; deploy watched and verified live, per Todd's standing release rule).
 
