@@ -89,6 +89,18 @@ Notarization uploads the app to Apple, so run it only for a build you mean to sh
 
 `SIGN_IDENTITY` picks a different identity. The script header lists every option.
 
+### 3. Attach it to the GitHub Release
+
+The deploy workflow creates the release from the CHANGELOG when the tag is pushed; add the notarized files and their checksums to it:
+
+```
+cd dist-desktop
+shasum -a 256 Voltline-<version>-macos-universal.dmg Voltline-<version>-macos-universal.zip > SHA256SUMS.txt
+gh release upload v<version> Voltline-<version>-macos-universal.dmg Voltline-<version>-macos-universal.zip SHA256SUMS.txt
+```
+
+Then add a `### Download` section at the top of the release notes (`gh release edit v<version> --notes-file …`) linking the disk image and zip, as v1.1.0 does. The README links to the latest release, so it needs no change.
+
 ### Building and signing on your own Mac
 
 `scripts/make-macos-app.sh --universal` builds, signs and packages in one go, without GitHub; drop `--universal` for your own architecture only. Add `NOTARY_PROFILE=<profile>` to notarize.
