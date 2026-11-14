@@ -101,6 +101,8 @@ gh release upload v<version> Voltline-<version>-macos-universal.dmg Voltline-<ve
 
 Then add a `### Download` section at the top of the release notes (`gh release edit v<version> --notes-file …`) linking the disk image and zip, as v1.1.0 does. The README links to the latest release, so it needs no change.
 
+**Web-only releases still need the Mac files.** The README and the game’s footer link to the *latest* release, so a release that doesn’t rebuild the Mac app must carry the current notarized files too, or “Mac app” lands on a page with no download. Upload the existing `dist-desktop/` files (check them first with `shasum -a 256 -c SHA256SUMS.txt`) to the new tag with the same `gh release upload`, and say in its Download section which app version they are, as v1.2.0 does.
+
 ### Building and signing on your own Mac
 
 `scripts/make-macos-app.sh --universal` builds, signs and packages in one go, without GitHub; drop `--universal` for your own architecture only. Add `NOTARY_PROFILE=<profile>` to notarize.
