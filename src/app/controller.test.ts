@@ -8,7 +8,8 @@ import { ANIM } from '../render/constants';
 import type { Action } from '../render/plan';
 import type { ScriptPlayerLike, ShownState } from '../render/player';
 import { AI_PACE, GameController, type GameControllerDeps, type UiSnapshot } from './controller';
-import type { HintViewLike, Prefs, PrefsStore } from './ports';
+import type { CueName } from '../audio/cues';
+import type { HintViewLike, Prefs, PrefsStore, SoundLike } from './ports';
 
 const SEED = 42;
 
@@ -100,6 +101,23 @@ class FakeHint implements HintViewLike {
   }
 }
 
+/** Records every cue and sound setting the controller hands the audio engine, in order. */
+class FakeAudio implements SoundLike {
+  calls: string[] = [];
+  cue(name: CueName): void {
+    this.calls.push(name);
+  }
+  setMuted(m: boolean): void {
+    this.calls.push(`muted:${m}`);
+  }
+  setVolume(v: number): void {
+    this.calls.push(`volume:${v}`);
+  }
+  get cues(): string[] {
+    return this.calls.filter((c) => !c.includes(':'));
+  }
+}
+
 type FakeDoc = EventTarget & { hidden: boolean };
 const fakeDoc = (hidden: boolean): FakeDoc => Object.assign(new EventTarget(), { hidden });
 
@@ -121,7 +139,7 @@ function memoryPrefs(initial: Partial<Prefs> = {}): PrefsStore & { saved: Prefs[
 }
 
 function rig(opts: {
-  initial?: GameState; prefs?: ReturnType<typeof memoryPrefs>; ai?: AIClient; hint?: FakeHint; doc?: FakeDoc;
+  initial?: GameState; prefs?: ReturnType<typeof memoryPrefs>; ai?: AIClient; hint?: FakeHint; doc?: FakeDoc; audio?: FakeAudio;
 } = {}) {
   const player = new FakePlayer();
   const prefs = opts.prefs ?? memoryPrefs();
@@ -133,6 +151,7 @@ function rig(opts: {
     ai: opts.ai ?? createAIClient({ inline: true }),
     hint,
     doc: opts.doc as GameControllerDeps['doc'],
+    audio: opts.audio,
     onChange: (s) => snapshots.push(s),
     reportError: (err) => errors.push(err),
   });
@@ -469,6 +488,94 @@ describe('GameController', () => {
     });
   });
 
+
+  describe('sound', () => {
+    it('mute and volume prefs reach the audio engine at start and on every change', () => {
+      const audio = new FakeAudio();
+      const { c } = rig({ audio, prefs: memoryPrefs({ muted: true, volume: 0.3 }) });
+      expect(audio.calls).toEqual(['muted:true', 'volume:0.3']);
+      audio.calls = [];
+      c.setVolume(0.55);
+      c.setVolume(2);
+      c.setMuted(false);
+      expect(audio.calls).toEqual(['volume:0.55', 'volume:1', 'muted:false', 'ui-toggle']);
+    });
+
+    it('ui cues fire once each, from the actions the player takes', async () => {
+      const audio = new FakeAudio();
+      const { c, player } = rig({ audio, initial: makeState(boardWith(), { tray: ['red'] }) });
+      const take = () => { const out = audio.cues; audio.calls = []; return out; };
+      take();
+      c.tapCell({ row: 0, col: 0 }); // selects
+      c.tapCell({ row: 0, col: 0 }); // deselects: quiet
+      c.tapCell({ row: 3, col: 3 }); // a new selection
+      expect(take()).toEqual(['select', 'select']);
+      c.tapSlot(0); // picks the tray piece
+      c.tapSlot(0); // puts it back: quiet
+      c.tapSlot(3); // an empty slot: quiet
+      expect(take()).toEqual(['tray-pick']);
+      await c.hint();
+      expect(take()).toEqual(['ui-click']);
+      c.setAISpeed('fast');
+      expect(take()).toEqual(['ui-click']);
+      c.setAI(true);
+      c.setAI(true); // no change: quiet
+      c.setAI(false);
+      expect(take()).toEqual(['ui-toggle', 'ui-toggle']);
+      c.setMuted(true);
+      expect(audio.calls).toEqual(['muted:true', 'ui-toggle']);
+      take();
+      await c.newGame();
+      expect(take()).toEqual(['ui-click']);
+      expect(player.scripts).toHaveLength(0); // none of it played a move, so no timeline cue is the controller's
+    });
+
+    it('a swap tap plays no select: the swap cue comes from its timeline', () => {
+      const audio = new FakeAudio();
+      const { c } = rig({ audio });
+      const { a, b } = firstSwap(c.state);
+      c.tapCell(a);
+      c.tapCell(b);
+      expect(audio.cues).toEqual(['select']);
+    });
+
+    it('AI mode turned off by failures makes no toggle sound', async () => {
+      const ai = new FakeAI();
+      const audio = new FakeAudio();
+      const { c } = rig({ ai, audio });
+      c.setAI(true);
+      await flush();
+      await ai.fail(new Error('worker died'));
+      await ai.fail(new Error('still dead'));
+      expect(c.snapshot().aiOn).toBe(false);
+      expect(audio.cues).toEqual(['ui-toggle']);
+    });
+
+    it('new-best plays once, when a game ends on a new best', async () => {
+      const audio = new FakeAudio();
+      const win = rig({ audio, prefs: memoryPrefs({ bestPlayer: 499 }), initial: makeState(boardWith(), { tray: ['red'], score: 500 }) });
+      void win.c.submit({ type: 'place', slot: 0, at: { row: 0, col: 5 } });
+      expect(audio.cues).toEqual([]); // not before the game-over has played
+      await win.player.finish();
+      expect(audio.cues).toEqual(['new-best']);
+      await win.c.newGame();
+      expect(audio.cues).toEqual(['new-best', 'ui-click']);
+
+      const tieAudio = new FakeAudio();
+      const tie = rig({ audio: tieAudio, prefs: memoryPrefs({ bestPlayer: 500 }), initial: makeState(boardWith(), { tray: ['red'], score: 500 }) });
+      void tie.c.submit({ type: 'place', slot: 0, at: { row: 0, col: 5 } });
+      await tie.player.finish();
+      expect(tieAudio.cues).toEqual([]);
+    });
+
+    it('a new game abandoning a high score never plays new-best', async () => {
+      const audio = new FakeAudio();
+      const { c } = rig({ audio, initial: makeState(boardWith({ '7,1': 'R', '6,2': 'R' }), { score: 900 }) });
+      await c.newGame(); // the unfinished game's 900 is kept as the best, quietly
+      expect(c.snapshot().best.player).toBe(900);
+      expect(audio.cues).toEqual(['ui-click']);
+    });
+  });
 
   it('AI speed is a saved preference', () => {
     const prefs = memoryPrefs();

@@ -9,7 +9,7 @@ import type { RankedMove } from '../ai/search';
 import { ANIM } from '../render/constants';
 import type { Action } from '../render/plan';
 import type { ScriptPlayerLike } from '../render/player';
-import type { AISpeed, HintViewLike, Prefs, PrefsStore } from './ports';
+import { silentSound, type AISpeed, type HintViewLike, type Prefs, type PrefsStore, type SoundLike } from './ports';
 
 export interface UiSnapshot {
   score: number;
@@ -42,6 +42,8 @@ export interface GameControllerDeps {
   ai: AIClient;
   hint: HintViewLike;
   prefs: PrefsStore;
+  /** UI cues and the sound settings. Board cues come from the script player's timeline, not from here. */
+  audio?: SoundLike;
   onChange: (s: UiSnapshot) => void;
   /** Seed of the first game; later games use seed + 1, + 2, … (random when absent). */
   seed?: number;
@@ -77,6 +79,7 @@ const rethrowLater = (err: unknown) => setTimeout(() => { throw err; });
 
 export class GameController {
   private readonly d: GameControllerDeps;
+  private readonly audio: SoundLike;
   private _state: GameState;
   private shown: Shown;
   private prefs: Prefs;
@@ -104,6 +107,9 @@ export class GameController {
   constructor(deps: GameControllerDeps) {
     this.d = deps;
     this.prefs = deps.prefs.load();
+    this.audio = deps.audio ?? silentSound;
+    this.audio.setMuted(this.prefs.muted);
+    this.audio.setVolume(this.prefs.volume);
     this._state = deps.initial ?? newGame(this.nextSeed());
     this.shown = this.shownFrom(this._state);
   }
@@ -194,6 +200,7 @@ export class GameController {
       return;
     }
     this.selected = sel && same(sel, p) ? null : p;
+    if (this.selected) this.audio.cue('select');
     this.emit();
   }
 
@@ -202,6 +209,7 @@ export class GameController {
     this.d.hint.clear();
     this.selected = null;
     this.selectedSlot = slot < this._state.tray.length && this.selectedSlot !== slot ? slot : null;
+    if (this.selectedSlot !== null) this.audio.cue('tray-pick');
     this.emit();
   }
 
@@ -250,7 +258,8 @@ export class GameController {
     this._state = next;
     if (move.type === 'place') this.shown.tray = this.shown.tray.filter((_, i) => i !== move.slot);
     await this.run(() => this.d.player.play(script, { board: next.board, tray: next.tray }), () => {
-      if (next.over) this.recordBest();
+      // The game-over dialog opens as this play ends; its "New best!" gets its sting then.
+      if (next.over && this.recordBest()) this.audio.cue('new-best');
     });
   }
 
@@ -263,6 +272,7 @@ export class GameController {
 
   /** Starts a fresh game once the current move (if any) has finished playing. */
   async newGame(): Promise<void> {
+    if (!this.disposed) this.audio.cue('ui-click');
     this.endAILoop(); // a ranking for the old game must never land on the new one
     while (this.current) {
       const c = this.current;
@@ -289,6 +299,7 @@ export class GameController {
   /** Shows the AI's ranked moves for the current board. */
   async hint(): Promise<void> {
     if (this.busy || this.aiOn || this.disposed || this._state.over) return;
+    this.audio.cue('ui-click');
     const version = this.version;
     let ranked: RankedMove[];
     try {
@@ -301,8 +312,15 @@ export class GameController {
     await this.d.hint.show(ranked, { revealMs: ANIM.hint.revealMs, holdMs: ANIM.hint.holdMs });
   }
 
-  /** AI mode on or off. While on, player input is ignored and the AI loop plays. */
+  /** AI mode on or off (the player's switch). While on, player input is ignored and the AI loop plays. */
   setAI(on: boolean): void {
+    if (on === this.aiOn || this.disposed) return;
+    this.audio.cue('ui-toggle');
+    this.switchAI(on);
+  }
+
+  /** Turns AI mode on or off without the switch's sound (the loop giving up uses this). */
+  private switchAI(on: boolean): void {
     if (on === this.aiOn || this.disposed) return;
     this.aiOn = on;
     this.selected = null;
@@ -314,18 +332,23 @@ export class GameController {
   }
 
   setAISpeed(s: AISpeed): void {
+    if (s !== this.prefs.aiSpeed) this.audio.cue('ui-click');
     this.savePrefs({ aiSpeed: s });
     this.emit();
   }
 
-  /** Sound settings persist through prefs; the audio engine reads them in a later task. */
+  /** Sound settings persist through prefs and go straight to the audio engine. Muting is silent
+   * by definition; unmuting plays the toggle. */
   setMuted(m: boolean): void {
     this.savePrefs({ muted: m });
+    this.audio.setMuted(m);
+    this.audio.cue('ui-toggle');
     this.emit();
   }
 
   setVolume(v: number): void {
     this.savePrefs({ volume: Math.min(1, Math.max(0, v)) });
+    this.audio.setVolume(this.prefs.volume);
     this.emit();
   }
 
@@ -350,7 +373,7 @@ export class GameController {
     // A failed move or hint must not leave AI mode on with nothing playing and input locked.
     this.aiLoop(gen).catch((err: unknown) => {
       if (gen === this.aiGen) this.setThinking(false);
-      if (gen === this.aiGen && this.aiOn) this.setAI(false);
+      if (gen === this.aiGen && this.aiOn) this.switchAI(false);
       this.report(err);
     });
   }
@@ -390,7 +413,7 @@ export class GameController {
         this.setThinking(false);
         if (isDisposedError(err)) return;
         this.report(err);
-        if (++failures >= AI_MAX_FAILURES) this.setAI(false);
+        if (++failures >= AI_MAX_FAILURES) this.switchAI(false);
         continue;
       }
       if (!live()) return;
@@ -401,7 +424,7 @@ export class GameController {
       if (!best) {
         // Never happens: a live game always has a productive move. Say so rather than sit idle.
         this.report(new Error('AI found no move on a live board'));
-        this.setAI(false);
+        this.switchAI(false);
         return;
       }
       const pace = AI_PACE[this.prefs.aiSpeed];
@@ -503,13 +526,14 @@ export class GameController {
     this.noticeTimer = null;
   }
 
-  /** Keeps the game's score as the best for its kind (an AI game is any game AI mode moved in). */
-  private recordBest(): void {
+  /** Keeps the game's score as the best for its kind (an AI game is any game AI mode moved in).
+   * Returns whether it beat the saved best. */
+  private recordBest(): boolean {
     const key = this.aiMoves > 0 ? 'bestAI' : 'bestPlayer';
-    if (this._state.score > this.prefs[key]) {
-      this.newBest = true; // only ever set here: a repeat call (New Game after game over) must not clear it
-      this.savePrefs({ [key]: this._state.score });
-    }
+    if (this._state.score <= this.prefs[key]) return false;
+    this.newBest = true; // only ever set here: a repeat call (New Game after game over) must not clear it
+    this.savePrefs({ [key]: this._state.score });
+    return true;
   }
 
   /** Keeps the new prefs for this session even when storing them fails (quota, private mode). */

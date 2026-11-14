@@ -12,7 +12,7 @@ import { BoardView } from './BoardView';
 import type { PieceSprite } from './PieceSprite';
 import { ANIM } from './constants';
 import { computeLayout } from './layout';
-import type { Action } from './plan';
+import { planScript, type Action, type Planned } from './plan';
 import { ScriptPlayer } from './player';
 import type { PieceTextures } from './textures';
 import { TrayView } from './TrayView';
@@ -45,10 +45,17 @@ function rig(opts: { effects?: Effects; reducedMotion?: boolean } = {}) {
   tray.setLayout(layout, tex);
   const actions: { frame: number; action: Action }[] = [];
   const cues: CueName[] = [];
+  /** Each cue with the 1-based frame whose update fired it. */
+  const cueLog: { frame: number; name: CueName; chain?: number }[] = [];
   let frames = 0;
   const player = new ScriptPlayer({
     board, tray, effects: opts.effects ?? noopEffects, reducedMotion: opts.reducedMotion ?? false,
-    audio: { cue: (name) => cues.push(name) },
+    audio: {
+      cue: (name, opts) => {
+        cues.push(name);
+        cueLog.push(opts?.chain === undefined ? { frame: frames + 1, name } : { frame: frames + 1, name, chain: opts.chain });
+      },
+    },
     onAction: (action) => actions.push({ frame: frames, action }),
   });
   const snap = (): Frame => new Map(board.allSprites().map((s) => [s.id, { y: s.y, sx: s.scale.x, sy: s.scale.y }]));
@@ -66,7 +73,7 @@ function rig(opts: { effects?: Effects; reducedMotion?: boolean } = {}) {
     expect(done).toBe(true);
     return out;
   }
-  return { board, tray, player, actions, cues, run, layout };
+  return { board, tray, player, actions, cues, cueLog, run, layout };
 }
 
 async function deal(r: ReturnType<typeof rig>, state: GameState) {
@@ -222,6 +229,24 @@ describe('ScriptPlayer', () => {
     expect(r.cues).toContain('swap');
     expect(r.cues).toContain('match');
     expect(r.cues.at(-1)).toBe('game-over');
+  });
+
+  it('forwards cue actions to the sink at their timeline time', async () => {
+    const { state, move, next } = cascadeMove();
+    await deal(r, state);
+    r.cueLog.length = 0;
+    const { script } = applyMove(state, move);
+    const planned = planScript(script).items.filter((p): p is Planned & { action: Extract<Action, { a: 'cue' }> } => p.action.a === 'cue');
+    expect(planned.length).toBeGreaterThan(3);
+    expect(planned.some((p) => (p.action.chain ?? 0) > 0)).toBe(true); // a cascade carries its chain level
+    await r.run(r.player.play(script, next));
+    expect(r.cueLog.map(({ name, chain }) => ({ name, chain }))).toEqual(planned.map((p) => ({ name: p.action.name, chain: p.action.chain })));
+    // Each fires on the first frame at or after its planned instant, never earlier.
+    r.cueLog.forEach((c, i) => {
+      const atMs = planned[i].atMs;
+      expect(c.frame * FRAME_MS).toBeGreaterThanOrEqual(atMs - 1e-6);
+      expect((c.frame - 1) * FRAME_MS).toBeLessThan(atMs + 1e-6);
+    });
   });
 
   /** Plays an invalid swap of (0,0)-(0,1), returning the x of both sprites on every frame. */
