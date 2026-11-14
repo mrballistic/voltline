@@ -5,6 +5,11 @@ export interface AudioEngineDeps {
   fetch: typeof fetch;
   /** URL prefix the encoded files live under, e.g. `./audio` (no trailing slash). */
   base: string;
+  /**
+   * Keys of the files that exist under `base` (the generated `AUDIO_FILES`). Only manifest keys in
+   * this list are fetched, so a cue, variant or chain file that has no file yet costs no request.
+   */
+  files: readonly string[];
   rng?: () => number;
   /** Millisecond clock for cooldowns. Defaults to `performance.now`. */
   now?: () => number;
@@ -28,6 +33,17 @@ function probeWebm(): boolean {
   } catch {
     return false;
   }
+}
+
+/** File keys (without extension) the manifest can use: every cue, variant and chain file. */
+export function manifestFileKeys(): string[] {
+  const keys: string[] = [];
+  for (const [name, spec] of Object.entries(CUES) as [ManifestCue, CueSpec][]) {
+    if (spec.variants) for (let i = 1; i <= spec.variants; i++) keys.push(`${name}-${i}`);
+    else keys.push(name);
+    if (spec.chainSet) for (let i = 1; i <= spec.chainSet; i++) keys.push(`${name}-chain-${i}`);
+  }
+  return keys;
 }
 
 /** Web Audio sfx/ui/music player. Every failure path degrades to silence. */
@@ -84,19 +100,14 @@ export class AudioEngine implements CueSink {
     return this.ctx;
   }
 
-  /** File keys (without extension) for every cue, variant and chain file. */
+  /** The manifest keys that have a file to fetch. */
   private fileKeys(): string[] {
-    const keys: string[] = [];
-    for (const [name, spec] of Object.entries(CUES) as [ManifestCue, CueSpec][]) {
-      if (spec.variants) for (let i = 1; i <= spec.variants; i++) keys.push(`${name}-${i}`);
-      else keys.push(name);
-      if (spec.chainSet) for (let i = 1; i <= spec.chainSet; i++) keys.push(`${name}-chain-${i}`);
-    }
-    return keys;
+    const present = new Set(this.deps.files);
+    return manifestFileKeys().filter((key) => present.has(key));
   }
 
   /**
-   * Fetches every file; decoding waits for `unlock`, since a context may only be created on a user
+   * Fetches every listed file; decoding waits for `unlock`, since a context may only be created on a user
    * gesture. Missing files are skipped with one dev warning each.
    */
   async load(): Promise<void> {

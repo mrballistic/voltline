@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AudioEngine } from './engine';
+import { readdirSync } from 'node:fs';
+import { AudioEngine, manifestFileKeys } from './engine';
+import { AUDIO_FILES } from './files';
 import { CUES } from './cues';
 import type { CueName } from './cues';
 
@@ -22,7 +24,10 @@ type CtxState = 'suspended' | 'running' | 'closed' | 'interrupted';
 /** Lets every pending promise (fetch, decode, resume) run. */
 const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-function setup(files: string[] | 'all', opts: { webm?: boolean; onPlay?: (key: string) => void } = {}) {
+function setup(
+  files: string[] | 'all',
+  opts: { webm?: boolean; onPlay?: (key: string) => void; listed?: readonly string[] } = {},
+) {
   const sources: FakeSource[] = [];
   const ctx = {
     state: 'suspended' as CtxState,
@@ -54,6 +59,7 @@ function setup(files: string[] | 'all', opts: { webm?: boolean; onPlay?: (key: s
     },
     fetch: fetchFn as unknown as typeof fetch,
     base: './audio',
+    files: opts.listed ?? manifestFileKeys(),
     rng: () => 0.5,
     now: () => clock,
     canPlayWebm: () => opts.webm ?? true,
@@ -104,6 +110,22 @@ describe('AudioEngine', () => {
     expect(a.requested).toContain('./audio/land-3.webm');
     expect(a.requested).toContain('./audio/match-chain-5.webm');
     vi.restoreAllMocks();
+  });
+
+  it('fetches only the files that are listed, never a manifest key without a file', async () => {
+    const { engine, requested } = setup('all', { listed: ['select', 'land-2', 'match', 'not-a-cue'] });
+    await engine.load();
+    expect(requested.sort()).toEqual(['./audio/land-2.webm', './audio/match.webm', './audio/select.webm']);
+  });
+
+  it('a chain file that appears later is used once it is listed', async () => {
+    const { engine, sources, tick, ready } = setup('all', { listed: ['match', 'match-chain-2'] });
+    await ready();
+    engine.cue('match', { chain: 1 });
+    expect(tagOf(sources[0])).toBe('match-chain-2');
+    tick(100);
+    engine.cue('match', { chain: 3 });
+    expect(tagOf(sources[1])).toBe('match');
   });
 
   it('no context exists before the first gesture: load only fetches', async () => {
@@ -443,5 +465,21 @@ describe('CUES', () => {
     for (const n of names) {
       expect(n.startsWith('match-chain-') || n in CUES).toBe(true);
     }
+  });
+});
+
+describe('AUDIO_FILES', () => {
+  it('lists exactly the files in public/audio that exist in both formats', () => {
+    const names = readdirSync(new URL('../../public/audio', import.meta.url));
+    const both = names
+      .filter((n) => n.endsWith('.webm'))
+      .map((n) => n.slice(0, -'.webm'.length))
+      .filter((k) => names.includes(`${k}.m4a`));
+    expect([...AUDIO_FILES].sort()).toEqual(both.sort());
+  });
+
+  it('lists only keys the manifest uses', () => {
+    const keys = new Set(manifestFileKeys());
+    expect(AUDIO_FILES.filter((k) => !keys.has(k))).toEqual([]);
   });
 });

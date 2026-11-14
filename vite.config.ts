@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   base: './',
+  // No SPA fallback, like production: a missing file is a real 404 in `vite preview` (and so in
+  // the smoke test), not index.html served under the file's name.
+  appType: 'mpa',
   test: {
     environment: 'node',
     setupFiles: ['./src/test/setup.ts'],

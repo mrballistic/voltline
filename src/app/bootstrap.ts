@@ -6,6 +6,7 @@ import 'pixi.js/unsafe-eval';
 import { Application, Container } from 'pixi.js';
 import { createAIClient } from '../ai/client';
 import { AudioEngine } from '../audio/engine';
+import { AUDIO_FILES } from '../audio/files';
 import { attachAudioLifecycle } from '../audio/lifecycle';
 import { BoardView } from '../render/BoardView';
 import { driveGsapFrom } from '../render/clock';
@@ -62,6 +63,7 @@ export async function createGame(
   const played: string[] = [];
   const audio = new AudioEngine({
     base: './audio',
+    files: AUDIO_FILES,
     createContext: () => new AudioContext(),
     fetch: (input, init) => fetch(input, init),
     onPlay: import.meta.env.DEV ? (key) => played.push(key) : undefined,
