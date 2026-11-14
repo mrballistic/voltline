@@ -13,7 +13,10 @@ export type MatchShape = 'line3' | 'line4' | 'line5' | 'cross';
 export interface MatchGroup { key: MatchKey; cells: Pos[]; shape: MatchShape }
 export type Move = { type: 'swap'; a: Pos; b: Pos } | { type: 'place'; slot: number; at: Pos };
 export type BlastKind = 'charge' | 'arc' | 'prism' | 'supernova';
-/** `color` is what a prism blast clears: a gem color, or `'rock'` for a prism swapped with a rock. */
+/**
+ * `color` is what a prism blast clears: a gem color, or `'rock'` for a prism swapped with a rock.
+ * On a charge it is `'rock'` when a rock line of 4+ set it off (a tint only; the 3×3 is the same).
+ */
 export interface Blast { kind: BlastKind; at: Pos; cells: Pos[]; order: number; color?: MatchKey }
 export interface Cleared { id: number; at: Pos; cause: 'match' | 'blast'; key: MatchKey | 'prism' }
 export interface Fall { id: number; from: Pos; to: Pos }

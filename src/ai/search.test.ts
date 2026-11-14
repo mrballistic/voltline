@@ -72,6 +72,19 @@ describe('rankMoves', () => {
     expect(ranked.slice(1).map((r) => r.move)).toContainEqual(line3);
   });
 
+  it('prefers a 4-rock line, which explodes, over a plain 3-line', () => {
+    // Row 7 reads X X Y X with a rock above the yellow: (6,2)↓ makes a rock line4 (a rock blast).
+    // Row 0 reads R R Y with a red below the yellow: (1,2)↑ makes a plain red 3-line.
+    const s = makeState(boardWith({ '7,0': 'X', '7,1': 'X', '7,3': 'X', '6,2': 'X', '0,1': 'R', '1,2': 'R' }));
+    const rock4 = swap(6, 2, 7, 2);
+    const line3 = swap(0, 2, 1, 2);
+    expect(productiveMoves(s)).toEqual(expect.arrayContaining([rock4, line3]));
+    const ranked = rankMoves(s);
+    expect(ranked[0].move).toEqual(rock4);
+    expect(ranked[0].expectedPoints).toBeGreaterThanOrEqual(200 + 3 * 20);
+    expect(ranked.slice(1).map((r) => r.move)).toContainEqual(line3);
+  });
+
   it('ranks prism↔rock swaps and prefers them on a rock-heavy board', () => {
     // The prism at (0,1) touches rocks (0,0) and (1,1) and a gem (0,2); nothing else on the board
     // moves. Swapping with a rock clears all ten rocks, swapping with the gem only its color.

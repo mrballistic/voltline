@@ -191,6 +191,19 @@ describe('specials', () => {
     expect(r.blasts[1]).toMatchObject({ kind: 'prism', color: 'red' });
   });
 
+  it('a rock-tinted charge seed keeps its color and blasts its 3×3; what it chains is untinted', () => {
+    const b = parseBoard(pad([
+      'X X X X . . . .',
+      'R Bc G . . . .',
+      '. . . . . . . .',
+    ]));
+    const { blasts } = resolveBlasts(b, [{ at: { row: 0, col: 1 }, kind: 'charge', color: 'rock' }], new Set(['0,0', '0,1', '0,2', '0,3']));
+    expect(blasts).toEqual([
+      { kind: 'charge', at: { row: 0, col: 1 }, order: 0, color: 'rock', cells: [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 1, col: 2 }] },
+      { kind: 'charge', at: { row: 1, col: 1 }, order: 1, cells: [] },
+    ]);
+  });
+
   it('supernova clears everything', () => {
     const b = parseBoard(pad(['R . X P . . . .', '. Bc . . . . . .']));
     const { blasts, cells } = resolveBlasts(b, [{ at: { row: 0, col: 3 }, kind: 'supernova' }], new Set());

@@ -140,6 +140,26 @@ describe('planScript', () => {
     expect(cues(items, 'rock-break').map((p) => p.atMs)).toEqual([fired.atMs]);
   });
 
+  it('a real 4-rock line plays a rock-tinted Charge blast with the charge-blast cue', () => {
+    // Row 7 reads X X Y X with a rock above the yellow: (6,2)↓ makes a rock line4.
+    const s = makeState(boardWith({ '7,0': 'X', '7,1': 'X', '7,3': 'X', '6,2': 'X' }));
+    const { script } = applyMove(s, { type: 'swap', a: at(6, 2), b: at(7, 2) });
+    const step = script.find((x): x is Extract<Step, { t: 'clear' }> => x.t === 'clear')!;
+    const { items } = planScript(script);
+    const [fired] = of(items, 'blast');
+    expect(fired.action.blast).toMatchObject({ kind: 'charge', color: 'rock', at: at(7, 2) });
+    expect(fired.durMs).toBe(ANIM.chargeShake.ms);
+    expect(cues(items, 'charge-blast').map((p) => p.atMs)).toEqual([fired.atMs]);
+    expect(cues(items, 'rock-break')).toHaveLength(1);
+    // The matched rocks and the blasted gems all pop, the blasted ones as the Charge fires.
+    const pops = of(items, 'pop');
+    expect(pops.map((p) => p.action.id).sort()).toEqual(step.cleared.map((c) => c.id).sort());
+    for (const c of step.blasts[0].cells) {
+      expect(pops.find((p) => p.action.at.row === c.row && p.action.at.col === c.col)!.atMs).toBe(fired.atMs);
+    }
+    expect(of(items, 'morph')).toEqual([]);
+  });
+
   it('a blast with no cells is still planned, with its cue and effect at its time', () => {
     const empty: Blast = { kind: 'supernova', at: at(3, 3), cells: [], order: 1 };
     const seed: Blast = { kind: 'charge', at: at(4, 4), cells: [at(4, 4)], order: 0 };

@@ -70,6 +70,11 @@ function runRound(w: Work, chain: number, groups: MatchGroup[], moved: Pos[], op
       }
     }
   }
+  // A rock line of 4+ makes no special but goes off on the spot like a Charge (1.1 spec §7),
+  // seeded on a matched rock, so no other seed can share its cell.
+  for (const g of groups) {
+    if (g.key === 'rock' && specialFor(g.shape)) seeds.push({ kind: 'charge', at: specialCell(g, moved), color: 'rock' });
+  }
   const preCleared = opening?.preCleared ?? [];
   const blocked = new Set([...matched, ...kept, ...preCleared.map(keyOf)]);
   const { blasts, cells: blasted } = seeds.length > 0 ? resolveBlasts(after, seeds, blocked) : { blasts: [], cells: [] };
