@@ -1,0 +1,59 @@
+# Builds an unsigned universal (Apple Silicon + Intel) Voltline.app with Tauri.
+# Signing and notarization happen locally with Todd's Developer ID: see
+# "Sign, notarize and package locally" in BUILDING.md.
+name: macOS universal build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build the universal app
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: npm
+
+      # dtolnay/rust-toolchain has no version tags; this SHA is its `stable` branch.
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: src-tauri -> target
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Build the app
+        run: scripts/make-macos-app.sh --universal --no-sign
+
+      - name: Check architectures
+        run: |
+          archs=$(lipo -archs dist-desktop/Voltline.app/Contents/MacOS/voltline)
+          echo "$archs"
+          [[ "$archs" == *x86_64* && "$archs" == *arm64* ]]
+
+      - name: Zip
+        run: ditto -c -k --keepParent dist-desktop/Voltline.app dist-desktop/Voltline-universal-unsigned.zip
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Voltline-universal-unsigned
+          path: dist-desktop/Voltline-universal-unsigned.zip
+          retention-days: 30

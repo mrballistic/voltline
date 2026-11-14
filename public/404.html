@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>404 · No moves left · Voltline</title>
+<style>
+  :root { --bg: #0a0a11; --ink: #eef0ff; --dim: #a9adc9; --cyan: #4de8ff; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: grid; place-items: center; padding: 24px;
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 50% 38%, rgba(77, 123, 255, .16), transparent 62%),
+      linear-gradient(rgba(77, 123, 255, .08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(77, 123, 255, .08) 1px, transparent 1px);
+    background-size: auto, 24px 24px, 24px 24px;
+    color: var(--ink);
+    font-family: Rajdhani, "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    font-size: 20px; line-height: 1.45; text-align: center;
+  }
+  main { max-width: 34rem; }
+  .code {
+    display: flex; align-items: center; justify-content: center; gap: .04em;
+    font-family: Orbitron, "Arial Black", "Segoe UI", system-ui, sans-serif;
+    font-weight: 900; font-size: clamp(88px, 22vw, 168px); line-height: 1;
+    color: var(--ink); text-shadow: 0 0 .18em rgba(77, 232, 255, .55);
+    margin: 0;
+  }
+  .code svg { width: .84em; height: .84em; overflow: visible; }
+  .zero { animation: flicker 3.2s steps(1) infinite; }
+  h1 {
+    margin: .3em 0 .2em; font-family: Orbitron, "Arial Black", system-ui, sans-serif;
+    font-size: clamp(22px, 5vw, 32px); letter-spacing: .08em; text-transform: uppercase;
+    color: var(--cyan); text-shadow: 0 0 14px rgba(77, 232, 255, .5);
+  }
+  p { margin: .4em 0; color: var(--dim); }
+  .row { display: flex; justify-content: center; gap: 6px; margin: 28px 0 24px; }
+  .row svg { width: 48px; height: 48px; overflow: visible; }
+  .tries { animation: swap 3.6s ease-in-out infinite; }
+  .tries + svg { animation: swap-back 3.6s ease-in-out infinite; }
+  a.btn {
+    display: inline-block; margin-top: 14px; padding: .55em 1.5em;
+    border: 2px solid var(--cyan); border-radius: 10px;
+    color: var(--cyan); text-decoration: none; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase;
+    background: rgba(77, 232, 255, .1); box-shadow: 0 0 18px rgba(77, 232, 255, .3);
+    transition: background .15s, box-shadow .15s, color .15s;
+  }
+  a.btn:hover, a.btn:focus-visible { background: var(--cyan); color: var(--bg); box-shadow: 0 0 28px rgba(77, 232, 255, .65); }
+  a.btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  small { display: block; margin-top: 28px; font-size: 15px; color: #8084a3; }
+  @keyframes swap {
+    0%, 10% { transform: translateX(0); }
+    30% { transform: translateX(54px); }
+    42% { transform: translateX(54px) rotate(-8deg); }
+    50% { transform: translateX(0) rotate(0); }
+    56% { transform: translateX(-5px); }
+    62%, 100% { transform: translateX(0); }
+  }
+  @keyframes swap-back {
+    0%, 10% { transform: translateX(0); }
+    30% { transform: translateX(-54px); }
+    42% { transform: translateX(-54px); }
+    50% { transform: translateX(0); }
+    62%, 100% { transform: translateX(0); }
+  }
+  @keyframes flicker { 0%, 88%, 92%, 96% { opacity: 1; } 90%, 94% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) {
+    .zero, .tries, .tries + svg { animation: none; }
+    a.btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <p class="code" role="img" aria-label="Error 404">
+    <span aria-hidden="true">4</span>
+    <svg class="zero" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <defs>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3.2" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <circle cx="50" cy="50" r="31" fill="#ff3b5c" fill-opacity=".14" stroke="#ff3b5c" stroke-width="7" stroke-dasharray="120 20 28 14" stroke-linecap="round" filter="url(#glow)"/>
+      <path d="M44 38 L52 50 L42 58 L53 70" fill="none" stroke="#ffe14d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+    </svg>
+    <span aria-hidden="true">4</span>
+  </p>
+
+  <h1>No moves left.</h1>
+  <p>This page didn’t make a match, so it slid back.</p>
+  <p>Our AI tried every possible swap. None of them lead here.</p>
+
+  <div class="row" aria-hidden="true">
+    <svg viewBox="0 0 100 100" focusable="false"><rect x="21" y="21" width="58" height="58" rx="8" fill="#4d7bff" fill-opacity=".14" stroke="#4d7bff" stroke-width="7" filter="url(#glow)"/></svg>
+    <svg class="tries" viewBox="0 0 100 100" focusable="false"><path d="M38 15 H62 V38 H85 V62 H62 V85 H38 V62 H15 V38 H38 Z" fill="#ff9a2e" fill-opacity=".14" stroke="#ff9a2e" stroke-width="7" stroke-linejoin="round" filter="url(#glow)"/></svg>
+    <svg viewBox="0 0 100 100" focusable="false"><rect x="19" y="19" width="62" height="62" rx="6" fill="#24242c" stroke="#45454f" stroke-width="5"/><path d="M35 35 L65 65 M65 35 L35 65" stroke="#8a8a96" stroke-width="6" stroke-linecap="round"/></svg>
+    <svg viewBox="0 0 100 100" focusable="false"><polygon points="50,11 61,38 89,38 66,56 75,85 50,68 25,85 34,56 11,38 39,38" fill="#4de8ff" fill-opacity=".14" stroke="#4de8ff" stroke-width="6" stroke-linejoin="round" filter="url(#glow)"/></svg>
+    <svg viewBox="0 0 100 100" focusable="false"><polygon points="50,15 81,33 81,67 50,85 19,67 19,33" fill="#3bffb0" fill-opacity=".14" stroke="#3bffb0" stroke-width="7" stroke-linejoin="round" filter="url(#glow)"/></svg>
+  </div>
+
+  <a class="btn" href="/">Back to the board</a>
+  <small>Even the Prism couldn’t clear this one.</small>
+</main>
+</body>
+</html>

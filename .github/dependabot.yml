@@ -1,0 +1,40 @@
+# Dependency updates for npm and the workflow actions. Minor and patch bumps
+# are grouped into one PR so they don't pile up; majors arrive individually
+# because they tend to need code changes.
+#
+# Held on purpose:
+# - TypeScript on 6.x: typescript-eslint peers `typescript <6.1.0`. Lift the
+#   ignore when it accepts 7.
+# - @types/node on the major we run (Node 26 LTS, locally, in CI and on the
+#   server). Bump it together with a runtime upgrade.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      npm-minor:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+
+  # Actions are pinned to commit SHAs with the version in a comment;
+  # Dependabot updates both together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+
+  # The desktop shell's Rust crates (Tauri). Keep tauri in step with
+  # @tauri-apps/cli's minor in package.json.
+  - package-ecosystem: cargo
+    directory: /src-tauri
+    schedule:
+      interval: monthly
+    groups:
+      tauri-minor:
+        update-types: [minor, patch]

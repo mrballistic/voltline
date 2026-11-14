@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Voltline board showcase (dev only)</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; }
+      body {
+        background-color: #0a0a11;
+        background-image: linear-gradient(rgba(120,140,255,.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(120,140,255,.06) 1px, transparent 1px);
+        background-size: 24px 24px;
+      }
+      #host { position: fixed; inset: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="host"></div>
+    <script type="module" src="./board-showcase.ts"></script>
+  </body>
+</html>

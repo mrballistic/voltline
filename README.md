@@ -1,124 +1,80 @@
-# Bejeweled.ai
+# Voltline
 
-A polished dark-arcade match-three puzzle game built with React 19, featuring SVG jewels, GSAP animations, and an LLM-powered AI mode.
+A neon match-three puzzle game with explosive special pieces, chain reactions, a collectable tray, and an AI that plays like a strong human. Swap pieces, line up three or more, and watch the board light up.
 
-**Live:** [mrballistic.github.io/bejeweled-ai/](https://mrballistic.github.io/bejeweled-ai/)
+**Play it:** https://voltline.mrballistic.com
 
----
+![Voltline in a desktop browser: the title, score and level bar above a glowing neon board of circles, squares, triangles, hexagons, diamonds, plus signs and stars, the tray below, and Hint and New game buttons](docs/screenshots/app-desktop.webp)
 
-## Features
+Voltline is an original game. It has its own pieces, its own look and its own sounds; it borrows only the genre’s mechanics.
 
-### Player Mode
-- **7 distinct SVG jewel shapes** — diamond, ruby, emerald, sapphire, topaz, amethyst, citrine — each with radial gradients and drop shadows
-- **Click, drag, or swipe** to swap adjacent jewels (react-dnd multi-backend for mouse + touch)
-- **Animated game loop** — GSAP-powered swap slides, match flash/fade, and cascade drops with bounce easing
-- **Chain reaction scoring** — cascades multiply points exponentially (2x, 4x, 8x... up to 32x)
-- **Combo multipliers** — simultaneous matches in a cascade step boost score (1.5x–2.5x)
-- **Hint system** — brute-force solver highlights a valid move for 3 seconds
-- **Deadlock detection** — auto-reshuffles when no moves remain
+## How to play
 
-### AI Mode
-- **Gemini-powered** — Google Gemini 2.0 Flash analyzes the board and picks moves autonomously
-- **Play/Pause** with adjustable speed (slow / medium / fast)
-- **Move counter** and thinking indicator show AI activity
-- **Fallback** — invalid AI moves automatically fall back to the deterministic hint solver
-- **Rate-limited** — minimum 800ms between API calls, AbortController cleanup on mode switch
+The board is 8×8. Swap two neighboring pieces; if the swap lines up three or more of the same color in a row or column, they clear. Pieces above the gap fall, new ones drop in, and any new matches clear too. Each link in that chain scores more than the last.
 
----
+![A cascade in four frames: three stars pop, the gap opens, every column falls together with new pieces entering from above, and the board settles](docs/screenshots/cascade-sequence.webp)
 
-## Tech Stack
+A swap that makes no match slides back, so you can’t waste a move on one.
 
-| Layer | Choice |
-|-------|--------|
-| Framework | React 19 (functional components + hooks) |
-| Language | TypeScript (strict mode) |
-| Build | Vite (`base: './'` for GitHub Pages) |
-| UI | MUI 6 — dark theme, `sx` prop styling |
-| Animation | GSAP 3 — promise-wrapped tweens, timeline cascades |
-| Drag & Drop | react-dnd + react-dnd-multi-backend |
-| Testing | Vitest + React Testing Library |
-| AI Backend | Google Gemini 2.0 Flash — client-side API calls |
-| Fonts | Orbitron (display) + Rajdhani (body) via Google Fonts |
+### The pieces
 
----
+Seven colors, each with its own shape so the game is playable without relying on color: red circle, blue rounded square, yellow triangle, green hexagon, magenta diamond, orange plus and cyan star.
 
-## Architecture
+### Special pieces
 
-```
-App
-├── ThemeProvider (MUI dark theme — #1A1A2E background)
-│   └── ScoreProvider (score, chain, combo via React Context)
-│       └── DndProvider (MultiBackend — mouse + touch)
-│           ├── Header (title, score display, mode toggle)
-│           ├── GameBoard (owns board state via useState + useRef)
-│           │   └── BoardGrid (CSS Grid → 64 Jewel components)
-│           │       └── Jewel (SVG shape + click/drag/touch handlers)
-│           ├── GameControls (hint + new game)
-│           └── CustomDragLayer
-```
+Bigger matches leave something behind.
 
-**Game loop:** `handleSwap → findMatches → animateMatch → removeMatches → handleCascade → animateCascade → recurse`
+| Make this | Get this | What it does |
+|---|---|---|
+| 4 in a line | **Charge** | Clears the 3×3 area around it |
+| An L or T shape | **Arc** | Clears its whole row and column |
+| 5 in a line | **Prism** | Swap it with any colored piece to clear every piece of that color |
 
-All async — each step awaits animation completion. `isProcessing` ref lock prevents race conditions.
+![Special pieces on the board: Charges with a bright inner ring, Arcs with crackling edges, a rainbow Prism, gray rocks, and three pieces waiting in the tray](docs/screenshots/pieces-specials.webp)
 
----
+<p><img src="docs/screenshots/effect-prism.webp" alt="A Prism firing: lightning bolts fork from the Prism to every cyan star on the board" width="48%"> <img src="docs/screenshots/effect-supernova.webp" alt="Two Prisms swapped together: bolts, shockwave rings and a white flash across the whole board" width="48%"></p>
 
-## Development
+Specials chain. An explosion that catches another special sets it off, so one good match can clear half the board. Two Prisms swapped together clear everything. A Prism swapped with a Charge or Arc turns every piece of that color into one and detonates the lot.
 
-```bash
-npm install          # install dependencies
-npm run dev          # vite dev server (port 5173)
-npm run build        # typecheck + production build
-npm test             # vitest in watch mode
-npm run test:run     # vitest single run
-npm run preview      # serve dist/ locally
-```
+### The tray
 
-### Environment
+Every 10 pieces of one color you clear, by any means, earns a spare piece of that color in your tray. The tray holds five. To spend one, tap it, then tap a plain piece on the board: the tray piece takes its place, and if that makes a match it resolves like any swap. Placing costs a move, and you may place without making a match, though that piece is gone for good. Earn a piece while the tray is full and it is lost, so spend one.
 
-Copy `.env.example` to `.env` and add your Gemini API key (needed for AI mode only):
+### Rocks
 
-```bash
-cp .env.example .env
-```
+From level 10, burnt-out gray rocks start appearing among the new pieces. They fall and swap like anything else, but they only clear when you match three of them or an explosion reaches them. A Prism can’t be swapped with a rock. The deeper you go, the more often they show up.
 
----
+### Levels and game over
 
-## Scoring
+A progress bar fills as you score. Fill it to level up: the board is replaced with a fresh one, the target rises, and your tray carries over.
 
-| Match | Base Points |
-|-------|------------|
-| 3-in-a-row | 100 |
-| 4-in-a-row | 200 |
-| 5-in-a-row | 500 |
+The game ends when no move on the board can make a match, and that includes tray placements. That’s the tray’s promise: the tray can save you, as long as a spare piece can still make a match when nothing else can.
 
-**Chain multiplier:** 1x → 2x → 4x → 8x → 16x → 32x (cap) per cascade depth
+## Modes
 
-**Combo multiplier:** 1.5x (2 simultaneous), 2x (3), 2.5x (4+)
+- **Player.** You play. Your best score is saved on this device.
+- **Hint.** Press Hint and Voltline shows every good move it found as an arrow, each labeled with roughly what it’s worth (“≈ 1,240”). Swaps point from one piece to its neighbor; tray placements run from the tray to the cell. Over about a second the weaker arrows fade out, lowest first, until only the best is left, pulsing. It stays for a few seconds, or until you move.
+- **AI mode.** Flip the AI switch and Voltline plays for you, showing the same arrows before each move. Pick Slow, Medium or Fast; the counter shows how many moves the AI has made. It pauses when you switch tabs and picks up where it left off. Switch it off to take over. A game the AI moved in counts toward the AI best, not yours.
 
----
+<p><img src="docs/screenshots/hint-reveal.webp" alt="Hint: arrows on every good swap, each labeled with an estimated value such as “≈ 2,216”" width="48%"> <img src="docs/screenshots/ai-mode-running.webp" alt="AI mode on Slow: the AI switch on, its arrows on the board, and an AI moves counter" width="48%"></p>
 
-## Tests
+The AI is a search, not a chatbot. It looks at exactly what you can see (the board, the tray and the level), tries each move many times over with randomly dropped-in new pieces, and picks the one that does best on average. It never peeks at what the game will drop next, and it needs no network or API key.
 
-39 tests across 7 test files covering:
-- Game types and constants
-- Board initializer (no pre-existing matches)
-- Match detection (3/4/5-in-a-row, T-shapes, L-shapes, deduplication)
-- Cascade handler (gravity, new jewel spawning)
-- Hint finder (valid move detection, deadlock detection)
-- Scoring math (base points, chain/combo multipliers)
-- Adjacency checks
+## Controls
 
----
+Click or tap a piece, then a neighbor, to swap. Or just drag (or swipe) a piece toward a neighbor: the swap happens as soon as you pull past a third of a cell. Tap a tray piece, then a board piece, to place it, or drag it straight onto the board. A drag that goes nowhere eases back.
 
-## Deployment
+Your best score is saved on this device, separately for you and for AI mode. Sound can be muted or turned down from the header.
+Sound starts with your first tap or key press, and goes quiet while the game’s tab is in the background.
 
-```bash
-./deploy.sh    # builds and force-pushes to gh-pages branch
-```
+<img src="docs/screenshots/app-phone.webp" alt="Voltline on a phone: the same board filling the width, with the score above and the buttons below" width="260">
 
----
+## AI assistance
 
-## License
+Voltline was built with AI assistance; the game’s own AI is a search, not generative AI. See [AI-ASSISTANCE.md](./AI-ASSISTANCE.md).
 
-MIT — see [LICENSE](./LICENSE) for details.
+## Credits and license
+
+Sound effects come from other creators under their own licenses; see [CREDITS.md](./CREDITS.md). Voltline itself is MIT licensed; see [LICENSE](./LICENSE).
+
+For developers, see [ARCHITECTURE.md](./ARCHITECTURE.md).

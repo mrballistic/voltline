@@ -1,127 +1,85 @@
-import { useRef, useState, useCallback, useEffect } from 'react';
-import { DndProvider } from 'react-dnd';
-import { MultiBackend } from 'react-dnd-multi-backend';
-import { HTML5toTouch } from 'rdndmb-html5-to-touch';
-import ThemeProvider from './context/ThemeProvider';
-import { ScoreProvider, useScore } from './context/ScoreContext';
-import GameBoard, { GameBoardHandle } from './components/GameBoard';
-import Header from './components/Header';
-import GameControls from './components/GameControls';
+import { useRef } from 'react';
+import Box from '@mui/material/Box';
+import CssBaseline from '@mui/material/CssBaseline';
+import GlobalStyles from '@mui/material/GlobalStyles';
+import Link from '@mui/material/Link';
+import { ThemeProvider } from '@mui/material/styles';
+import Typography from '@mui/material/Typography';
+import { useGame } from './app/useGame';
 import AIControls from './components/AIControls';
-import GameOverOverlay from './components/GameOverOverlay';
-import CustomDragLayer from './components/CustomDragLayer';
-import { useAIPlayer } from './hooks/useAIPlayer';
-import { Board } from './types/game';
-import { Box } from '@mui/material';
-import './style.css';
+import BoardCanvas from './components/BoardCanvas';
+import GameControls from './components/GameControls';
+import GameOverDialog from './components/GameOverDialog';
+import Header from './components/Header';
+import TrayNotice from './components/TrayNotice';
+import { theme } from './theme';
 
-const EMPTY_BOARD: Board = [];
+/** Optional `?seed=N` for a reproducible board (handy for screenshots and bug reports). */
+function seedFromUrl(): number | undefined {
+  const raw = new URLSearchParams(window.location.search).get('seed');
+  const n = raw === null ? NaN : Number(raw);
+  return Number.isInteger(n) && n >= 0 ? n : undefined;
+}
 
-const GameContent: React.FC = () => {
-  const gameBoardRef = useRef<GameBoardHandle>(null);
-  const [isAIMode, setIsAIMode] = useState(false);
-  const [isGameOver, setIsGameOver] = useState(false);
-  const { score, resetScore } = useScore();
+const seed = seedFromUrl();
+const CREDITS_URL = 'https://github.com/mrballistic/voltline/blob/main/CREDITS.md';
 
-  // Stable refs that delegate to the GameBoard handle
-  const boardProxy = useRef<Board>(EMPTY_BOARD);
-  const processingProxy = useRef(false);
+// Dark circuit-grid page (spec §6.3).
+const pageStyles = {
+  'html, body, #app': { margin: 0, height: '100%' },
+  body: {
+    backgroundColor: '#0a0a11',
+    backgroundImage:
+      'linear-gradient(rgba(120,140,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(120,140,255,.06) 1px, transparent 1px)',
+    backgroundSize: '24px 24px',
+    overflow: 'hidden',
+  },
+} as const;
 
-  // Keep proxies in sync + poll game over state
-  useEffect(() => {
-    const id = setInterval(() => {
-      if (gameBoardRef.current) {
-        boardProxy.current = gameBoardRef.current.boardRef.current;
-        processingProxy.current = gameBoardRef.current.isProcessing.current;
-        setIsGameOver(gameBoardRef.current.isGameOver);
-      }
-    }, 50);
-    return () => clearInterval(id);
-  }, []);
-
-  const handleSwapProxy = useCallback((...args: Parameters<GameBoardHandle['handleSwap']>) => {
-    gameBoardRef.current?.handleSwap(...args);
-  }, []);
-
-  const ai = useAIPlayer({
-    boardRef: boardProxy,
-    isProcessing: processingProxy,
-    handleSwap: handleSwapProxy,
-  });
-
-  const handleToggleMode = useCallback(() => {
-    setIsAIMode(prev => {
-      const next = !prev;
-      if (!next && ai.isActive) {
-        ai.toggleActive();
-      }
-      return next;
-    });
-  }, [ai]);
-
-  const handleHint = useCallback(() => {
-    gameBoardRef.current?.showHint();
-  }, []);
-
-  const handleNewGame = useCallback(() => {
-    gameBoardRef.current?.resetBoard();
-    resetScore();
-    ai.resetMoveCount();
-    setIsGameOver(false);
-  }, [resetScore, ai]);
-
-  // Pause AI when game is over
-  useEffect(() => {
-    if (isGameOver && ai.isActive) {
-      ai.toggleActive();
-    }
-  }, [isGameOver, ai]);
+export default function App() {
+  const host = useRef<HTMLDivElement>(null);
+  const { ui, actions, failed } = useGame(host, seed);
+  const over = ui?.over ?? false;
+  // The best of the game that ended (recordBest's rule), not of the mode toggled afterwards.
+  const best = ui ? (ui.overAI ? ui.best.ai : ui.best.player) : 0;
 
   return (
-    <DndProvider backend={MultiBackend} options={HTML5toTouch}>
+    <ThemeProvider theme={theme}>
+      <CssBaseline enableColorScheme />
+      <GlobalStyles styles={pageStyles} />
       <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          minHeight: '100vh',
-          py: 3,
-          gap: 2,
-        }}
+        component="main"
+        sx={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
       >
-        <Header isAIMode={isAIMode} onToggleMode={handleToggleMode} />
-        <GameBoard ref={gameBoardRef} jewelSize={56} />
-        {isAIMode ? (
-          <AIControls
-            isActive={ai.isActive}
-            speed={ai.speed}
-            moveCount={ai.moveCount}
-            isThinking={ai.isThinking}
-            error={ai.error}
-            onToggleActive={ai.toggleActive}
-            onSpeedChange={ai.setSpeed}
+        <Box sx={{ width: '100%', maxWidth: 640, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Header ui={ui} onMuted={actions.setMuted} onVolume={actions.setVolume} />
+          <BoardCanvas host={host} failed={failed} />
+          <TrayNotice trayFull={ui?.trayFull ?? false} />
+          <GameControls
+            hintDisabled={(ui?.busy ?? true) || (ui?.aiOn ?? false)} over={over} onHint={actions.hint} onNewGame={actions.newGame}
+            aiSlot={(
+              <AIControls
+                on={ui?.aiOn ?? false} speed={ui?.aiSpeed ?? 'medium'} moves={ui?.aiMoves ?? 0} thinking={ui?.aiThinking ?? false}
+                onToggle={actions.setAI} onSpeed={actions.setAISpeed}
+              />
+            )}
           />
-        ) : (
-          <GameControls onHint={handleHint} onNewGame={handleNewGame} />
-        )}
-        {!isAIMode && <Box />}
-        <CustomDragLayer />
+          <Typography component="footer" sx={{ py: 1, fontSize: 13, color: 'text.secondary' }}>
+            <Link href={CREDITS_URL} target="_blank" rel="noopener noreferrer" color="inherit">Credits</Link>
+            {' · '}
+            <Link href={`${CREDITS_URL.replace('CREDITS.md', 'LICENSE')}`} target="_blank" rel="noopener noreferrer" color="inherit">MIT License</Link>
+          </Typography>
+        </Box>
       </Box>
-      {isGameOver && (
-        <GameOverOverlay score={score} onNewGame={handleNewGame} />
-      )}
-    </DndProvider>
-  );
-};
-
-const App: React.FC = () => {
-  return (
-    <ThemeProvider>
-      <ScoreProvider>
-        <GameContent />
-      </ScoreProvider>
+      <GameOverDialog
+        open={over}
+        score={ui?.score ?? 0}
+        level={ui?.level ?? 1}
+        best={best}
+        newBest={ui?.newBest ?? false}
+        ai={ui?.overAI ?? false}
+        onPlayAgain={actions.newGame}
+      />
     </ThemeProvider>
   );
-};
-
-export default App;
+}

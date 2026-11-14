@@ -1,153 +1,61 @@
-import { Box, Button, Typography, Slider } from '@mui/material';
-import { AISpeed } from '../hooks/useAIPlayer';
+import Box from '@mui/material/Box';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Stack from '@mui/material/Stack';
+import Switch from '@mui/material/Switch';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import Typography from '@mui/material/Typography';
+import type { AISpeed } from '../app/ports';
+import { NEON } from '../theme';
 
-const SPEED_LABELS: Record<AISpeed, string> = {
-  slow: 'SLOW',
-  medium: 'MED',
-  fast: 'FAST',
-};
+const SPEEDS: { value: AISpeed; label: string }[] = [
+  { value: 'slow', label: 'Slow' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'fast', label: 'Fast' },
+];
 
-const SPEED_VALUES: AISpeed[] = ['slow', 'medium', 'fast'];
-
-interface AIControlsProps {
-  isActive: boolean;
+export interface AIControlsProps {
+  on: boolean;
   speed: AISpeed;
-  moveCount: number;
-  isThinking: boolean;
-  error: string | null;
-  onToggleActive: () => void;
-  onSpeedChange: (speed: AISpeed) => void;
+  moves: number;
+  thinking: boolean;
+  onToggle(on: boolean): void;
+  onSpeed(s: AISpeed): void;
 }
 
-const AIControls: React.FC<AIControlsProps> = ({
-  isActive,
-  speed,
-  moveCount,
-  isThinking,
-  error,
-  onToggleActive,
-  onSpeedChange,
-}) => {
-  const speedIndex = SPEED_VALUES.indexOf(speed);
-
+/** AI mode: on/off (play/pause), speed, the move counter and a quiet thinking indicator. */
+export default function AIControls({ on, speed, moves, thinking, onToggle, onSpeed }: AIControlsProps) {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 1.5,
-        p: 2,
-        borderRadius: '12px',
-        border: '1px solid rgba(192,96,255,0.2)',
-        backgroundColor: 'rgba(192,96,255,0.05)',
-        minWidth: 240,
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-        <Button
-          variant="outlined"
-          onClick={onToggleActive}
-          sx={{
-            fontFamily: "'Orbitron', sans-serif",
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            borderColor: isActive ? 'rgba(255,64,96,0.5)' : 'rgba(64,232,128,0.5)',
-            color: isActive ? '#FF4060' : '#40E880',
-            minWidth: 80,
-            '&:hover': {
-              borderColor: isActive ? '#FF4060' : '#40E880',
-              backgroundColor: isActive ? 'rgba(255,64,96,0.1)' : 'rgba(64,232,128,0.1)',
-            },
-          }}
-        >
-          {isActive ? 'PAUSE' : 'PLAY'}
-        </Button>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-          <Typography
-            sx={{
-              fontFamily: "'Rajdhani', sans-serif",
-              fontSize: '0.75rem',
-              color: 'rgba(255,255,255,0.5)',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Speed
-          </Typography>
-          <Slider
-            value={speedIndex}
-            min={0}
-            max={2}
-            step={1}
-            onChange={(_, val) => onSpeedChange(SPEED_VALUES[val as number])}
-            marks={SPEED_VALUES.map((_, i) => ({ value: i, label: SPEED_LABELS[SPEED_VALUES[i]] }))}
-            sx={{
-              color: '#C060FF',
-              '& .MuiSlider-markLabel': {
-                fontFamily: "'Orbitron', sans-serif",
-                fontSize: '0.55rem',
-                color: 'rgba(255,255,255,0.4)',
-              },
-              '& .MuiSlider-thumb': { width: 14, height: 14 },
-            }}
-          />
-        </Box>
+    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', rowGap: 0.5 }}>
+      <FormControlLabel
+        label="AI"
+        control={<Switch checked={on} onChange={(_, v) => onToggle(v)} color="secondary" />}
+        sx={{ mr: 0, '& .MuiFormControlLabel-label': { fontWeight: 700, letterSpacing: '0.08em' } }}
+      />
+      <ToggleButtonGroup
+        size="small" exclusive value={speed} aria-label="AI speed"
+        onChange={(_, v: AISpeed | null) => { if (v) onSpeed(v); }}
+      >
+        {SPEEDS.map((s) => (
+          <ToggleButton key={s.value} value={s.value} sx={{ px: 1.25, py: 0.25, fontWeight: 700, textTransform: 'none' }}>
+            {s.label}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+      <Typography sx={{ fontSize: 15, color: 'text.secondary', fontVariantNumeric: 'tabular-nums', minWidth: 92 }}>
+        AI moves {moves.toLocaleString('en-US')}
+      </Typography>
+      {/* Space is always reserved; a ranking shorter than the fade-in delay never shows at all. */}
+      <Box
+        aria-hidden={!thinking}
+        sx={{
+          minWidth: 72, fontSize: 15, color: NEON.magenta,
+          opacity: thinking ? 1 : 0,
+          transition: thinking ? 'opacity 150ms ease 120ms' : 'opacity 150ms ease',
+        }}
+      >
+        Thinking…
       </Box>
-
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%', justifyContent: 'space-between' }}>
-        <Typography
-          sx={{
-            fontFamily: "'Rajdhani', sans-serif",
-            fontSize: '0.85rem',
-            color: 'rgba(255,255,255,0.6)',
-          }}
-        >
-          Moves: <span style={{ color: '#C060FF', fontWeight: 700 }}>{moveCount}</span>
-        </Typography>
-
-        {isThinking && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <Box
-              sx={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                backgroundColor: '#C060FF',
-                animation: 'thinkPulse 1s ease-in-out infinite',
-                '@keyframes thinkPulse': {
-                  '0%, 100%': { opacity: 0.3, transform: 'scale(0.8)' },
-                  '50%': { opacity: 1, transform: 'scale(1.2)' },
-                },
-              }}
-            />
-            <Typography
-              sx={{
-                fontFamily: "'Rajdhani', sans-serif",
-                fontSize: '0.75rem',
-                color: '#C060FF',
-              }}
-            >
-              thinking...
-            </Typography>
-          </Box>
-        )}
-
-        {error && (
-          <Typography
-            sx={{
-              fontFamily: "'Rajdhani', sans-serif",
-              fontSize: '0.75rem',
-              color: '#FF4060',
-            }}
-          >
-            {error}
-          </Typography>
-        )}
-      </Box>
-    </Box>
+    </Stack>
   );
-};
-
-export default AIControls;
+}

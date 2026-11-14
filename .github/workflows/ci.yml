@@ -1,0 +1,67 @@
+# Checks for pull requests and main. deploy.yml reuses this file (workflow_call)
+# so a release can't ship unless the same checks pass on the tagged commit.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check (lint / type-check / test / build / bench)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run type-check
+      # Coverage thresholds (lines 90, branches 85, functions 90) apply to
+      # src/engine and src/ai only; see vite.config.ts.
+      - name: Test (with coverage thresholds)
+        run: npm run test:coverage
+      - run: npm run build
+
+      # A short AI-versus-engine run: catches a search or rules change that
+      # crashes, loops or stalls on real games, which unit tests can miss.
+      - name: Bench (AI plays a few games)
+        run: npm run bench -- --games 5 --max-moves 200
+
+      # Voltline makes no network calls at runtime: no LLM, no keys, and fonts
+      # are self-hosted. Fail loudly if the bundle ever reaches for any of that.
+      - name: Bundle hygiene (no keys, no LLM endpoints, no Google Fonts)
+        run: |
+          if grep -rEl 'AIza[0-9A-Za-z_-]{35}|sk-ant-|generativelanguage\.googleapis|api\.anthropic\.com|fonts\.googleapis\.com' dist; then
+            echo "::error::A key, an LLM endpoint or a Google Fonts reference is in the bundle."
+            exit 1
+          fi
+
+      # Browser smoke test against `vite preview` of the production build, under
+      # the production CSP: plays, hints, runs AI mode, fails on console errors.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run smoke
+
+      # Keeps the Playwright report and screenshots from a failed run.
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-artifacts
+          path: |
+            playwright-report/
+            .playwright-mcp/
+          if-no-files-found: ignore
