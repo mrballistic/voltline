@@ -47,10 +47,15 @@ function isGoogle(url: URL): boolean {
   return /(^|\.)(google|googletagmanager|google-analytics|googleapis|gstatic|doubleclick)\.[a-z.]+$/.test(url.hostname);
 }
 
+const BEACON_URL = 'https://region1.google-analytics.com/g/collect';
+const PIXEL_URL = 'https://www.google-analytics.com/g/collect';
+const GTAG_STUB = `navigator.sendBeacon('${BEACON_URL}'); new Image().src = '${PIXEL_URL}';`;
+
 /**
  * Listens for console errors, failed requests, CSP violations and Google requests. Every Google
- * request is answered here, so the run never makes a real external call: the tag gets an empty
- * 200 script, anything else an empty 204.
+ * request is answered here, so the run never makes a real external call: the tag gets a stub
+ * script that sends a beacon (connect-src) and an image pixel (img-src) to Google's collection
+ * hosts, so the CSP is exercised for both; anything else gets an empty 204.
  */
 async function watch(page: Page) {
   const errors: string[] = [];
@@ -63,7 +68,7 @@ async function watch(page: Page) {
   const google: string[] = [];
   page.on('request', (r) => { if (isGoogle(new URL(r.url()))) google.push(r.url()); });
   await page.route(isGoogle, (route) => new URL(route.request().url()).pathname === '/gtag/js'
-    ? route.fulfill({ status: 200, contentType: 'application/javascript', body: '' })
+    ? route.fulfill({ status: 200, contentType: 'application/javascript', body: GTAG_STUB })
     : route.fulfill({ status: 204, body: '' }));
   await page.addInitScript(() => {
     (window as unknown as { __csp: string[] }).__csp = [];
@@ -167,6 +172,8 @@ test('voltline smoke: accept cookies loads the tag under the CSP', async ({ page
   await page.getByRole('button', { name: 'Accept' }).click();
   expect((await tag).status()).toBe(200);
   await expect(banner(page)).toBeHidden();
+  // The stub's beacon and pixel got through the CSP to the (routed) collection hosts.
+  await expect.poll(() => google.includes(BEACON_URL) && google.includes(PIXEL_URL)).toBe(true);
   // Page views only: gtag('js') and gtag('config', id).
   await expect.poll(() => page.evaluate(() => (window as unknown as { dataLayer?: unknown[] }).dataLayer?.length ?? 0)).toBe(2);
 

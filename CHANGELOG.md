@@ -11,7 +11,7 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 
 ### Changed
 
-- The web version’s Content-Security-Policy allows Google’s tag (`script-src`) and its collection endpoints (`connect-src`, `img-src`), which the page only contacts after you accept. Still no `unsafe-eval` and no inline script. The desktop app keeps its offline policy.
+- The web version’s Content-Security-Policy allows Google’s tag (`script-src`), its collection endpoints and Google Signals (`connect-src`, `img-src`) and the tag’s service-worker iframe (`frame-src`), which the page only contacts after you accept. Still no `unsafe-eval` and no inline script. The desktop app keeps its offline policy.
 
 ## 1.1.0 (2026-11-13)
 
