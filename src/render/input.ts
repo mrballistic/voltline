@@ -104,6 +104,7 @@ export function attachInput(app: Application, board: BoardView, tray: TrayView, 
   };
 
   const finish = (e: PointerEvent | null) => {
+    app.ticker.remove(watchLock);
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp);
     window.removeEventListener('pointercancel', onCancel);
@@ -191,6 +192,14 @@ export function attachInput(app: Application, board: BoardView, tray: TrayView, 
     }
   };
 
+  // Input can lock while a drag is held still (AI mode turns on, a move or a deal starts): the
+  // pointer then sends nothing, so check every frame and ease the piece back at once. A drag
+  // that already fired its swap is the swap's own doing and is left alone.
+  const watchLock = () => {
+    const cur = g;
+    if (cur && !(cur.kind === 'cell' && cur.done) && !h.canAcceptInput()) cancel();
+  };
+
   const onCancel = (e: PointerEvent | Event) => {
     if (g && 'pointerId' in e && e.pointerId !== g.id) return;
     cancel();
@@ -216,6 +225,7 @@ export function attachInput(app: Application, board: BoardView, tray: TrayView, 
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onCancel);
     canvas.addEventListener('lostpointercapture', onCancel);
+    app.ticker.add(watchLock);
   };
 
   stage.on('pointerdown', onDown);

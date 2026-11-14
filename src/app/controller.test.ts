@@ -2,11 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyMove, newGame, productiveMoves } from '../engine';
 import type { GameState, Move, Pos, Step } from '../engine';
 import { boardWith, makeState } from '../engine/testing';
-import { createAIClient } from '../ai/client';
+import { createAIClient, type AIClient } from '../ai/client';
+import { rankMoves, type RankedMove } from '../ai/search';
+import { ANIM } from '../render/constants';
 import type { Action } from '../render/plan';
 import type { ScriptPlayerLike, ShownState } from '../render/player';
-import { GameController, type UiSnapshot } from './controller';
-import type { Prefs, PrefsStore } from './ports';
+import { AI_PACE, GameController, type GameControllerDeps, type UiSnapshot } from './controller';
+import type { HintViewLike, Prefs, PrefsStore } from './ports';
 
 const SEED = 42;
 
@@ -20,9 +22,12 @@ class FakePlayer implements ScriptPlayerLike {
   /** Set by the controller test rig: lets a test emit planned actions mid-play. */
   emit: (a: Action) => void = () => {};
 
+  /** When false, plays finish at once (AI runs that should go to the end on their own). */
+  holdPlays = true;
   play(script: Step[], end: ShownState): Promise<void> {
     this.scripts.push(script);
     this.ends.push(end);
+    if (!this.holdPlays) return Promise.resolve();
     return new Promise((resolve) => this.pending.push(resolve));
   }
   /** When set, deals are held like plays until `finish()`. */
@@ -47,26 +52,92 @@ class FakePlayer implements ScriptPlayerLike {
 
 const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
+/** Flushes until `cond` holds (real timers: AI pauses are a few hundred ms at most). */
+async function until(cond: () => boolean, ms = 3000): Promise<void> {
+  const end = Date.now() + ms;
+  while (!cond()) {
+    if (Date.now() > end) throw new Error('timed out');
+    await new Promise<void>((resolve) => setTimeout(resolve, 5));
+  }
+}
+
+/** Ranks productive moves in engine order: the AI's pick is always the first productive move. */
+const rankFirst = (s: GameState): RankedMove[] =>
+  productiveMoves(s).map((move, i) => ({ move, value: 100 - i, expectedPoints: 100 - i }));
+
+/** An AI whose rankings the test hands out, call by call (or at once, with `auto`). */
+class FakeAI implements AIClient {
+  calls: GameState[] = [];
+  auto = false;
+  private pending: { resolve: (r: RankedMove[]) => void; reject: (e: Error) => void; state: GameState }[] = [];
+  rank(state: GameState): Promise<RankedMove[]> {
+    this.calls.push(state);
+    if (this.auto) return Promise.resolve(rankFirst(state));
+    return new Promise((resolve, reject) => this.pending.push({ resolve, reject, state }));
+  }
+  /** Answers the oldest call with its own state's ranking, then lets the controller continue. */
+  async answer(ranked?: RankedMove[]): Promise<void> {
+    const p = this.pending.shift()!;
+    p.resolve(ranked ?? rankFirst(p.state));
+    await flush();
+  }
+  async fail(err: Error): Promise<void> {
+    this.pending.shift()!.reject(err);
+    await flush();
+  }
+  dispose(): void {}
+}
+
+class FakeHint implements HintViewLike {
+  shows: { ranked: RankedMove[]; opts: { revealMs: number; holdMs: number } }[] = [];
+  clears = 0;
+  show(ranked: RankedMove[], opts: { revealMs: number; holdMs: number }): Promise<void> {
+    this.shows.push({ ranked, opts });
+    return Promise.resolve();
+  }
+  clear(): void {
+    this.clears++;
+  }
+}
+
+type FakeDoc = EventTarget & { hidden: boolean };
+const fakeDoc = (hidden: boolean): FakeDoc => Object.assign(new EventTarget(), { hidden });
+
+/** A board with one productive swap (row 7 becomes R R R) whose refills leave no move: one AI move ends it. */
+function deadEnding(): GameState {
+  const board = boardWith({ '7,1': 'R', '6,2': 'R' });
+  for (let rngState = 1; rngState < 1000; rngState++) {
+    const s = makeState(board, { rngState, score: 500 });
+    const first = productiveMoves(s)[0];
+    if (first && applyMove(s, first).state.over) return s;
+  }
+  throw new Error('no dead-ending fixture');
+}
+
 function memoryPrefs(initial: Partial<Prefs> = {}): PrefsStore & { saved: Prefs[] } {
   let prefs: Prefs = { bestPlayer: 0, bestAI: 0, aiSpeed: 'medium', muted: false, volume: 0.8, ...initial };
   const saved: Prefs[] = [];
   return { saved, load: () => ({ ...prefs }), save: (p) => { prefs = { ...p }; saved.push({ ...p }); } };
 }
 
-function rig(opts: { initial?: GameState; prefs?: ReturnType<typeof memoryPrefs> } = {}) {
+function rig(opts: {
+  initial?: GameState; prefs?: ReturnType<typeof memoryPrefs>; ai?: AIClient; hint?: FakeHint; doc?: FakeDoc;
+} = {}) {
   const player = new FakePlayer();
   const prefs = opts.prefs ?? memoryPrefs();
+  const hint = opts.hint ?? new FakeHint();
   const snapshots: UiSnapshot[] = [];
   const errors: unknown[] = [];
   const c = new GameController({
     player, prefs, seed: SEED, initial: opts.initial,
-    ai: createAIClient({ inline: true }),
-    hint: { show: async () => {}, clear: () => {} },
+    ai: opts.ai ?? createAIClient({ inline: true }),
+    hint,
+    doc: opts.doc as GameControllerDeps['doc'],
     onChange: (s) => snapshots.push(s),
     reportError: (err) => errors.push(err),
   });
   player.emit = (a) => c.onAction(a);
-  return { c, player, prefs, snapshots, errors };
+  return { c, player, prefs, hint, snapshots, errors };
 }
 
 const swapOf = (m: Move) => {
@@ -398,16 +469,6 @@ describe('GameController', () => {
     });
   });
 
-  it('input is ignored while AI mode is on', () => {
-    const { c, player } = rig();
-    c.setAI(true);
-    const { a, b } = firstSwap(c.state);
-    c.tapCell(a);
-    c.tapCell(b);
-    c.swap(a, b);
-    expect(player.scripts).toHaveLength(0);
-    expect(c.snapshot().aiOn).toBe(true);
-  });
 
   it('AI speed is a saved preference', () => {
     const prefs = memoryPrefs();
@@ -426,5 +487,248 @@ describe('GameController', () => {
     expect(c.snapshot().notice).toEqual({ kind: 'tray-full' });
     await player.finish();
     expect(c.snapshot().tray).toEqual(c.state.tray);
+  });
+
+  describe('hint', () => {
+    it('hint shows ranked moves and clears on tap', async () => {
+      const { c, hint } = rig();
+      await c.hint();
+      expect(hint.shows).toHaveLength(1);
+      expect(hint.shows[0].ranked).toEqual(rankMoves(c.state));
+      expect(hint.shows[0].opts).toEqual({ revealMs: ANIM.hint.revealMs, holdMs: ANIM.hint.holdMs });
+      const before = hint.clears;
+      c.tapCell({ row: 0, col: 0 });
+      expect(hint.clears).toBe(before + 1);
+      c.swap(firstSwap(c.state).a, firstSwap(c.state).b);
+      expect(hint.clears).toBeGreaterThan(before + 1);
+    });
+
+    it('a hint ranked for an older state is dropped', async () => {
+      const ai = new FakeAI();
+      const { c, hint, player } = rig({ ai });
+      const pending = c.hint();
+      void c.submit(firstSwap(c.state));
+      await player.finish();
+      await ai.answer();
+      await pending;
+      expect(hint.shows).toHaveLength(0);
+    });
+
+    it('hint reports rank failures, except a disposed client', async () => {
+      const ai = new FakeAI();
+      const { c, errors, hint } = rig({ ai });
+      let p = c.hint();
+      await ai.fail(new Error('disposed'));
+      await p;
+      expect(errors).toEqual([]);
+      p = c.hint();
+      await ai.fail(new Error('worker exploded'));
+      await p;
+      expect(errors.map((e) => (e as Error).message)).toEqual(['worker exploded']);
+      expect(hint.shows).toHaveLength(0);
+    });
+
+    it('hint does nothing while AI mode is on', async () => {
+      const ai = new FakeAI();
+      const { c } = rig({ ai });
+      c.setAI(true);
+      await flush();
+      expect(ai.calls).toHaveLength(1); // the AI loop's own ranking
+      await c.hint();
+      expect(ai.calls).toHaveLength(1);
+    });
+  });
+
+  describe('AI mode', () => {
+    it('AI paces match the brief', () => {
+      expect(AI_PACE).toEqual({
+        slow: { revealMs: 1000, pauseMs: 600 }, medium: { revealMs: 500, pauseMs: 300 }, fast: { revealMs: 150, pauseMs: 100 },
+      });
+    });
+
+    it('ai plays until game over', async () => {
+      const ai = new FakeAI();
+      ai.auto = true;
+      const { c, player, hint } = rig({ ai, initial: deadEnding(), prefs: memoryPrefs({ aiSpeed: 'fast' }) });
+      player.holdPlays = false;
+      c.setAI(true);
+      await until(() => c.snapshot().over);
+      await flush();
+      expect(player.scripts).toHaveLength(1);
+      expect(player.scripts[0].at(-1)?.t).toBe('game-over');
+      expect(c.snapshot()).toMatchObject({ over: true, aiOn: true, aiMoves: 1, moves: 1, busy: false, aiThinking: false });
+      expect(ai.calls).toHaveLength(1);
+      expect(hint.shows).toEqual([{ ranked: rankFirst(ai.calls[0]), opts: { revealMs: AI_PACE.fast.revealMs, holdMs: 0 } }]);
+      await new Promise((resolve) => setTimeout(resolve, AI_PACE.fast.pauseMs * 2));
+      expect(ai.calls).toHaveLength(1); // stopped, not spinning on a finished game
+    });
+
+    it('ai plays a real game on its own, one move at a time', async () => {
+      const { c, player } = rig({ prefs: memoryPrefs({ aiSpeed: 'fast' }) });
+      c.setAI(true);
+      for (let n = 1; n <= 3; n++) {
+        await until(() => player.playing === 1);
+        expect(player.scripts).toHaveLength(n);
+        expect(c.snapshot().aiMoves).toBe(n);
+        await player.finish();
+      }
+      c.setAI(false);
+      await new Promise((resolve) => setTimeout(resolve, AI_PACE.fast.pauseMs * 3));
+      expect(player.scripts).toHaveLength(3);
+      expect(c.state.moves).toBe(3);
+    });
+
+    it('stale ai result is discarded after new game', async () => {
+      const ai = new FakeAI();
+      const { c, player, hint } = rig({ ai });
+      c.setAI(true);
+      await flush();
+      expect(c.snapshot().aiThinking).toBe(true);
+      expect(ai.calls).toHaveLength(1);
+      await c.newGame();
+      await flush();
+      expect(ai.calls).toHaveLength(2); // AI mode carries on into the new game
+      expect(ai.calls[1]).toBe(c.state);
+      await ai.answer(); // the old game's ranking arrives late
+      expect(player.scripts).toHaveLength(0);
+      expect(hint.shows).toHaveLength(0);
+      expect(c.snapshot().moves).toBe(0);
+      await ai.answer(); // the new game's own ranking plays
+      await until(() => player.scripts.length === 1);
+      expect(c.snapshot().aiMoves).toBe(1);
+      await player.finish();
+    });
+
+    it('a ranking that arrives after AI mode is switched off, or on again, is dropped', async () => {
+      const ai = new FakeAI();
+      const { c, player } = rig({ ai });
+      c.setAI(true);
+      await flush();
+      c.setAI(false);
+      expect(c.snapshot().aiThinking).toBe(false);
+      await ai.answer();
+      expect(player.scripts).toHaveLength(0);
+      c.setAI(true);
+      await flush();
+      c.setAI(false);
+      c.setAI(true); // a newer generation
+      await flush();
+      expect(ai.calls).toHaveLength(3);
+      await ai.answer();
+      expect(player.scripts).toHaveLength(0);
+      await ai.answer();
+      await until(() => player.scripts.length === 1);
+      expect(c.state.moves).toBe(1);
+      await player.finish();
+      c.setAI(false);
+    });
+
+    it('ai pauses while document hidden', async () => {
+      const ai = new FakeAI();
+      const doc = fakeDoc(true);
+      const { c, player } = rig({ ai, doc, prefs: memoryPrefs({ aiSpeed: 'fast' }) });
+      c.setAI(true);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(ai.calls).toHaveLength(0);
+      doc.hidden = false;
+      doc.dispatchEvent(new Event('visibilitychange'));
+      await flush();
+      expect(ai.calls).toHaveLength(1);
+      await ai.answer();
+      await until(() => player.playing === 1);
+      // Hidden while the move plays: the loop finishes the move, then waits instead of ranking.
+      doc.hidden = true;
+      doc.dispatchEvent(new Event('visibilitychange'));
+      await player.finish();
+      await new Promise((resolve) => setTimeout(resolve, AI_PACE.fast.pauseMs * 4));
+      expect(ai.calls).toHaveLength(1);
+      // Back: exactly one ranking, no burst of queued moves.
+      doc.hidden = false;
+      doc.dispatchEvent(new Event('visibilitychange'));
+      await until(() => ai.calls.length === 1 + 1);
+      await new Promise((resolve) => setTimeout(resolve, AI_PACE.fast.pauseMs * 2));
+      expect(ai.calls).toHaveLength(2);
+      expect(player.scripts).toHaveLength(1);
+      c.setAI(false);
+    });
+
+    it('ai game best stored as ai best, not player best', async () => {
+      const ai = new FakeAI();
+      ai.auto = true;
+      const prefs = memoryPrefs({ bestPlayer: 0, bestAI: 0, aiSpeed: 'fast' });
+      const { c, player } = rig({ ai, prefs, initial: deadEnding() });
+      player.holdPlays = false;
+      c.setAI(true);
+      await until(() => c.snapshot().over);
+      expect(prefs.load()).toMatchObject({ bestAI: c.state.score, bestPlayer: 0 });
+      expect(c.snapshot()).toMatchObject({ overAI: true, newBest: true, best: { player: 0, ai: c.state.score } });
+    });
+
+    it('player input ignored while ai on', async () => {
+      const ai = new FakeAI();
+      const { c, player } = rig({ ai, initial: withTray(true) });
+      c.setAI(true);
+      expect(c.canAcceptInput).toBe(false);
+      const { a, b } = firstSwap(c.state);
+      c.tapCell(a);
+      c.tapCell(b);
+      c.swap(a, b);
+      c.tapSlot(0);
+      c.place(0, { row: 3, col: 3 });
+      expect(player.scripts).toHaveLength(0);
+      expect(c.snapshot()).toMatchObject({ aiOn: true, selected: null, selectedSlot: null });
+    });
+
+    it('a rank failure is reported and retried once; a second in a row turns AI mode off', async () => {
+      const ai = new FakeAI();
+      const { c, errors, player } = rig({ ai });
+      c.setAI(true);
+      await flush();
+      await ai.fail(new Error('worker died'));
+      expect(c.snapshot().aiOn).toBe(true);
+      expect(ai.calls).toHaveLength(2);
+      await ai.fail(new Error('still dead'));
+      expect(c.snapshot()).toMatchObject({ aiOn: false, aiThinking: false });
+      expect(errors.map((e) => (e as Error).message)).toEqual(['worker died', 'still dead']);
+      expect(player.scripts).toHaveLength(0);
+    });
+
+    it('AI mode switched on while a new game waits runs one loop, not two', async () => {
+      const ai = new FakeAI();
+      const { c, player } = rig({ ai });
+      void c.submit(firstSwap(c.state));
+      const ng = c.newGame(); // waits for the move
+      c.setAI(true);
+      await player.finish();
+      await ng;
+      await flush();
+      expect(ai.calls).toHaveLength(1);
+      expect(ai.calls[0]).toBe(c.state);
+      c.setAI(false);
+    });
+
+    it('a move that fails during AI mode reports once and turns AI mode off', async () => {
+      const ai = new FakeAI();
+      ai.auto = true;
+      const { c, player, errors } = rig({ ai });
+      player.play = (script) => { player.scripts.push(script); return Promise.reject(new Error('play failed')); };
+      c.setAI(true);
+      await until(() => !c.snapshot().aiOn);
+      await flush();
+      expect(errors.map((e) => (e as Error).message)).toEqual(['play failed']);
+      expect(c.snapshot()).toMatchObject({ aiOn: false, aiThinking: false, busy: false });
+      expect(c.canAcceptInput).toBe(true); // the player can take over
+      expect(player.scripts).toHaveLength(1);
+    });
+
+    it('dispose stops the loop', async () => {
+      const ai = new FakeAI();
+      const { c, player } = rig({ ai });
+      c.setAI(true);
+      await flush();
+      c.dispose();
+      await ai.answer();
+      expect(player.scripts).toHaveLength(0);
+    });
   });
 });

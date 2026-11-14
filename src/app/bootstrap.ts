@@ -9,13 +9,13 @@ import { silentCues } from '../audio/cues';
 import { BoardView } from '../render/BoardView';
 import { driveGsapFrom } from '../render/clock';
 import { PixiEffects } from '../render/effects';
+import { HintLayer } from '../render/HintLayer';
 import { attachInput } from '../render/input';
 import { computeLayout } from '../render/layout';
 import { ScriptPlayer } from '../render/player';
 import { buildTextures, type PieceTextures } from '../render/textures';
 import { TrayView } from '../render/TrayView';
 import { GameController, type UiSnapshot } from './controller';
-import type { HintViewLike } from './ports';
 import { createPrefsStore } from './storage';
 
 export interface GameHandle {
@@ -34,9 +34,6 @@ export class GraphicsUnavailableError extends Error {
 function prefersReducedMotion(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
-
-// Stand-in until the hint layer lands (Task 17).
-const noHint: HintViewLike = { show: () => Promise.resolve(), clear() {} };
 
 export async function createGame(
   host: HTMLElement,
@@ -64,7 +61,8 @@ export async function createGame(
   let tex: PieceTextures = buildTextures(app.renderer, layout.cellPx, resolution);
   const board = new BoardView(tex, reducedMotion);
   const tray = new TrayView(tex, reducedMotion);
-  app.stage.addChild(board.root, tray.root);
+  const hint = new HintLayer(board, tray, silentCues, reducedMotion);
+  app.stage.addChild(board.root, tray.root, hint.root);
   board.setLayout(layout, tex);
   tray.setLayout(layout, tex);
 
@@ -100,7 +98,7 @@ export async function createGame(
   const controller: GameController = new GameController({
     player,
     ai: createAIClient(),
-    hint: noHint,
+    hint,
     prefs: createPrefsStore(),
     seed: opts.seed,
     initial,
@@ -126,6 +124,7 @@ export async function createGame(
     if (layout.cellPx !== old.cellPx) tex = buildTextures(app.renderer, layout.cellPx, resolution);
     board.setLayout(layout, tex);
     tray.setLayout(layout, tex);
+    hint.clear(); // its arrows were drawn for the old geometry
     if (tex !== old) old.destroy();
     controller.relayout();
   };
@@ -157,6 +156,7 @@ export async function createGame(
       app.renderer.off('resize', relayout);
       stopClock();
       board.destroy();
+      hint.destroy();
       tray.destroy();
       tex.destroy();
       app.destroy(true, { children: true });

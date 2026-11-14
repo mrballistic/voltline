@@ -6,6 +6,7 @@ import Link from '@mui/material/Link';
 import { ThemeProvider } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import { useGame } from './app/useGame';
+import AIControls from './components/AIControls';
 import BoardCanvas from './components/BoardCanvas';
 import GameControls from './components/GameControls';
 import GameOverDialog from './components/GameOverDialog';
@@ -54,7 +55,15 @@ export default function App() {
           <Header ui={ui} onMuted={actions.setMuted} onVolume={actions.setVolume} />
           <BoardCanvas host={host} failed={failed} />
           <TrayNotice trayFull={ui?.trayFull ?? false} />
-          <GameControls busy={ui?.busy ?? true} over={over} onHint={actions.hint} onNewGame={actions.newGame} />
+          <GameControls
+            hintDisabled={(ui?.busy ?? true) || (ui?.aiOn ?? false)} over={over} onHint={actions.hint} onNewGame={actions.newGame}
+            aiSlot={(
+              <AIControls
+                on={ui?.aiOn ?? false} speed={ui?.aiSpeed ?? 'medium'} moves={ui?.aiMoves ?? 0} thinking={ui?.aiThinking ?? false}
+                onToggle={actions.setAI} onSpeed={actions.setAISpeed}
+              />
+            )}
+          />
           <Typography component="footer" sx={{ py: 1, fontSize: 13, color: 'text.secondary' }}>
             <Link href={CREDITS_URL} target="_blank" rel="noopener noreferrer" color="inherit">Credits</Link>
             {' · '}
