@@ -41,8 +41,10 @@ export default function AIControls({ on, speed, moves, thinking, disabled = fals
       role="group"
       aria-label="AI mode"
       sx={{
-        width: 'var(--vl-board-px, 100%)', maxWidth: '100%', height: AI_DOCK_PX, boxSizing: 'border-box',
-        px: '3px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: 1,
+        // As wide as the board, but never narrower than its AI-on contents need (360 px, or the
+        // whole column on a narrower phone): on a short phone the board shrinks with the height.
+        width: 'max(var(--vl-board-px, 100%), min(100%, 360px))', maxWidth: '100%', height: AI_DOCK_PX, boxSizing: 'border-box',
+        px: { xs: '2px', sm: '3px' }, borderRadius: '10px', display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 },
         border: '1px solid', borderColor: on ? 'rgba(255,79,216,0.45)' : 'rgba(154,163,214,0.2)',
         bgcolor: on ? 'rgba(255,79,216,0.06)' : 'transparent',
         transition: `border-color ${MOTION.fadeMs}ms ease, background-color ${MOTION.fadeMs}ms ease`,
@@ -54,7 +56,7 @@ export default function AIControls({ on, speed, moves, thinking, disabled = fals
         disabled={disabled}
         control={<Switch size="small" checked={on} onChange={(_, v) => onToggle(v)} color="secondary" />}
         sx={{
-          flex: 'none', height: 44, m: 0, pl: 0.5, pr: 1, gap: 0.5, borderRadius: '8px',
+          flex: 'none', height: 44, m: 0, pl: 0.5, pr: { xs: 0.5, sm: 1 }, gap: 0.5, borderRadius: '8px',
           '& .MuiFormControlLabel-label': {
             fontWeight: 700, fontSize: 15, letterSpacing: '0.04em', color: on ? NEON.magenta : CHROME.text,
             transition: `color ${MOTION.fadeMs}ms ease`,
@@ -69,15 +71,17 @@ export default function AIControls({ on, speed, moves, thinking, disabled = fals
           sx={{ flex: 'none' }}
         >
           {SPEEDS.map((s) => (
-            <ToggleButton key={s.value} value={s.value} sx={{ px: { xs: 1, sm: 1.75 }, py: 0, fontWeight: 700, textTransform: 'none' }}>
+            // Phones: 44 px wide segments (still a full target) with tight padding, so the dock fits a 320 px screen.
+            <ToggleButton key={s.value} value={s.value} sx={{ px: { xs: 0.5, sm: 1.75 }, minWidth: { xs: 44, sm: 52 }, py: 0, fontWeight: 700, textTransform: 'none' }}>
               {s.label}
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
       </Fade>
       <Fade in={on} timeout={fade} unmountOnExit>
-        <Stack sx={{ ml: 'auto', pr: 1, alignItems: 'flex-end', fontSize: 15, lineHeight: '18px', fontWeight: 500, whiteSpace: 'nowrap' }}>
-          <Box component="span" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+        {/* minWidth 0 + ellipsis: a last-resort guard so a huge counter on a 320 px phone clips inside the dock. */}
+        <Stack sx={{ ml: 'auto', minWidth: 0, pr: { xs: 0.5, sm: 1 }, alignItems: 'flex-end', fontSize: { xs: 14, sm: 15 }, lineHeight: '18px', fontWeight: 500, whiteSpace: 'nowrap' }}>
+          <Box component="span" sx={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
             AI moves {moves.toLocaleString('en-US')}
           </Box>
           {/* Always laid out; a ranking shorter than the fade-in delay never shows at all. */}

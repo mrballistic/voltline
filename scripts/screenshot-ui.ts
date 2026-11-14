@@ -2,6 +2,9 @@
 // 2026-11-13-voltline-chrome-design.md, “Docs and screenshots”):
 //   app-phone, app-desktop, ai-mode-running, ui-tray-full, ui-level-up, ui-game-over,
 //   how-to-play-phone, how-to-play-desktop (all .webp) and 404 (.png).
+// Plus `dock-fit`, a check rather than a screenshot to publish: with AI mode on, the AI dock's
+// contents fit inside it, its targets stay 44 px, and toggling AI never changes its height, at
+// phone sizes where the board (and so `--vl-board-px`) shrinks with the height.
 /* eslint-disable @typescript-eslint/no-explicit-any -- pokes private controller fields in the dev build */
 //
 //   npx tsx scripts/screenshot-ui.ts [baseUrl] [outDir] [--publish] [--only name,name]
@@ -141,6 +144,45 @@ const shots: Record<string, () => Promise<void>> = {
     await page.context().close();
   },
 
+  'dock-fit': async () => {
+    for (const viewport of [{ width: 320, height: 700 }, { width: 360, height: 640 }, { width: 360, height: 700 },
+      { width: 375, height: 667 }, { width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+      const page = await open(browser, viewport);
+      const dock = page.getByRole('group', { name: 'AI mode' });
+      const offHeight = (await dock.boundingBox())!.height;
+      await page.getByRole('switch', { name: 'AI' }).check();
+      await page.waitForTimeout(400);
+      // A long counter, so the widest text the dock will hold is measured.
+      await page.evaluate(() => { const c = (window as any).__voltline.controller; c.aiMoves = 12345; c.d.onChange(c.snapshot()); });
+      await page.waitForTimeout(100);
+      const m = await dock.evaluate((el) => {
+        const d = el.getBoundingClientRect();
+        const kids = [...el.querySelectorAll('button, label, span')].map((k) => k.getBoundingClientRect());
+        const targets = [...el.querySelectorAll('button, label')].map((k) => k.getBoundingClientRect().height);
+        return {
+          dock: { left: d.left, right: d.right, width: d.width, height: d.height },
+          scroll: el.scrollWidth, client: el.clientWidth,
+          outside: kids.filter((k) => k.width > 0 && (k.left < d.left - 0.5 || k.right > d.right + 0.5 || k.top < d.top - 0.5 || k.bottom > d.bottom + 0.5)).length,
+          minTarget: Math.min(...targets),
+          page: document.documentElement.clientWidth,
+        };
+      });
+      const label = `${viewport.width}x${viewport.height}`;
+      const box = (await dock.boundingBox())!;
+      await page.screenshot({ path: `${out}/dock-fit-${label}.png`, clip: { x: 0, y: Math.max(0, box.y - 60), width: viewport.width, height: Math.min(viewport.height - Math.max(0, box.y - 60), box.height + 70) } });
+      const problems = [
+        m.scroll > m.client && `contents ${m.scroll} px in a ${m.client} px dock`,
+        m.outside > 0 && `${m.outside} elements outside the dock`,
+        m.minTarget < 44 && `a ${m.minTarget} px target`,
+        m.dock.left < 0 || m.dock.right > m.page ? 'dock wider than the page' : false,
+        Math.abs(m.dock.height - offHeight) > 0.5 && `height ${offHeight} off, ${m.dock.height} on`,
+      ].filter(Boolean);
+      process.stdout.write(`dock-fit ${label}: dock ${Math.round(m.dock.width)}×${Math.round(m.dock.height)}, contents ${m.scroll} ${problems.length ? `FAIL ${problems.join('; ')}` : 'ok'}\n`);
+      if (problems.length) errors.push(`dock-fit ${label}: ${problems.join('; ')}`);
+      await page.context().close();
+    }
+  },
+
   // The standalone 404 page, at the size of the shot it replaces.
   404: async () => {
     const page = await open(browser, { width: 800, height: 560 }, '404.html');
@@ -155,7 +197,7 @@ try {
     if (only && !only.includes(name)) continue;
     await shoot();
     process.stdout.write(`${out}/${name}.png\n`);
-    if (!flag('--publish')) continue;
+    if (!flag('--publish') || name === 'dock-fit') continue;
     if (name === '404') copyFileSync(`${out}/404.png`, `${PUBLISH}/404.png`);
     else execFileSync('cwebp', ['-quiet', '-q', '80', `${out}/${name}.png`, '-o', `${PUBLISH}/${name}.webp`]);
   }
