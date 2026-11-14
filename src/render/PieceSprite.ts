@@ -91,6 +91,9 @@ export class PieceSprite extends Container {
       onUpdate: () => { this.body.rotation = turn.a; this.halo.rotation = turn.a; },
     });
     this.spin.totalTime(Math.random() * ANIM.prismSpinS);
+    // totalTime() doesn't fire onUpdate, so set the starting angle now (no snap from 0 on the first frame).
+    this.body.rotation = turn.a;
+    this.halo.rotation = turn.a;
   }
 
   private restart() {
