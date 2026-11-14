@@ -92,9 +92,12 @@ test('voltline smoke: play, hint, AI, no errors, no CSP violations', async ({ pa
   const idle2 = await canvas.screenshot();
   expect(idle2.equals(idle1), 'idle board is static').toBe(true);
 
-  // Hint: the canvas pixels change within about a second.
+  // Hint: once the ranking is done, the arrows change the canvas. The first
+  // ranking also boots the AI worker, and CI runners render in software on
+  // two CPUs, so allow generous time; a broken Hint still fails (it never
+  // changes the static board).
   await page.getByRole('button', { name: 'Hint' }).click();
-  await expect.poll(async () => !(await canvas.screenshot()).equals(idle2), { timeout: 1500, intervals: [100] }).toBe(true);
+  await expect.poll(async () => !(await canvas.screenshot()).equals(idle2), { timeout: 15_000, intervals: [100, 250, 500] }).toBe(true);
   await page.screenshot({ path: `${SHOTS}/smoke-1440x900.png` });
 
   // AI on for about 10 s: the counter must move.
