@@ -5,7 +5,9 @@
 // player never touches, so the swap tween takes over from the piece's current offset: the
 // offset then eases to zero while the tween runs, with no snap. A tray drag carries a flyer
 // under the pointer and drops on the cell under its center; a drop the controller refuses
-// shakes there before flying home, so a refusal is never silent.
+// shakes there before flying home, so a refusal is never silent. A tray drag may also start
+// while a move plays: dropped before the move ends, the flyer holds where it was let go and the
+// controller tries the drop once the board is idle (or cancels it, and the flyer goes home).
 import type { Application, FederatedPointerEvent } from 'pixi.js';
 import { gsap } from 'gsap';
 import { BOARD_SIZE } from '../engine';
@@ -21,9 +23,16 @@ export interface InputHandlers {
   swap(a: Pos, b: Pos): void;
   /** Tray slot dropped on a cell. */
   place(slot: number, at: Pos): void;
-  /** False while a move plays, in AI mode or when the game is over: drags then show nothing. */
+  /** False while a move plays, in AI mode or when the game is over: cell drags then show nothing. */
   canAcceptInput(): boolean;
+  /** True while a move plays that a tray drop may wait out (AI mode off, the game not over). */
+  canHoldDrop(): boolean;
+  /** A tray drop made while a move plays: tried against the board once it is idle, unless cancelled first. */
+  placeWhenIdle(slot: number, at: Pos, color: Color): Promise<HeldDrop>;
 }
+
+/** How a held tray drop ended: placed, refused by the board as it was then, or cancelled (no sound). */
+export type HeldDrop = 'placed' | 'refused' | 'cancelled';
 
 interface Pt { x: number; y: number }
 
@@ -59,7 +68,11 @@ export function dragOffset(start: Pt, cur: Pt, cellPx: number, startCell: Pos): 
 
 type Gesture =
   | { kind: 'cell'; id: number; start: Pt; cell: Pos; sprite: PieceSprite | undefined; done: boolean }
-  | { kind: 'slot'; id: number; start: Pt; slot: number; flyer: PieceSprite | null; color: Color | null };
+  | {
+    kind: 'slot'; id: number; start: Pt; slot: number; flyer: PieceSprite | null; color: Color | null;
+    /** Started while a move played: only a drag counts then, never a tap. */
+    early: boolean;
+  };
 
 export interface InputOptions {
   /** No refusal shake: a refused tray drop just flies home. */
@@ -80,6 +93,10 @@ export function attachInput(
 
   let g: Gesture | null = null;
   let settling: { tween: gsap.core.Tween; sprite: PieceSprite } | null = null;
+  /** The flyer of a drop waiting for the board to settle; one at most. */
+  let held: PieceSprite | null = null;
+  /** A tray drag may go on: input is taken now, or its drop can wait for the move playing. */
+  const canDrag = () => h.canAcceptInput() || h.canHoldDrop();
 
   const setOffset = (s: PieceSprite, o: Pt) => {
     if (!s.destroyed) s.pivot.set(-o.x, -o.y);
@@ -158,6 +175,22 @@ export function attachInput(
     else f.destroy();
   };
 
+  /** Leaves the flyer where it was let go until the controller settles the drop at idle. */
+  const hold = (f: PieceSprite, slot: number, at: Pos, color: Color) => {
+    held = f;
+    h.placeWhenIdle(slot, at, color).then((outcome) => {
+      if (held === f) held = null;
+      if (f.destroyed) return;
+      // Placed: the player flies its own piece from the slot, as for any drop.
+      if (outcome === 'placed') f.destroy();
+      else if (outcome === 'refused') refuseFlyer(f, slot);
+      else flyHome(f, slot);
+    }, () => {
+      if (held === f) held = null;
+      flyHome(f, slot);
+    });
+  };
+
   const cancel = () => {
     const cur = g;
     if (!cur) return;
@@ -187,7 +220,7 @@ export function attachInput(
       if (cur.sprite) setOffset(cur.sprite, dragOffset(cur.start, p, board.cellPx, cur.cell));
       return;
     }
-    if (!h.canAcceptInput()) { cancel(); return; }
+    if (!canDrag()) { cancel(); return; }
     if (!cur.flyer && cur.color && Math.hypot(p.x - cur.start.x, p.y - cur.start.y) > DRAG.thresholdCells * board.cellPx) {
       const f = tray.flyer(cur.color);
       f.scale.set(tray.slotScale());
@@ -209,14 +242,22 @@ export function attachInput(
     }
     const f = cur.flyer;
     if (!f) {
-      h.tapSlot(cur.slot);
+      if (!cur.early) h.tapSlot(cur.slot);
       return;
     }
     // The drop target is the cell under the flyer's center (which follows the pointer).
     f.position.set(p.x, p.y);
     const cell = board.cellAt(f.x, f.y);
-    if (!cell || !h.canAcceptInput()) {
+    if (!cell) {
       abortFlyer(cur, true);
+      return;
+    }
+    if (!h.canAcceptInput()) {
+      // A move is still playing: the drop waits for it, unless input has locked for good.
+      if (h.canHoldDrop() && cur.color) {
+        cur.flyer = null;
+        hold(f, cur.slot, cell, cur.color);
+      } else abortFlyer(cur, true);
       return;
     }
     h.place(cur.slot, cell);
@@ -230,10 +271,12 @@ export function attachInput(
 
   // Input can lock while a drag is held still (AI mode turns on, a move or a deal starts): the
   // pointer then sends nothing, so check every frame and ease the piece back at once. A drag
-  // that already fired its swap is the swap's own doing and is left alone.
+  // that already fired its swap is the swap's own doing and is left alone; a tray drag goes on
+  // through a move, and stops only when its drop could no longer wait (AI mode, game over).
   const watchLock = () => {
     const cur = g;
-    if (cur && !(cur.kind === 'cell' && cur.done) && !h.canAcceptInput()) cancel();
+    if (!cur) return;
+    if (cur.kind === 'cell' ? !cur.done && !h.canAcceptInput() : !canDrag()) cancel();
   };
 
   const onCancel = (e: PointerEvent | Event) => {
@@ -244,16 +287,21 @@ export function attachInput(
   const onDown = (e: FederatedPointerEvent) => {
     // Only the first pointer counts: a second finger, or a second button, never starts a gesture.
     if (g || !e.isPrimary || e.button > 0) return;
-    if (!h.canAcceptInput()) return;
-    endSettling();
+    const idle = h.canAcceptInput();
+    if (!idle && !h.canHoldDrop()) return;
+    // While a move plays, a swap's offset may still be easing out alongside its tween: leave it.
+    if (idle) endSettling();
     const start = { x: e.global.x, y: e.global.y };
     const cell = board.cellAt(start.x, start.y);
     if (cell) {
+      // Cells take nothing while a move plays.
+      if (!idle) return;
       g = { kind: 'cell', id: e.pointerId, start, cell, sprite: board.spriteAtCell(cell.row, cell.col), done: false };
     } else {
       const slot = tray.slotAt(start.x, start.y);
-      if (slot === null) return;
-      g = { kind: 'slot', id: e.pointerId, start, slot, flyer: null, color: tray.slotColor(slot) };
+      // A second tray drag while a drop is held is ignored.
+      if (slot === null || held) return;
+      g = { kind: 'slot', id: e.pointerId, start, slot, flyer: null, color: tray.slotColor(slot), early: !idle };
     }
     // Capture keeps move/up coming here after the pointer leaves the canvas.
     try { canvas.setPointerCapture(e.pointerId); } catch { /* synthetic or already gone */ }
@@ -269,5 +317,7 @@ export function attachInput(
     stage.off('pointerdown', onDown);
     cancel();
     endSettling();
+    held?.destroy();
+    held = null;
   };
 }
