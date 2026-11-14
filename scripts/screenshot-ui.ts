@@ -4,7 +4,8 @@
 //   how-to-play-phone, how-to-play-desktop (all .webp) and 404 (.png).
 // Plus `dock-fit`, a check rather than a screenshot to publish: with AI mode on, the AI dock's
 // contents fit inside it, its targets stay 44 px, and toggling AI never changes its height, at
-// phone sizes where the board (and so `--vl-board-px`) shrinks with the height.
+// phone sizes where the board (and so `--vl-board-px`) shrinks with the height. The button row
+// above it must fit the screen too, each button 44 px tall with its label inside it.
 /* eslint-disable @typescript-eslint/no-explicit-any -- pokes private controller fields in the dev build */
 //
 //   npx tsx scripts/screenshot-ui.ts [baseUrl] [outDir] [--publish] [--only name,name]
@@ -167,6 +168,11 @@ const shots: Record<string, () => Promise<void>> = {
           page: document.documentElement.clientWidth,
         };
       });
+      const buttons = await page.evaluate(() => ['Hint', 'How to play', 'New game'].map((name) => {
+        const b = [...document.querySelectorAll('button')].find((e) => e.textContent === name)!;
+        const r = b.getBoundingClientRect();
+        return { name, left: r.left, right: r.right, height: r.height, fits: b.scrollWidth <= b.clientWidth };
+      }));
       const label = `${viewport.width}x${viewport.height}`;
       const box = (await dock.boundingBox())!;
       await page.screenshot({ path: `${out}/dock-fit-${label}.png`, clip: { x: 0, y: Math.max(0, box.y - 60), width: viewport.width, height: Math.min(viewport.height - Math.max(0, box.y - 60), box.height + 70) } });
@@ -176,6 +182,7 @@ const shots: Record<string, () => Promise<void>> = {
         m.minTarget < 44 && `a ${m.minTarget} px target`,
         m.dock.left < 0 || m.dock.right > m.page ? 'dock wider than the page' : false,
         Math.abs(m.dock.height - offHeight) > 0.5 && `height ${offHeight} off, ${m.dock.height} on`,
+        ...buttons.map((b) => (b.left < 0 || b.right > m.page || b.height < 44 || !b.fits) && `button ${b.name} ${Math.round(b.left)}–${Math.round(b.right)}, ${b.height} tall${b.fits ? '' : ', label overflows'}`),
       ].filter(Boolean);
       process.stdout.write(`dock-fit ${label}: dock ${Math.round(m.dock.width)}×${Math.round(m.dock.height)}, contents ${m.scroll} ${problems.length ? `FAIL ${problems.join('; ')}` : 'ok'}\n`);
       if (problems.length) errors.push(`dock-fit ${label}: ${problems.join('; ')}`);
