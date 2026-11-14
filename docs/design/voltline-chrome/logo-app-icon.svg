@@ -1,5 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- Voltline app-icon master with the V mark (proposal; today's icon is src-tauri/icons/source.svg). -->
+  <!-- Voltline app-icon master with the V mark. The desktop icon renders from a copy, src-tauri/icons/source.svg (scripts/render-icon.ts).
+       The tile sits on the macOS icon grid: the art (drawn as a 944 px tile at 40) is scaled about the
+       center by 824/944, so the tile spans 100–924 with a ≈183 px corner, over a soft drop shadow
+       that stays inside the 100 px margin. -->
   <defs>
     <linearGradient id="arc" x1="10" y1="0" x2="80" y2="0" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#4dd8ff"/>
@@ -8,11 +11,16 @@
     <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
       <path d="M48 0H0V48" fill="none" stroke="#788cff" stroke-opacity=".1" stroke-width="2"/>
     </pattern>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
     <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur stdDeviation="3.2" result="b"/>
       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
+  <rect x="100" y="112" width="824" height="824" rx="183" fill="#000" fill-opacity=".32" filter="url(#shadow)"/>
+  <g transform="translate(512 512) scale(0.8728813559) translate(-512 -512)">
   <rect x="40" y="40" width="944" height="944" rx="210" fill="#0a0a11"/>
   <rect x="40" y="40" width="944" height="944" rx="210" fill="url(#grid)"/>
   <rect x="41" y="41" width="942" height="942" rx="209" fill="none" stroke="#4dd8ff" stroke-opacity=".3" stroke-width="4"/>
@@ -20,5 +28,6 @@
     <path d="M16 20 L44 80 L60 48 L48 48 L72 14" fill="none" stroke="url(#arc)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
     <circle cx="16" cy="20" r="6.5" fill="#0a0a11" stroke="#4dd8ff" stroke-width="4.5"/>
     <circle cx="72" cy="14" r="6.5" fill="#0a0a11" stroke="#ff4fd8" stroke-width="4.5"/>
+  </g>
   </g>
 </svg>

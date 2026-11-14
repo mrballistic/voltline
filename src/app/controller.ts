@@ -5,6 +5,7 @@
 import { TRAY_CAPACITY, applyMove, canPlace, isAdjacent, newGame } from '../engine';
 import type { Color, GameState, Move, Pos } from '../engine';
 import type { AIClient } from '../ai/client';
+import { MASTER_VOLUME } from '../audio/cues';
 import type { RankedMove } from '../ai/search';
 import { ANIM } from '../render/constants';
 import type { Action } from '../render/plan';
@@ -28,7 +29,6 @@ export interface UiSnapshot {
   /** The AI loop is waiting on a ranking. */
   aiThinking: boolean;
   muted: boolean;
-  volume: number;
   /** Set when the game just ended: its score beat the saved best for its kind (strictly). */
   newBest: boolean;
   /** The kind of the game that last ended (AI mode moved in it), which picks the best to show. */
@@ -109,7 +109,7 @@ export class GameController {
     this.prefs = deps.prefs.load();
     this.audio = deps.audio ?? silentSound;
     this.audio.setMuted(this.prefs.muted);
-    this.audio.setVolume(this.prefs.volume);
+    this.audio.setVolume(MASTER_VOLUME);
     this._state = deps.initial ?? newGame(this.nextSeed());
     this.shown = this.shownFrom(this._state);
   }
@@ -136,7 +136,6 @@ export class GameController {
       aiMoves: this.aiMoves,
       aiThinking: this.aiThinking,
       muted: this.prefs.muted,
-      volume: this.prefs.volume,
       newBest: this.newBest,
       overAI: this.aiMoves > 0,
       best: { player: this.prefs.bestPlayer, ai: this.prefs.bestAI },
@@ -348,12 +347,6 @@ export class GameController {
     this.savePrefs({ muted: m });
     this.audio.setMuted(m);
     this.audio.cue('ui-toggle');
-    this.emit();
-  }
-
-  setVolume(v: number): void {
-    this.savePrefs({ volume: Math.min(1, Math.max(0, v)) });
-    this.audio.setVolume(this.prefs.volume);
     this.emit();
   }
 

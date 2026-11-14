@@ -13,7 +13,7 @@ import GameOverDialog from './components/GameOverDialog';
 import HowToPlayDialog from './components/HowToPlayDialog';
 import Header from './components/Header';
 import TrayNotice from './components/TrayNotice';
-import { theme } from './theme';
+import { CHROME, theme } from './theme';
 
 /** Optional `?seed=N` for a reproducible board (handy for screenshots and bug reports). */
 function seedFromUrl(): number | undefined {
@@ -37,6 +37,13 @@ const pageStyles = {
   },
 } as const;
 
+// 28 px tall targets; hover and keyboard focus brighten to the body text, and focus gets the shared ring.
+const footerLinkSx = {
+  display: 'inline-block', padding: '6px 2px', textUnderlineOffset: 2,
+  '&:hover, &:focus-visible': { color: CHROME.text },
+  '&:focus-visible': { outline: `2px solid ${CHROME.focus}`, outlineOffset: 3 },
+} as const;
+
 export default function App() {
   const host = useRef<HTMLDivElement>(null);
   const { ui, actions, failed } = useGame(host, seed);
@@ -54,23 +61,23 @@ export default function App() {
         sx={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
       >
         <Box sx={{ width: '100%', maxWidth: 640, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Header ui={ui} onMuted={actions.setMuted} onVolume={actions.setVolume} />
+          <Header ui={ui} onMuted={actions.setMuted} />
           <BoardCanvas host={host} failed={failed} />
           <TrayNotice trayFull={ui?.trayFull ?? false} />
           <GameControls
-            hintDisabled={(ui?.busy ?? true) || (ui?.aiOn ?? false)} over={over} onHint={actions.hint} onNewGame={actions.newGame}
+            hintDisabled={failed || (ui?.busy ?? true) || (ui?.aiOn ?? false)} over={over} onHint={actions.hint} onNewGame={actions.newGame}
             onHowToPlay={() => { actions.uiClick(); setHelpOpen(true); }}
-            aiSlot={(
-              <AIControls
-                on={ui?.aiOn ?? false} speed={ui?.aiSpeed ?? 'medium'} moves={ui?.aiMoves ?? 0} thinking={ui?.aiThinking ?? false}
-                onToggle={actions.setAI} onSpeed={actions.setAISpeed}
-              />
-            )}
           />
-          <Typography component="footer" sx={{ py: 1, fontSize: 13, color: 'text.secondary' }}>
-            <Link href={CREDITS_URL} target="_blank" rel="noopener noreferrer" color="inherit">Credits</Link>
+          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', pt: 1 }}>
+            <AIControls
+              on={ui?.aiOn ?? false} speed={ui?.aiSpeed ?? 'medium'} moves={ui?.aiMoves ?? 0} thinking={ui?.aiThinking ?? false}
+              disabled={failed} onToggle={actions.setAI} onSpeed={actions.setAISpeed}
+            />
+          </Box>
+          <Typography component="footer" sx={{ mt: 'auto', py: 1, fontSize: 13, lineHeight: '16px', color: 'text.secondary' }}>
+            <Link href={CREDITS_URL} target="_blank" rel="noopener noreferrer" color="inherit" sx={footerLinkSx}>Credits</Link>
             {' · '}
-            <Link href={`${CREDITS_URL.replace('CREDITS.md', 'LICENSE')}`} target="_blank" rel="noopener noreferrer" color="inherit">MIT License</Link>
+            <Link href={`${CREDITS_URL.replace('CREDITS.md', 'LICENSE')}`} target="_blank" rel="noopener noreferrer" color="inherit" sx={footerLinkSx}>MIT License</Link>
           </Typography>
         </Box>
       </Box>

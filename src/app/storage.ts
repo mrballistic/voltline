@@ -4,12 +4,12 @@ import type { AISpeed, Prefs, PrefsStore } from './ports';
 
 export const PREFS_KEY = 'voltline.prefs.v1';
 
-const DEFAULTS: Prefs = { bestPlayer: 0, bestAI: 0, aiSpeed: 'medium', muted: false, volume: 0.8 };
+const DEFAULTS: Prefs = { bestPlayer: 0, bestAI: 0, aiSpeed: 'medium', muted: false };
 const SPEEDS: readonly AISpeed[] = ['slow', 'medium', 'fast'];
 
 const isScore = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0;
 
-/** Keeps each valid field and defaults the rest; anything that isn't an object gives all defaults. */
+/** Keeps each valid known field and defaults the rest; anything that isn't an object gives all defaults. */
 function parse(raw: string | null): Prefs {
   if (raw === null) return { ...DEFAULTS };
   try {
@@ -21,7 +21,7 @@ function parse(raw: string | null): Prefs {
       bestAI: isScore(r.bestAI) ? r.bestAI : DEFAULTS.bestAI,
       aiSpeed: SPEEDS.includes(r.aiSpeed as AISpeed) ? (r.aiSpeed as AISpeed) : DEFAULTS.aiSpeed,
       muted: typeof r.muted === 'boolean' ? r.muted : DEFAULTS.muted,
-      volume: typeof r.volume === 'number' && r.volume >= 0 && r.volume <= 1 ? r.volume : DEFAULTS.volume,
+      // Unknown keys (such as `volume`, saved before the slider was dropped) are ignored.
     };
   } catch {
     return { ...DEFAULTS };

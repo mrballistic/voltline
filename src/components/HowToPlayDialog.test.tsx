@@ -53,4 +53,28 @@ describe('HowToPlayDialog', () => {
     expect(spies.onHint).not.toHaveBeenCalled();
     expect(spies.onNewGame).not.toHaveBeenCalled();
   });
+
+  it('returns focus to the How to play button on close', async () => {
+    render(<Harness spies={{ onHint: vi.fn(), onNewGame: vi.fn() }} />);
+    const button = screen.getByRole('button', { name: 'How to play' });
+    button.focus();
+    fireEvent.click(button);
+    expect(screen.getByRole('button', { name: 'Got it' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'Got it' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(button).toHaveFocus();
+  });
+
+  it('shows a bottom fade, and a top fade only once scrolled', () => {
+    render(<HowToPlayDialog open onClose={() => {}} />);
+    expect(screen.getByTestId('how-to-play-fade-bottom')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.queryByTestId('how-to-play-fade-top')).toBeNull();
+    const content = screen.getByTestId('how-to-play-content');
+    content.scrollTop = 120;
+    fireEvent.scroll(content);
+    expect(screen.getByTestId('how-to-play-fade-top')).toHaveAttribute('aria-hidden', 'true');
+    content.scrollTop = 0;
+    fireEvent.scroll(content);
+    expect(screen.queryByTestId('how-to-play-fade-top')).toBeNull();
+  });
 });

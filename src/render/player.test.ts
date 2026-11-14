@@ -446,7 +446,7 @@ describe('ScriptPlayer', () => {
     const { state, move } = cascadeMove();
     const c = new GameController({
       player: r.player, ai: createAIClient({ inline: true }), hint: { show: async () => {}, clear() {} },
-      prefs: { load: () => ({ bestPlayer: 0, bestAI: 0, aiSpeed: 'medium', muted: false, volume: 0.8 }), save() {} },
+      prefs: { load: () => ({ bestPlayer: 0, bestAI: 0, aiSpeed: 'medium', muted: false }), save() {} },
       onChange() {}, initial: state,
     });
     await r.run(c.start());

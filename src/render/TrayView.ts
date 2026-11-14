@@ -15,6 +15,10 @@ const SLOT = {
   hinted: { color: 0x4de8ff, alpha: 0.7 },
 } as const;
 
+/** The panel's border while the tray is full, so “full” shows without reading the notice. */
+export const TRAY_FULL_BORDER = { color: 0xffe14d, alpha: 0.45 } as const;
+const NORMAL_BORDER = { color: PANEL.border, alpha: PANEL.borderAlpha } as const;
+
 /** Tray pieces are not on the board, so they get ids no engine piece can have. */
 const slotId = (slot: number) => -1 - slot;
 /** Flying pieces belong to no slot and no cell. */
@@ -50,17 +54,34 @@ export class TrayView {
     this.tex = tex;
     // The old textures are about to be destroyed; a piece in flight must not keep them.
     for (const f of this.flyers) f.setPiece(f.piece, tex);
-    const { x, y, w, h } = l.tray;
-    this.panel.clear()
-      .roundRect(x, y, w, h, PANEL.radius).fill({ color: PANEL.fill, alpha: PANEL.fillAlpha })
-      .roundRect(x, y, w, h, PANEL.radius)
-      .stroke({ color: PANEL.border, alpha: PANEL.borderAlpha, width: 1, alignment: 1 });
+    this.drawPanel();
     this.redraw();
   }
 
   setTray(t: Color[]): void {
+    const wasFull = this.full;
     this.tray = [...t];
+    if (this.full !== wasFull) this.drawPanel();
     this.redraw();
+  }
+
+  /** The panel border in use: `TRAY_FULL_BORDER` while full, the board's otherwise. */
+  get border(): { color: number; alpha: number } {
+    return this.full ? TRAY_FULL_BORDER : NORMAL_BORDER;
+  }
+
+  private get full(): boolean {
+    return this.tray.length >= TRAY_CAPACITY;
+  }
+
+  private drawPanel() {
+    const l = this.layout;
+    if (!l) return;
+    const { x, y, w, h } = l.tray;
+    this.panel.clear()
+      .roundRect(x, y, w, h, PANEL.radius).fill({ color: PANEL.fill, alpha: PANEL.fillAlpha })
+      .roundRect(x, y, w, h, PANEL.radius)
+      .stroke({ ...this.border, width: 1, alignment: 1 });
   }
 
   /** Center of tray slot `slot`, in canvas CSS px. */

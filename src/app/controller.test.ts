@@ -8,7 +8,7 @@ import { ANIM } from '../render/constants';
 import type { Action } from '../render/plan';
 import type { ScriptPlayerLike, ShownState } from '../render/player';
 import { AI_PACE, GameController, type GameControllerDeps, type UiSnapshot } from './controller';
-import type { CueName } from '../audio/cues';
+import { MASTER_VOLUME, type CueName } from '../audio/cues';
 import type { HintViewLike, Prefs, PrefsStore, SoundLike } from './ports';
 
 const SEED = 42;
@@ -133,7 +133,7 @@ function deadEnding(): GameState {
 }
 
 function memoryPrefs(initial: Partial<Prefs> = {}): PrefsStore & { saved: Prefs[] } {
-  let prefs: Prefs = { bestPlayer: 0, bestAI: 0, aiSpeed: 'medium', muted: false, volume: 0.8, ...initial };
+  let prefs: Prefs = { bestPlayer: 0, bestAI: 0, aiSpeed: 'medium', muted: false, ...initial };
   const saved: Prefs[] = [];
   return { saved, load: () => ({ ...prefs }), save: (p) => { prefs = { ...p }; saved.push({ ...p }); } };
 }
@@ -490,15 +490,17 @@ describe('GameController', () => {
 
 
   describe('sound', () => {
-    it('mute and volume prefs reach the audio engine at start and on every change', () => {
+    it('the mute pref reaches the audio engine at start and on every change; volume is the fixed default', () => {
       const audio = new FakeAudio();
-      const { c } = rig({ audio, prefs: memoryPrefs({ muted: true, volume: 0.3 }) });
-      expect(audio.calls).toEqual(['muted:true', 'volume:0.3']);
+      // A volume left in old saved prefs is ignored: there's no control to change it any more.
+      const legacy = { muted: true, volume: 0.1 } as Partial<Prefs>;
+      const { c } = rig({ audio, prefs: memoryPrefs(legacy) });
+      expect(audio.calls).toEqual(['muted:true', `volume:${MASTER_VOLUME}`]);
+      expect(MASTER_VOLUME).toBe(0.8);
+      expect(c.snapshot()).not.toHaveProperty('volume');
       audio.calls = [];
-      c.setVolume(0.55);
-      c.setVolume(2);
       c.setMuted(false);
-      expect(audio.calls).toEqual(['volume:0.55', 'volume:1', 'muted:false', 'ui-toggle']);
+      expect(audio.calls).toEqual(['muted:false', 'ui-toggle']);
     });
 
     it('ui cues fire once each, from the actions the player takes', async () => {

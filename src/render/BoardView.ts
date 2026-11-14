@@ -4,16 +4,36 @@
 import { Container, Graphics } from 'pixi.js';
 import { BOARD_SIZE } from '../engine';
 import type { Board, Piece, Pos } from '../engine';
-import type { Layout } from './layout';
+import { FRAME_GEOMETRY, frameCorners, type Layout } from './layout';
 import { PieceSprite } from './PieceSprite';
 import type { PieceTextures } from './textures';
 
 /** Board panel look (spec §6.3, from the reference art). */
 export const PANEL = { fill: 0x000000, fillAlpha: 0.4, border: 0x8ca0ff, borderAlpha: 0.14, radius: 10 } as const;
+/** Corner brackets around board and tray (chrome spec §9); geometry in `FRAME_GEOMETRY`. */
+export const FRAME = { color: 0x4dd8ff, alpha: 0.5 } as const;
+
+/** Draws the corner brackets for `l` into `g` (cleared first). */
+export function drawFrame(g: Graphics, l: Layout): Graphics {
+  const { size, radius, width } = FRAME_GEOMETRY;
+  // The stroke is centered on the path, so inset it half a stroke from each bracket's outer edge.
+  const h = width / 2;
+  g.clear();
+  for (const { x, y, dx, dy } of frameCorners(l)) {
+    const cx = x + dx * h;
+    const cy = y + dy * h;
+    const arm = size - h;
+    g.moveTo(cx, cy + dy * arm)
+      .arcTo(cx, cy, cx + dx * arm, cy, radius - h)
+      .lineTo(cx + dx * arm, cy);
+  }
+  return g.stroke({ color: FRAME.color, alpha: FRAME.alpha, width, cap: 'butt', join: 'round' });
+}
 
 export class BoardView {
   readonly root = new Container();
   private readonly panel = new Graphics();
+  private readonly frame = new Graphics();
   private readonly pieces = new Container();
   private readonly mask = new Graphics();
   private readonly sprites = new Map<number, PieceSprite>();
@@ -26,7 +46,7 @@ export class BoardView {
     this.reducedMotion = reducedMotion;
     // Pieces above row 0 (refills waiting to fall) are hidden by the mask.
     this.pieces.mask = this.mask;
-    this.root.addChild(this.panel, this.pieces, this.mask);
+    this.root.addChild(this.frame, this.panel, this.pieces, this.mask);
   }
 
   setLayout(l: Layout, tex: PieceTextures): void {
@@ -39,6 +59,7 @@ export class BoardView {
       .roundRect(x, y, size, size, PANEL.radius)
       .stroke({ color: PANEL.border, alpha: PANEL.borderAlpha, width: 1, alignment: 1 });
     this.mask.clear().roundRect(x, y, size, size, PANEL.radius).fill({ color: 0xffffff });
+    drawFrame(this.frame, l);
     // Keep every sprite where it was relative to the board, mid-animation or not.
     const k = old ? l.cellPx / old.cellPx : 1;
     for (const s of this.sprites.values()) {
