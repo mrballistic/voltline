@@ -38,6 +38,11 @@ A rock match of 4 or more (line4, line5, or an L/T cross of rocks) clears as tod
 ### 8. The Prism turns at rest (Todd: “maybe it slowly spins? or, like a prism, shifts colors gradually?”, respecting motion prefs)
 A resting Prism slowly turns its rainbow ring, so the colors drift around it like light through a prism *(my call: one rotation does both of Todd's ideas; the ring is a circle, so the outline holds still and only the colors move)*. Body and halo turn together, one revolution every `ANIM.prismSpinS` (about 9 s), each Prism at its own random phase so no two turn in step. It runs wherever the halo breathes (board and tray) and stops under the same rule: with reduced motion the Prism is still, at rotation 0. Only the sprite's own children turn, so no timeline is disturbed. No engine, AI or sound change.
 
+### 9. Refused drops sound, and drags wait for the animation (Todd)
+Todd: “a refused drop should play that sound, yes. If you start a drag while it’s still animating, it won’t take until the animation is stopped.”
+- **Refusal sound.** A refused tray drop plays the existing `swap-invalid` cue as it starts to shake (and still plays with reduced motion, where there is no shake).
+- **Drags during animation.** A tray piece can be picked up and dragged while a move is still playing. If it is dropped before the move finishes, the flyer holds at the drop point until the board is idle, then the drop is tried against the board as it is then: accepted places as usual; refused shakes, sounds and flies home. One held drop at most *(my call)*. A held drop is cancelled (flies home, no sound) if the board is replaced (new game, level-up) or the game ends, or AI mode turns on *(my call)*. A drop made after the move has finished behaves as today. Taps and swaps are unchanged *(my call: Todd asked about drags)*.
+
 ## Release
 Ships as **1.1.0** (CHANGELOG section, version bump, PR, green CI, merge, tag; deploy watched and verified live, per Todd's standing release rule).
 
