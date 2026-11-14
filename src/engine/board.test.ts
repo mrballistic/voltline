@@ -37,18 +37,36 @@ describe('createBoard', () => {
     expect(a).toEqual(b);
   });
 
-  it('has no rocks below level 10', () => {
+  it('has no rocks below level 5', () => {
     for (let seed = 1; seed <= 200; seed++) {
-      expect(countRocks(createBoard(new Rng(seed), 9, 1).board)).toBe(0);
+      expect(countRocks(createBoard(new Rng(seed), 4, 1).board)).toBe(0);
     }
+  });
+
+  it('has rocks at level 5', () => {
+    let rocks = 0;
+    for (let seed = 1; seed <= 200; seed++) rocks += countRocks(createBoard(new Rng(seed), 5, 1).board);
+    expect(rocks).toBeGreaterThan(0);
+  });
+
+  it('level 16 boards stay playable', () => {
+    let rocks = 0;
+    for (let seed = 1; seed <= 200; seed++) {
+      const { board } = createBoard(new Rng(seed), 16, 1);
+      expect(findMatches(board)).toEqual([]);
+      expect(hasProductive(board)).toBe(true);
+      rocks += countRocks(board);
+    }
+    // The 18% rate is in force, not the rockless fallback.
+    expect(rocks / (200 * BOARD_SIZE * BOARD_SIZE)).toBeGreaterThan(0.12);
   });
 
   it('has rocks at level 15', () => {
     let rocks = 0;
     for (let seed = 1; seed <= 200; seed++) rocks += countRocks(createBoard(new Rng(seed), 15, 1).board);
     const fraction = rocks / (200 * BOARD_SIZE * BOARD_SIZE);
-    expect(fraction).toBeGreaterThan(0.04);
-    expect(fraction).toBeLessThan(0.12);
+    expect(fraction).toBeGreaterThan(0.12);
+    expect(fraction).toBeLessThan(0.21);
   });
 
   it('assigns sequential ids from firstId', () => {
