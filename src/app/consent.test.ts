@@ -85,6 +85,17 @@ describe('choose', () => {
     expect(readConsent()).toBe('denied');
   });
 
+  it('withdrawing reloads even when storage throws, so the tag is still removed', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
+    const reload = vi.fn();
+    vi.spyOn(window, 'location', 'get').mockReturnValue({ reload } as unknown as Location);
+    choose('granted');
+    expect(gaScripts()).toHaveLength(1);
+    choose('denied');
+    expect(reload).toHaveBeenCalledOnce();
+  });
+
   it('declining a second time does not reload', () => {
     const reload = vi.fn();
     vi.spyOn(window, 'location', 'get').mockReturnValue({ reload } as unknown as Location);

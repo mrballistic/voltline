@@ -84,12 +84,12 @@ export function initConsent(): void {
 
 export function choose(choice: ConsentChoice): void {
   if (isDesktopApp()) return;
-  const previous = readConsent();
   saveConsent(choice);
   setBannerOpen(false);
   if (choice === 'granted') loadAnalytics();
-  // Withdrawing consent after the tag has loaded: reload so it's gone.
-  else if (previous === 'granted' && loaded) window.location.reload();
+  // Withdrawing consent after the tag has loaded on this page: reload so it's gone. Keyed off
+  // what is loaded, not what storage says, so it holds when storage throws (cookies blocked).
+  else if (loaded) window.location.reload();
 }
 
 export function openConsentSettings(): void {
