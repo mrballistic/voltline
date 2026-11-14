@@ -40,6 +40,8 @@ Specials chain. An explosion that catches another special sets it off, so one go
 
 Every 10 pieces of one color you clear, by any means, earns a spare piece of that color in your tray. The tray holds five. To spend one, tap it, then tap a plain piece on the board: the tray piece takes its place, and if that makes a match it resolves like any swap. Placing costs a move, and you may place without making a match, though that piece is gone for good. When the tray fills, every color’s count resets to zero and counting pauses until you spend one.
 
+<img src="docs/screenshots/ui-tray-full.webp" alt="A full tray of five pieces with a yellow border, and the notice “Tray full—spend one to free a slot.” below it" width="70%">
+
 ### Rocks
 
 From level 5, burnt-out gray rocks start appearing among the new pieces. They fall and swap like anything else, but they only clear when you match three of them or an explosion reaches them. Line up four or more and they don’t just break: they go off like a Charge, blasting the 3×3 around them. Swap a Prism with a rock to clear every rock on the board. The deeper you go, the more often they show up.
@@ -49,6 +51,8 @@ From level 5, burnt-out gray rocks start appearing among the new pieces. They fa
 A progress bar fills as you score. Fill it to level up: the board is replaced with a fresh one, the target rises, and your tray carries over. Past level 8 the game gets meaner: new pieces are stingier about landing in ready-made matches, and rocks come faster.
 
 The game ends when no move on the board can make a match, and that includes tray placements. That’s the tray’s promise: the tray can save you, as long as a spare piece can still make a match when nothing else can.
+
+<p><img src="docs/screenshots/ui-level-up.webp" alt="A fresh board after leveling up, with “Level 2!” above it and the tray carried over" width="48%"> <img src="docs/screenshots/ui-game-over.webp" alt="The “No moves left” dialog: score, level, best and “New best!”, with a Play again button" width="48%"></p>
 
 ## Modes
 
@@ -63,6 +67,10 @@ The AI is a search, not a chatbot. It looks at exactly what you can see (the boa
 ## Controls
 
 Click or tap a piece, then a neighbor, to swap. Or just drag (or swipe) a piece toward a neighbor: the swap happens as soon as you pull past a third of a cell. Tap a tray piece, then a board piece, to place it, or drag it straight onto the board. A drag that goes nowhere eases back. A tray piece dropped where it can’t go (a piece of its own color, a special or a rock) shakes, buzzes and flies home. You don’t have to wait for a move to finish: drop a tray piece while the board is still moving and it waits there, then lands once the board settles.
+
+Forget a rule? **How to play**, beside Hint and New game, explains the pieces, the tray, rocks and levels.
+
+<img src="docs/screenshots/how-to-play-desktop.webp" alt="The How to play dialog: the goal, the three special pieces with their icons, the tray, rocks, and levels and game over, with a Got it button" width="70%">
 
 Your best score is saved on this device, separately for you and for AI mode. Sound can be switched on or off from the header.
 Sound starts with your first tap or key press, and goes quiet while the game’s tab is in the background.

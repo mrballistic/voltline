@@ -2,7 +2,7 @@
 
 All notable changes to Voltline are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## Unreleased
+## 1.1.0 (2026-11-13)
 
 ### Added
 
@@ -18,7 +18,6 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 - The tray stops counting clears while it’s full, and filling it resets every color’s count, so no piece is earned and lost. The tray-lost sound is gone.
 - You can pick up and drag a tray piece while a move is still playing. Let go before the board settles and the piece waits where you dropped it, then lands as soon as the board is still (or shakes and goes home if that cell can’t take it any more). A new game, a level-up, the game ending or turning AI on sends it home.
 - Dependencies: eslint 10.15, Playwright 1.65.1, jest-dom 7. Two npm advisories (minimatch, yaml) are cleared.
-
 - A refreshed look around the board (the chrome redesign). Every button, switch and speed toggle is at least 44 px tall, so they’re easier to hit; on a 1440×900 desktop the board shrinks a little to make room (cells of 53 px instead of 56).
 - The AI controls have their own dock under the buttons, as wide as the board. With AI mode off it shows only the switch; switch it on and the speed toggle, the move counter and “Thinking…” appear. The dock never changes height, so the board doesn’t move, and it and the buttons fit phones as narrow as 320 px.
 - Keyboard focus shows the same yellow ring on every control, the 404 page included.
