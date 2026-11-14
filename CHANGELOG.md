@@ -2,7 +2,7 @@
 
 All notable changes to Voltline are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## Unreleased
+## 1.0.0 (2026-11-13)
 
 The first release of Voltline, an original neon match-three game. Play it at https://voltline.mrballistic.com, or build the macOS app (see `BUILDING.md`).
 
