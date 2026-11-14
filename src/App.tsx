@@ -93,7 +93,7 @@ export default function App() {
                 {' · '}
                 <Link href={MAC_APP_URL} target="_blank" rel="noopener noreferrer" color="inherit" sx={footerLinkSx}>Mac app</Link>
                 {' · '}
-                <Link component="button" type="button" onClick={openConsentSettings} color="inherit" sx={footerButtonSx}>Cookie settings</Link>
+                <Link component="button" type="button" onClick={(e) => openConsentSettings(e.currentTarget)} color="inherit" sx={footerButtonSx}>Cookie settings</Link>
               </>
             )}
           </Typography>

@@ -86,6 +86,22 @@ describe('App', () => {
     expect(screen.getByRole('region', { name: 'Analytics cookies' })).toBeInTheDocument();
   });
 
+  it('returns focus to Cookie settings after answering the banner it reopened', () => {
+    localStorage.setItem(CONSENT_KEY, 'denied');
+    game.ui = idle;
+    render(<App />);
+    const settings = screen.getByRole('button', { name: 'Cookie settings' });
+    for (const answer of ['Decline', 'Accept']) {
+      settings.focus();
+      fireEvent.click(settings);
+      const button = screen.getByRole('button', { name: answer });
+      button.focus();
+      fireEvent.click(button);
+      expect(screen.queryByRole('region', { name: 'Analytics cookies' })).toBeNull();
+      expect(settings).toHaveFocus();
+    }
+  });
+
   it('puts the cookie banner in the column between the AI dock and the footer', () => {
     game.ui = idle;
     render(<App />);

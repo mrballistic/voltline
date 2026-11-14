@@ -23,6 +23,8 @@ declare global {
 // reads it through subscribeBanner / isBannerOpen (useSyncExternalStore).
 let bannerOpen = false;
 let loaded = false;
+// The control that reopened the banner (Cookie settings), which gets focus back after an answer.
+let returnFocus: HTMLElement | null = null;
 const listeners = new Set<() => void>();
 
 function setBannerOpen(open: boolean): void {
@@ -88,19 +90,25 @@ export function choose(choice: ConsentChoice): void {
   if (isDesktopApp()) return;
   saveConsent(choice);
   setBannerOpen(false);
+  // The answer button is about to unmount; don't drop keyboard focus to <body>.
+  returnFocus?.focus();
+  returnFocus = null;
   if (choice === 'granted') loadAnalytics();
   // Withdrawing consent after the tag has loaded on this page: reload so it's gone. Keyed off
   // what is loaded, not what storage says, so it holds when storage throws (cookies blocked).
   else if (loaded) window.location.reload();
 }
 
-export function openConsentSettings(): void {
+/** Reopens the banner; `opener` (the Cookie settings button) gets focus back after an answer. */
+export function openConsentSettings(opener?: HTMLElement): void {
   if (isDesktopApp()) return;
+  returnFocus = opener ?? null;
   setBannerOpen(true);
 }
 
 // Test-only: module state otherwise persists between tests.
 export function resetConsentState(): void {
   loaded = false;
+  returnFocus = null;
   setBannerOpen(false);
 }

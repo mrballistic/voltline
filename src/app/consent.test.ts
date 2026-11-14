@@ -133,6 +133,23 @@ describe('banner state', () => {
   });
 });
 
+describe('focus', () => {
+  it('a first-visit answer leaves focus alone; one after Cookie settings returns it there', () => {
+    const opener = document.body.appendChild(document.createElement('button'));
+    const other = document.body.appendChild(document.createElement('button'));
+    initConsent();
+    other.focus();
+    choose('denied');
+    expect(other).toHaveFocus();
+    openConsentSettings(opener);
+    other.focus();
+    choose('denied');
+    expect(opener).toHaveFocus();
+    opener.remove();
+    other.remove();
+  });
+});
+
 describe('in the desktop app', () => {
   it('does nothing: no banner, no tag, nothing saved', () => {
     asDesktop();
