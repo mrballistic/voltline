@@ -184,3 +184,50 @@ test('voltline smoke: accept cookies loads the tag under the CSP', async ({ page
   expect(failed, 'no request failed').toEqual([]);
   expect(errors).toEqual([]);
 });
+
+test('voltline smoke: the cookie banner never covers a control, and the board grows back when it closes', async ({ page }) => {
+  const { errors, failed, csp } = await watch(page);
+  type Box = { x: number; y: number; width: number; height: number };
+  const overlaps = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  const boardPx = () => page.locator('canvas').first().evaluate((c) =>
+    parseFloat(getComputedStyle(c.parentElement!.parentElement!).getPropertyValue('--vl-board-px')));
+  // The switch's visible target is its label; MUI's hidden input is 300% wide and pokes past the edge.
+  const controls = {
+    Hint: page.getByRole('button', { name: 'Hint' }),
+    'New game': page.getByRole('button', { name: 'New game' }),
+    AI: page.locator('label', { has: page.getByRole('switch', { name: 'AI' }) }),
+  };
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/?seed=${SEED}`);
+  await page.locator('canvas').first().waitFor();
+  for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 640 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }]) {
+    await page.setViewportSize(viewport);
+    await page.waitForTimeout(400); // the ResizeObserver relayout
+    const label = `${viewport.width}x${viewport.height}`;
+    const region = (await banner(page).boundingBox())!;
+    for (const [name, control] of Object.entries(controls)) {
+      const box = (await control.boundingBox())!;
+      expect(overlaps(box, region), `${label}: the banner covers ${name}`).toBe(false);
+      expect(box.x >= 0 && box.y >= 0 && box.x + box.width <= viewport.width && box.y + box.height <= viewport.height,
+        `${label}: ${name} is inside the viewport`).toBe(true);
+    }
+    for (const name of ['Decline', 'Accept']) {
+      const box = (await page.getByRole('button', { name }).boundingBox())!;
+      expect(box.y + box.height <= viewport.height, `${label}: ${name} is on screen`).toBe(true);
+    }
+    // The layout budget holds: the page never scrolls, banner or not.
+    expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight), `${label}: no scroll`).toBe(0);
+  }
+
+  // On a phone the banner is in the column's flow, so the board gives it room and takes it back.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(400);
+  const open = await boardPx();
+  await page.getByRole('button', { name: 'Decline' }).click();
+  await expect.poll(boardPx).toBeGreaterThan(open);
+
+  expect(await csp()).toEqual([]);
+  expect(failed, 'no request failed').toEqual([]);
+  expect(errors).toEqual([]);
+});

@@ -86,6 +86,17 @@ describe('App', () => {
     expect(screen.getByRole('region', { name: 'Analytics cookies' })).toBeInTheDocument();
   });
 
+  it('puts the cookie banner in the column between the AI dock and the footer', () => {
+    game.ui = idle;
+    render(<App />);
+    const dock = screen.getByRole('group', { name: 'AI mode' });
+    const region = screen.getByRole('region', { name: 'Analytics cookies' });
+    const footer = screen.getByRole('contentinfo');
+    expect(dock.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(region.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(region.parentElement).toBe(footer.parentElement);
+  });
+
   it('in the desktop app: no banner, no Mac app or Cookie settings, no tag', () => {
     (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
     localStorage.setItem(CONSENT_KEY, 'granted');

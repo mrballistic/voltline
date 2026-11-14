@@ -82,6 +82,8 @@ export default function App() {
               disabled={failed} onToggle={actions.setAI} onSpeed={actions.setAISpeed}
             />
           </Box>
+          {/* In the column's flow below 1280 px, a fixed corner card from there up (ConsentBanner). */}
+          {!desktop && <ConsentBanner />}
           <Typography component="footer" sx={{ mt: 'auto', py: 1, fontSize: 13, lineHeight: '16px', color: 'text.secondary' }}>
             <Link href={CREDITS_URL} target="_blank" rel="noopener noreferrer" color="inherit" sx={footerLinkSx}>Credits</Link>
             {' · '}
@@ -97,7 +99,6 @@ export default function App() {
           </Typography>
         </Box>
       </Box>
-      {!desktop && <ConsentBanner />}
       <HowToPlayDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
       <GameOverDialog
         open={over}
