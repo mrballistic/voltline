@@ -1,13 +1,16 @@
 // Every AI evaluation weight, in point units, tuned with `npm run bench` (scripts/bench.ts).
 //
-// Benchmark, `npm run bench -- --games 20 --max-moves 400 --seed 1` (2026-11-13, dev Mac, Node,
-// rules: levelTarget 1000 + 2500·(n−1), rockChance unchanged):
+// Benchmark, `npm run bench -- --games 20 --max-moves 400 --seed 1` (2026-11-13, dev Mac, Node 26,
+// 1.1 rules: rocks from level 5, stingy refills and more rocks past 8, tray counting pauses while
+// full, Prism + rock, rock lines of 4+ explode; weights unchanged from 1.0):
 //
 //   player    mean score  median score  mean lvl  median lvl  lvl>=10  mean moves  game over  move cap
-//   ai           235914        236050      13.8          14    20/20       385.9          3        17
-//   baseline      70207         69360       8.1           8     0/20       400.0          0        20
-//   ai/baseline 3.36×. AI decision ms, median of 3 runs: p50 26.0 (25.3–29.0), p95 35.1 (32.9–46.2);
-//   with ≥3 tray pieces (95% of decisions): p50 26.2, p95 35.2.
+//   ai           150286        165100      10.9          12    14/20       308.7         10        10
+//   baseline      55064         62600       7.2           8     0/20       331.4         10        10
+//   ai/baseline 2.73×. AI decision ms: p50 31.6, p95 46.7; with ≥3 tray pieces: p50 33.2, p95 48.0.
+//
+// Under the 1.0 rules the same weights scored 235914 vs 70207 (3.36×), mean level 13.8, 20/20
+// reaching level 10; the drop is the harder 1.1 rules, not the AI.
 //
 // Starting values (special 150/250/600, rockCleared 40, trayPieceSpent 300) with the old 750 level
 // step scored 191316 vs 68551 (2.79×) and reached level 21. Changes: a cheaper tray piece (the tray
