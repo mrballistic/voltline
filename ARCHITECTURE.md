@@ -169,6 +169,14 @@ A Tauri 2 shell in `src-tauri/` wraps the web build unchanged: `tauri.conf.json`
 | Tests | Vitest 5, Testing Library, jsdom; Playwright for the browser smoke test (`npm run smoke`, in CI) |
 | Lint | ESLint 10, typescript-eslint, react-hooks |
 
+## Page metadata
+
+`index.html`’s head carries what crawlers and link previews read without running JavaScript: a title, description, canonical URL and theme color; a full Open Graph and Twitter `summary_large_image` card; and JSON-LD (`WebSite`, `VideoGame` and the author as a `Person`, linked by `@id`). Every URL in them is absolute (`https://voltline.mrballistic.com/…`), because the build’s `base: './'` makes everything else relative. The JSON-LD is a data block (`type="application/ld+json"`), which the CSP’s `script-src` doesn’t govern, so it needs no hash or `unsafe-inline`. `src/indexHtml.test.ts` checks it from source: absolute URLs, Twitter matching Open Graph, a share image that exists at the 1200×630 the tags declare, JSON-LD that parses with every `@id` defined, and curly punctuation.
+
+The share image, `public/og-image.png`, is rendered by `npx tsx scripts/og-image.ts` against the dev server. It plays the `prism` fixture in slow motion at 2× device pixels, keeps one frame where every bolt reaches a whole star (`OG_FRAME`, default 26; `OG_KEEP=1` writes every frame to `.playwright-mcp/og-frames` for picking another), and lays it out beside the V mark, the wordmark and a one-line pitch in the game’s own fonts. Re-run it after a change to the pieces, the effects or the logo.
+
+Icons: `public/icon.svg` stays the preferred favicon where SVG is supported, beside a `favicon.ico` (16, 32 and 48 px, from the same SVG), a 180 px `apple-touch-icon.png`, and 192 and 512 px PNGs listed in `public/site.webmanifest` (the full V mark on the page color, centered in the middle 64% so iOS rounding and Android’s maskable crop never cut it). `npx tsx scripts/render-favicons.ts` regenerates all four from the SVGs.
+
 ## Project layout
 
 ```
@@ -183,7 +191,7 @@ src/
   components/    BoardCanvas, Header, LogoMark, ScoreDisplay, LevelBar, TrayNotice, GameControls,
                  AIControls, GameOverDialog, HowToPlayDialog, ConsentBanner, dialogStyles, motion
   App.tsx, main.tsx   page shell
-scripts/         bench.ts, feel-check.ts, effects-check.ts, input-check.ts, ai-check.ts, audio-check.ts, screenshot-board.ts, board-showcase.*,
+scripts/         bench.ts, feel-check.ts, effects-check.ts, input-check.ts, ai-check.ts, audio-check.ts, screenshot-board.ts, og-image.ts, render-favicons.ts, board-showcase.*,
                  make-sound-sheet.py, sound-credits.py
 audio-src/       supplied sounds and voltline-sounds.xlsx
 docs/superpowers/  design spec and implementation plan
