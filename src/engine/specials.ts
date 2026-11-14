@@ -2,7 +2,10 @@ import { BOARD_SIZE, COLORS } from './types';
 import type { Blast, BlastKind, Board, Color, MatchGroup, MatchKey, MatchShape, Pos } from './types';
 import { matchKeyOf } from './matches';
 
-/** A prism seed's `color` is what it clears (`'rock'` for every rock); unset, the most common color. */
+/**
+ * A prism seed's `color` is what it clears (`'rock'` for every rock); unset, the most common color.
+ * Any other seed's `color` only tints its blast (`'rock'` on the Charge a rock line sets off).
+ */
 export interface BlastSeed { at: Pos; kind: BlastKind; color?: MatchKey }
 
 const keyOf = (p: Pos) => `${p.row},${p.col}`;
@@ -111,7 +114,7 @@ export function resolveBlasts(
   const triggered = new Set(seeds.map((s) => keyOf(s.at)));
   const queue: { kind: BlastKind; at: Pos; color?: MatchKey; order: number }[] = seeds.map((s) => ({
     kind: s.kind, at: s.at, order: 0,
-    color: s.kind === 'prism' ? (s.color ?? mostCommonColor(board) ?? undefined) : undefined,
+    color: s.kind === 'prism' ? (s.color ?? mostCommonColor(board) ?? undefined) : s.color,
   }));
   const blasts: Blast[] = [];
   const cells: Pos[] = [];

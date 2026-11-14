@@ -3,7 +3,9 @@ import { applyMove, newGame } from './resolve';
 import { productiveMoves } from './moves';
 import { findMatches } from './matches';
 import { levelTarget } from './rules';
+import { scoreRound } from './scoring';
 import { boardWith, makeState } from './testing';
+import { COLORS } from './types';
 import type { Board, GameState, Move, Pos, Step } from './types';
 
 const P = (row: number, col: number): Pos => ({ row, col });
@@ -378,5 +380,124 @@ describe('applyMove', () => {
     expect(seen.has('level-up')).toBe(true);
     expect(seen.has('tray-earn')).toBe(true);
     expect([...seen].some((t) => t.startsWith('clear:') && t !== 'clear:')).toBe(true);
+  });
+});
+
+// Row 7 reads X X Y X with a rock at (6,2): swapping (6,2)↔(7,2) makes a rock line4 at row 7, cols 0–3.
+const ROCK4 = { '7,0': 'X', '7,1': 'X', '7,3': 'X', '6,2': 'X' };
+const ROCK4_SWAP = swap(P(6, 2), P(7, 2));
+
+describe('rock lines of 4 or more', () => {
+  it('a 4-rock line clears its rocks and blasts the 3×3 around the moved cell', () => {
+    const s = makeState(boardWith(ROCK4));
+    const { script } = applyMove(s, ROCK4_SWAP);
+    const clear = clears(script)[0];
+    expect(clear.groups).toEqual([{ key: 'rock', cells: [P(7, 0), P(7, 1), P(7, 2), P(7, 3)], shape: 'line4' }]);
+    // The run's own cells are matched, so the blast reaches only the row above it.
+    expect(clear.blasts).toEqual([{ kind: 'charge', at: P(7, 2), color: 'rock', order: 0, cells: [P(6, 1), P(6, 2), P(6, 3)] }]);
+    expect(clear.cleared.map((c) => [key(c.at), c.cause, c.key])).toEqual([
+      ['7,0', 'match', 'rock'], ['7,1', 'match', 'rock'], ['7,2', 'match', 'rock'], ['7,3', 'match', 'rock'],
+      ['6,1', 'blast', 'orange'], ['6,2', 'blast', 'yellow'], ['6,3', 'blast', 'red'],
+    ]);
+    expect(clear.created).toEqual([]);
+    expect(scores(script)[0]).toMatchObject({ chain: 0, combo: 1, points: 200 + 3 * 20 });
+  });
+
+  it('a rock line made by a cascade blasts around the run center', () => {
+    // Clearing red in row 7 drops rocks (5,1),(5,2) into row 6 beside rocks (6,3),(6,4).
+    const s = makeState(boardWith({ ...LINE3, '5,1': 'X', '5,2': 'X', '6,3': 'X', '6,4': 'X' }));
+    const { script } = applyMove(s, LINE3_SWAP);
+    const second = clears(script)[1];
+    expect(second.chain).toBe(1);
+    expect(second.groups).toEqual([{ key: 'rock', cells: [P(6, 1), P(6, 2), P(6, 3), P(6, 4)], shape: 'line4' }]);
+    expect(second.blasts).toEqual([{
+      kind: 'charge', at: P(6, 2), color: 'rock', order: 0,
+      cells: [P(5, 1), P(5, 2), P(5, 3), P(7, 1), P(7, 2), P(7, 3)],
+    }]);
+    expect(second.created).toEqual([]);
+    expect(scores(script)[1]).toMatchObject({ chain: 1, points: (200 + 6 * 20) * 2 });
+  });
+
+  it('a 3-rock line does not explode', () => {
+    const s = makeState(boardWith({ '7,0': 'X', '7,1': 'X', '6,2': 'X' }));
+    const { script } = applyMove(s, ROCK4_SWAP);
+    const clear = clears(script)[0];
+    expect(clear.groups.map((g) => [g.key, g.shape])).toEqual([['rock', 'line3']]);
+    expect(clear.blasts).toEqual([]);
+    expect(clear.cleared.map((c) => key(c.at))).toEqual(['7,0', '7,1', '7,2']);
+    expect(scores(script)[0].points).toBe(100);
+  });
+
+  it('a rock cross explodes once, on its corner', () => {
+    // Column 2 rows 6–7 and row 5 cols 3–4 are rocks; rock (4,2) swaps down into the corner.
+    const s = makeState(boardWith({ '4,2': 'X', '6,2': 'X', '7,2': 'X', '5,3': 'X', '5,4': 'X' }));
+    const { script } = applyMove(s, swap(P(4, 2), P(5, 2)));
+    const clear = clears(script)[0];
+    expect(clear.groups.map((g) => [g.key, g.shape])).toEqual([['rock', 'cross']]);
+    expect(clear.blasts).toEqual([{
+      kind: 'charge', at: P(5, 2), color: 'rock', order: 0,
+      cells: [P(4, 1), P(4, 2), P(4, 3), P(5, 1), P(6, 1), P(6, 3)],
+    }]);
+    expect(clear.created).toEqual([]);
+    expect(scores(script)[0].points).toBe(300 + 6 * 20);
+  });
+
+  it('a rock line5 explodes like a Charge and makes no prism', () => {
+    const s = makeState(boardWith({ '7,0': 'X', '7,1': 'X', '7,3': 'X', '7,4': 'X', '6,2': 'X' }));
+    const { state, script } = applyMove(s, ROCK4_SWAP);
+    const clear = clears(script)[0];
+    expect(clear.groups.map((g) => [g.key, g.shape])).toEqual([['rock', 'line5']]);
+    expect(clear.blasts).toEqual([{ kind: 'charge', at: P(7, 2), color: 'rock', order: 0, cells: [P(6, 1), P(6, 2), P(6, 3)] }]);
+    expect(clear.created).toEqual([]);
+    expect(state.board.flat().some((p) => p?.kind === 'prism')).toBe(false);
+    expect(scores(script)[0].points).toBe(500 + 3 * 20);
+  });
+
+  it('the rock blast detonates a Charge it catches, one order later', () => {
+    const s = makeState(boardWith({ ...ROCK4, '6,3': 'Bc' }));
+    const { script } = applyMove(s, ROCK4_SWAP);
+    const clear = clears(script)[0];
+    expect(clear.blasts).toEqual([
+      { kind: 'charge', at: P(7, 2), color: 'rock', order: 0, cells: [P(6, 1), P(6, 2), P(6, 3)] },
+      { kind: 'charge', at: P(6, 3), order: 1, cells: [P(5, 2), P(5, 3), P(5, 4), P(6, 4), P(7, 4)] },
+    ]);
+    expect(clear.created).toEqual([]);
+    expect(scores(script)[0].points).toBe(200 + 8 * 20);
+  });
+
+  it('scores every round by scoreRound, and rocks never reach the tray counters', () => {
+    const cases: [GameState, Move][] = [
+      [makeState(boardWith({ ...ROCK4, '6,3': 'Bc' }), { levelTarget: 1e9 }), ROCK4_SWAP],
+      [makeState(boardWith({ ...LINE3, '5,1': 'X', '5,2': 'X', '6,3': 'X', '6,4': 'X' }), { levelTarget: 1e9 }), LINE3_SWAP],
+      [makeState(boardWith({ '4,2': 'X', '6,2': 'X', '7,2': 'X', '5,3': 'X', '5,4': 'X' }), { levelTarget: 1e9 }), swap(P(4, 2), P(5, 2))],
+    ];
+    for (const [s, move] of cases) {
+      const { state, script } = applyMove(s, move);
+      const rounds = clears(script);
+      expect(rounds.some((c) => c.blasts.some((b) => b.color === 'rock'))).toBe(true);
+      rounds.forEach((c, i) => {
+        const blastOnly = c.cleared.filter((x) => x.cause === 'blast').length;
+        expect(scores(script)[i]).toMatchObject(scoreRound(c.groups, blastOnly, c.chain));
+      });
+      const colored = rounds.flatMap((c) => c.cleared).filter((x) => (COLORS as readonly string[]).includes(x.key)).length;
+      expect(Object.values(state.counters).reduce((a, b) => a + b, 0)).toBe(colored);
+    }
+  });
+
+  it('a rock-line game replays to the same script and state', () => {
+    const s = makeState(boardWith({ ...ROCK4, '6,3': 'Bc' }), { level: 16, rngState: 4242 });
+    const play = () => {
+      let state = s;
+      const scripts: Step[][] = [];
+      for (let i = 0; i < 8 && !state.over; i++) {
+        const r = applyMove(state, i === 0 ? ROCK4_SWAP : productiveMoves(state)[0]);
+        scripts.push(r.script);
+        state = r.state;
+      }
+      return { state, scripts };
+    };
+    const first = play();
+    expect(clears(first.scripts[0])[0].blasts[0]).toMatchObject({ kind: 'charge', color: 'rock' });
+    expect(play()).toEqual(first);
   });
 });

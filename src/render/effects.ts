@@ -216,17 +216,19 @@ export class PixiEffects implements Effects {
   private charge(tl: gsap.core.Timeline, b: Blast, cellXY: CellXY): void {
     const at = cellXY(b.at.row, b.at.col);
     const cell = this.cellPx();
+    // A rock line's Charge is tinted rock gray; a gem Charge is electric.
+    const tint = b.color ? effectColor(b.color) : ELECTRIC;
     // The 3×3 flash, a hot core, then two shockwave rings racing out past it.
-    this.grow(tl, this.tex.flash, at, ELECTRIC, 0, FX.chargeFlashMs, (3 * cell) / FLASH_CORE, (3 * cell) / FLASH_CORE, 0.6, 4);
+    this.grow(tl, this.tex.flash, at, tint, 0, FX.chargeFlashMs, (3 * cell) / FLASH_CORE, (3 * cell) / FLASH_CORE, 0.6, 4);
     this.grow(tl, this.tex.glow, at, WHITE, 0, FX.chargeFlashMs, 2.4 * cell, 1.2 * cell, 0.9);
-    this.grow(tl, this.tex.ring, at, ELECTRIC, 0, FX.chargeRingMs, 0.4 * cell, 2 * FX.chargeRingCells * cell, 1);
+    this.grow(tl, this.tex.ring, at, tint, 0, FX.chargeRingMs, 0.4 * cell, 2 * FX.chargeRingCells * cell, 1);
     this.grow(tl, this.tex.ring, at, WHITE, FX.chargeRingMs / 6, FX.chargeRingMs * 0.8, 0.3 * cell, 1.4 * FX.chargeRingCells * cell, 0.7);
-    tl.call(() => this.burst(at, this.sparkCount(FX.chargeSparks), () => (this.rand() < 0.5 ? WHITE : ELECTRIC), 1.6), undefined, 0);
+    tl.call(() => this.burst(at, this.sparkCount(FX.chargeSparks), () => (this.rand() < 0.5 ? WHITE : tint), 1.6), undefined, 0);
     // Short lightning crackles out of the core.
     for (let i = 0; i < FX.chargeCrackles; i++) {
       const a = ((i + this.rand() * 0.6) / FX.chargeCrackles) * Math.PI * 2;
       const d = (1.1 + 0.7 * this.rand()) * cell;
-      this.bolt(at, { x: at.x + Math.cos(a) * d, y: at.y + Math.sin(a) * d }, ELECTRIC);
+      this.bolt(at, { x: at.x + Math.cos(a) * d, y: at.y + Math.sin(a) * d }, tint);
     }
   }
 

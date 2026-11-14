@@ -142,6 +142,7 @@ describe('PixiEffects', () => {
     const cases: Blast[] = [
       blast('charge', { row: 3, col: 3 }, [{ row: 2, col: 2 }, { row: 3, col: 3 }]),
       blast('charge', { row: 0, col: 0 }, []),
+      { ...blast('charge', { row: 6, col: 2 }, row(5)), color: 'rock' },
       blast('arc', { row: 4, col: 2 }, row(4)),
       blast('arc', { row: 7, col: 7 }, []),
       { ...blast('prism', { row: 3, col: 3 }, row(5)), color: 'cyan' },
@@ -176,6 +177,19 @@ describe('PixiEffects', () => {
       expect(s.x).toBeCloseTo(x, 0);
       expect(s.y).toBeCloseTo(y, 0);
     }
+  });
+
+  it('a charge from a rock line plays the charge visuals in rock gray', () => {
+    r.fx.blast({ ...blast('charge', { row: 3, col: 3 }, []), color: 'rock' }, cellXY);
+    frame();
+    const tints = new Set(r.decals().map((s) => s.tint));
+    expect(tints.has(effectColor('rock'))).toBe(true);
+    expect(Math.max(...r.decals().map((s) => s.width))).toBeGreaterThanOrEqual(3 * CELL);
+    // A plain charge stays electric.
+    r = rig();
+    r.fx.blast(blast('charge', { row: 3, col: 3 }, []), cellXY);
+    frame();
+    expect(new Set(r.decals().map((s) => s.tint)).has(effectColor('rock'))).toBe(false);
   });
 
   it('an arc sweeps beams along its row and column, reaching the board edges by arcBeamMs', () => {
