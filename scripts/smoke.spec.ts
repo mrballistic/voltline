@@ -29,27 +29,44 @@ test('voltline smoke: play, hint, AI, no errors, no CSP violations', async ({ pa
     });
   });
 
+  // Reduced motion stops the idle glow breathing, so the idle board is static and any
+  // canvas change after Hint can only come from the hint arrows.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
   const canvas = page.locator('canvas').first();
   await canvas.waitFor();
   await page.waitForTimeout(1500); // the opening deal
 
-  // A few swaps; some may be invalid and slide back, which is fine.
-  const tries: Array<[number, number, number, number]> = [[7, 0, 7, 1], [3, 3, 3, 4], [5, 2, 4, 2], [2, 6, 3, 6]];
-  for (const [r1, c1, r2, c2] of tries) {
-    expect(r1 < BOARD_SIZE && r2 < BOARD_SIZE).toBe(true);
-    await clickCell(page, r1, c1);
-    await page.waitForTimeout(150);
-    await clickCell(page, r2, c2);
-    await page.waitForTimeout(2500);
+  const readScore = async () => {
+    const m = /([\d,]+)\s*\n\s*Best/.exec(await page.locator('body').innerText());
+    return m ? Number(m[1].replace(/,/g, '')) : -1;
+  };
+  expect(await readScore()).toBe(0);
+
+  // Try adjacent swaps until one scores (the rest are invalid and slide back).
+  let scored = false;
+  for (let r = BOARD_SIZE - 1; r >= 0 && !scored; r--) {
+    for (let c = 0; c < BOARD_SIZE - 1 && !scored; c += 2) {
+      await clickCell(page, r, c);
+      await page.waitForTimeout(150);
+      await clickCell(page, r, c + 1);
+      await page.waitForTimeout(900);
+      scored = (await readScore()) > 0;
+    }
   }
+  expect(scored, 'at least one swap was valid and scored').toBe(true);
+  await page.waitForTimeout(4000); // let the cascade settle
+
+  // Idle stability: with nothing happening the canvas does not change.
+  const idle1 = await canvas.screenshot();
+  await page.waitForTimeout(500);
+  const idle2 = await canvas.screenshot();
+  expect(idle2.equals(idle1), 'idle board is static').toBe(true);
 
   // Hint: the canvas pixels change within about a second.
-  await page.waitForTimeout(1000);
-  const before = await canvas.screenshot();
   await page.getByRole('button', { name: 'Hint' }).click();
-  await expect.poll(async () => !(await canvas.screenshot()).equals(before), { timeout: 1500, intervals: [100] }).toBe(true);
+  await expect.poll(async () => !(await canvas.screenshot()).equals(idle2), { timeout: 1500, intervals: [100] }).toBe(true);
   await page.screenshot({ path: `${SHOTS}/smoke-1440x900.png` });
 
   // AI on for about 10 s: the counter must move.
