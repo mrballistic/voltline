@@ -175,6 +175,8 @@ A Tauri 2 shell in `src-tauri/` wraps the web build unchanged: `tauri.conf.json`
 
 The share image, `public/og-image.jpg` (a quality-90 JPEG with no chroma subsampling, about 190 KB so WhatsApp shows it), is rendered by `npx tsx scripts/og-image.ts` against the dev server. It plays the `prism` fixture in slow motion at 2× device pixels, keeps one frame where every bolt reaches a whole star (`OG_FRAME`, default 26; `OG_KEEP=1` writes every frame to `.playwright-mcp/og-frames` for picking another), and lays it out beside the V mark, the wordmark and a one-line pitch in the game’s own fonts. Re-run it after a change to the pieces, the effects or the logo.
 
+Crawling: `public/robots.txt` allows everything and names `public/sitemap.xml`, which lists the one canonical URL with no `<lastmod>` (a hand-kept date goes stale, and Google ignores inaccurate ones). mrballistic.com’s own sitemap also lists the subdomain, but Google only honors a cross-host entry when both sites are verified in the same Search Console account, so Voltline carries its own.
+
 Icons: `public/icon.svg` stays the preferred favicon where SVG is supported, beside a `favicon.ico` (16, 32 and 48 px, from the same SVG), a 180 px `apple-touch-icon.png`, and 192 and 512 px PNGs listed in `public/site.webmanifest` (the full V mark on the page color, centered in the middle 64% so iOS rounding and Android’s maskable crop never cut it). `npx tsx scripts/render-favicons.ts` regenerates all four from the SVGs.
 
 ## Project layout
