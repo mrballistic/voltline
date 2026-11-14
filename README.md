@@ -32,6 +32,8 @@ Bigger matches leave something behind.
 
 ![Special pieces on the board: Charges with a bright inner ring, Arcs with crackling edges, a rainbow Prism, gray rocks, and three pieces waiting in the tray](docs/screenshots/pieces-specials.webp)
 
+<p><img src="docs/screenshots/effect-prism.webp" alt="A Prism firing: lightning bolts fork from the Prism to every cyan star on the board" width="48%"> <img src="docs/screenshots/effect-supernova.webp" alt="Two Prisms swapped together: bolts, shockwave rings and a white flash across the whole board" width="48%"></p>
+
 Specials chain. An explosion that catches another special sets it off, so one good match can clear half the board. Two Prisms swapped together clear everything. A Prism swapped with a Charge or Arc turns every piece of that color into one and detonates the lot.
 
 ### The tray
