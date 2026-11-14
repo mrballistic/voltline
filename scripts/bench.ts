@@ -21,7 +21,7 @@ import { W } from '../src/ai/weights';
 const REQUIRED_RATIO = 1.5;
 const TRAY_HEAVY = 3; // decisions with at least this many tray pieces are also timed separately
 
-interface GameResult { score: number; level: number; moves: number; over: boolean; places: number; trayLost: number }
+interface GameResult { score: number; level: number; moves: number; over: boolean; places: number }
 interface Timings { all: number[]; trayHeavy: number[] }
 type Chooser = (state: GameState) => Move;
 
@@ -71,15 +71,13 @@ function fail(message: string): never {
 function play(gameSeed: number, choose: Chooser): GameResult {
   let state = newGame(gameSeed);
   let places = 0;
-  let trayLost = 0;
   while (!state.over && state.moves < maxMoves) {
     const move = choose(state);
-    const { state: next, script } = applyMove(state, move);
+    const { state: next } = applyMove(state, move);
     if (move.type === 'place') places++;
-    trayLost += script.filter((step) => step.t === 'tray-lost').length;
     state = next;
   }
-  return { score: state.score, level: state.level, moves: state.moves, over: state.over, places, trayLost };
+  return { score: state.score, level: state.level, moves: state.moves, over: state.over, places };
 }
 
 const baseline: Chooser = (state) => productiveMoves(state)[0];
@@ -130,7 +128,7 @@ if (values['per-game']) {
   }
 }
 
-const header = ['player', 'mean score', 'median score', 'mean lvl', 'median lvl', 'lvl>=10', 'mean moves', 'game over', 'move cap', 'places', 'tray lost'];
+const header = ['player', 'mean score', 'median score', 'mean lvl', 'median lvl', 'lvl>=10', 'mean moves', 'game over', 'move cap', 'places'];
 const widths = header.map((h) => Math.max(h.length, 8));
 const extras = [values.rollouts && `rollouts ${values.rollouts}`, values.weights && `weights ${values.weights}`].filter(Boolean);
 process.stdout.write(`games ${games}, max moves ${maxMoves}, seed ${seed}${extras.map((e) => `, ${e}`).join('')}\n`);
@@ -149,7 +147,6 @@ for (const name of ['ai', 'baseline'] as const) {
     over,
     rs.length - over,
     fmt(mean(rs.map((r) => r.places)), 1),
-    fmt(mean(rs.map((r) => r.trayLost)), 1),
   ], widths)}\n`);
 }
 process.stdout.write(

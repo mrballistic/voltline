@@ -39,7 +39,7 @@ CUES = [
     ("rock-break", True, "A rock is cleared", "~0.4 s", "mono", "Stone/metal shatter", "rock-break.wav"),
     ("tray-earn", True, "A piece is earned and flies into the tray", "~0.4 s", "mono", "Collect chime", "tray-earn.wav"),
     ("tray-full", True, "The tray fills up (with the on-screen notice)", "~0.5 s", "mono", "Warning chirp", "tray-full.wav"),
-    ("tray-lost", False, "A piece is earned while the tray is full", "~0.3 s", "mono", "Fizzle", "tray-lost.wav"),
+    # "tray-lost" is no longer used (the tray stops counting while full), so it is not generated.
     ("tray-pick", True, "The player picks up a tray piece", "< 0.2 s", "mono", "Lift blip", "tray-pick.wav"),
     ("tray-place", True, "A tray piece lands on the board", "~0.2 s", "mono", "Snap-in", "tray-place.wav"),
     ("hint-scan", False, "Hint arrows appear", "~1.0 s", "mono", "Soft scanning sweep under the reveal", "hint-scan.wav"),

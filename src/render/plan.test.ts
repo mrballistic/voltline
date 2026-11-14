@@ -126,6 +126,20 @@ describe('planScript', () => {
     expect(cues(items, 'prism-blast')).toHaveLength(1);
   });
 
+  it('a real prism + rock swap pops each rock as its bolt arrives, with the prism-blast cue', () => {
+    const s = makeState(boardWith({ '0,0': 'P', '0,1': 'X', '2,5': 'X', '7,3': 'X' }));
+    const { script } = applyMove(s, { type: 'swap', a: at(0, 0), b: at(0, 1) });
+    const step = script.find((x): x is Extract<Step, { t: 'clear' }> => x.t === 'clear')!;
+    const { items } = planScript(script);
+    const [fired] = of(items, 'blast');
+    expect(fired.action.blast).toMatchObject({ kind: 'prism', color: 'rock' });
+    expect(cues(items, 'prism-blast').map((p) => p.atMs)).toEqual([fired.atMs]);
+    // Bolts go out in cell order, prismBoltStaggerMs apart; each pop waits for its bolt.
+    const popAt = (p: Pos) => of(items, 'pop').find((x) => x.action.at.row === p.row && x.action.at.col === p.col)!.atMs;
+    expect(step.blasts[0].cells.map(popAt)).toEqual(step.blasts[0].cells.map((_, i) => fired.atMs + i * ANIM.prismBoltStaggerMs));
+    expect(cues(items, 'rock-break').map((p) => p.atMs)).toEqual([fired.atMs]);
+  });
+
   it('a blast with no cells is still planned, with its cue and effect at its time', () => {
     const empty: Blast = { kind: 'supernova', at: at(3, 3), cells: [], order: 1 };
     const seed: Blast = { kind: 'charge', at: at(4, 4), cells: [at(4, 4)], order: 0 };
@@ -304,7 +318,6 @@ describe('planScript', () => {
       swap, step, score(),
       { t: 'tray-earn', color: 'red', from: at(7, 1), slot: 4 },
       { t: 'tray-full' },
-      { t: 'tray-lost', color: 'blue', from: at(7, 2) },
     ];
     const { items } = planScript(script);
     const popsEnd = Math.max(...of(items, 'pop').map(end));
@@ -316,10 +329,6 @@ describe('planScript', () => {
     expect(notice.action).toEqual({ a: 'notice', kind: 'tray-full' });
     expect(notice.atMs).toBe(end(fly));
     expect(cues(items, 'tray-full').map((p) => p.atMs)).toEqual([end(fly)]);
-    const lost = of(items, 'tray-lost')[0];
-    expect(lost.action).toEqual({ a: 'tray-lost', color: 'blue', from: at(7, 2) });
-    expect(lost.atMs).toBe(popsEnd);
-    expect(cues(items, 'tray-lost')).toHaveLength(1);
   });
 
   it('timeScale 2 halves totalMs', () => {
@@ -494,6 +503,7 @@ describe('planScript', () => {
       { '0,0': 'P', '0,1': 'Rc' }, // prism + charge: converted charges
       { '0,0': 'P', '0,1': 'R', '6,6': 'Rc' }, // prism bolt chains into a charge
       { '0,0': 'P', '0,1': 'P', '5,5': 'Bc', '6,2': 'Ga' }, // supernova chains into specials
+      { '0,0': 'P', '0,1': 'X', '3,4': 'X', '7,7': 'X', '5,5': 'Bc' }, // prism + rock: every rock, no chain
     ];
     for (const cells of swaps) {
       const { script } = applyMove(makeState(boardWith(cells)), { type: 'swap', a: at(0, 0), b: at(0, 1) });

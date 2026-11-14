@@ -42,8 +42,9 @@ describe('applyMove', () => {
     expect(types(far.script)).toEqual(['swap-invalid']);
     expect(far.state).toBe(s);
 
-    const rock = makeState(boardWith({ '3,3': 'P', '3,4': 'X' }));
-    const pr = applyMove(rock, swap(P(3, 3), P(3, 4)));
+    // A prism↔rock swap is legal only between neighbors.
+    const rock = makeState(boardWith({ '3,3': 'P', '3,5': 'X' }));
+    const pr = applyMove(rock, swap(P(3, 3), P(3, 5)));
     expect(types(pr.script)).toEqual(['swap-invalid']);
     expect(pr.state).toBe(rock);
   });
@@ -137,6 +138,55 @@ describe('applyMove', () => {
     expect(scores(script)[0].points).toBe(20 * (cyan.length + 1));
   });
 
+  it('prism + rock clears the prism and every rock, and leaves specials alone', () => {
+    const s = makeState(boardWith({ '3,3': 'P', '3,4': 'X', '0,0': 'X', '5,6': 'X', '7,7': 'X', '1,1': 'Rc', '6,2': 'Ba' }));
+    const { script } = applyMove(s, swap(P(3, 3), P(3, 4)));
+    expect(types(script).slice(0, 2)).toEqual(['swap', 'clear']);
+    const clear = clears(script)[0];
+    // After the swap the prism sits at (3,4) and the rock at (3,3).
+    expect(clear.groups).toEqual([]);
+    expect(clear.blasts).toEqual([{
+      kind: 'prism', at: P(3, 4), order: 0, color: 'rock',
+      cells: [P(0, 0), P(3, 3), P(3, 4), P(5, 6), P(7, 7)],
+    }]);
+    expect(clear.cleared.map((c) => [key(c.at), c.cause, c.key])).toEqual([
+      ['0,0', 'blast', 'rock'], ['3,3', 'blast', 'rock'], ['3,4', 'blast', 'prism'],
+      ['5,6', 'blast', 'rock'], ['7,7', 'blast', 'rock'],
+    ]);
+    expect(clear.created).toEqual([]);
+    expect(scores(script)[0].points).toBe(20 * 5);
+  });
+
+  it('prism + rock also clears rocks the swap lines up, by match', () => {
+    // The swap drops the rock at (2,3) between rocks (2,4) and (2,5); (6,6) is a lone rock.
+    const s = makeState(boardWith({ '2,3': 'P', '3,3': 'X', '2,4': 'X', '2,5': 'X', '6,6': 'X' }));
+    const { script } = applyMove(s, swap(P(2, 3), P(3, 3)));
+    const clear = clears(script)[0];
+    expect(clear.groups.map((g) => [g.key, g.cells.map(key)])).toEqual([['rock', ['2,3', '2,4', '2,5']]]);
+    expect(clear.cleared.map((c) => [key(c.at), c.cause]).sort()).toEqual([
+      ['2,3', 'match'], ['2,4', 'match'], ['2,5', 'match'], ['3,3', 'blast'], ['6,6', 'blast'],
+    ]);
+    expect(clear.blasts[0].cells).toEqual([P(3, 3), P(6, 6)]);
+  });
+
+  it('a prism + rock game replays to the same script and state', () => {
+    const s = makeState(boardWith({ '3,3': 'P', '3,4': 'X', '0,0': 'X', '7,7': 'X' }), { level: 16, rngState: 12345 });
+    const play = () => {
+      let state = s;
+      const scripts: Step[][] = [];
+      for (let i = 0; i < 6 && !state.over; i++) {
+        const move = i === 0 ? swap(P(3, 3), P(3, 4)) : productiveMoves(state)[0];
+        const r = applyMove(state, move);
+        scripts.push(r.script);
+        state = r.state;
+      }
+      return { state, scripts };
+    };
+    const first = play();
+    expect(clears(first.scripts[0])[0].blasts[0]).toMatchObject({ kind: 'prism', color: 'rock' });
+    expect(play()).toEqual(first);
+  });
+
   it('prism + prism supernova clears board', () => {
     const s = makeState(boardWith({ '3,3': 'P', '3,4': 'P' }));
     const { script } = applyMove(s, swap(P(3, 3), P(3, 4)));
@@ -220,6 +270,16 @@ describe('applyMove', () => {
     expect(scores(script)[0].points).toBe(100);
     expect(state.tray).toEqual(['blue']);
     expect(state.moves).toBe(1);
+  });
+
+  it('counting resumes from 0 after spending a piece from a full tray', () => {
+    const full = makeState(boardWith(LINE3), { tray: ['red', 'red', 'red', 'red', 'red'] });
+    const paused = applyMove(full, LINE3_SWAP).state;
+    expect(Object.values(paused.counters).every((n) => n === 0)).toBe(true);
+    expect(paused.tray).toHaveLength(5);
+    const placed = applyMove(makeState(boardWith(LINE3), { tray: ['red', 'red', 'red', 'red', 'red'] }), { type: 'place', slot: 0, at: P(7, 2) }).state;
+    expect(placed.tray).toHaveLength(4);
+    expect(placed.counters.red).toBeGreaterThanOrEqual(3);
   });
 
   it('placement onto rock returns empty script', () => {

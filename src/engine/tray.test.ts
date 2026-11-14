@@ -32,11 +32,26 @@ describe('countClears', () => {
     expect(r.tray).toHaveLength(5);
     expect(r.events.map((e) => e.t)).toEqual(['tray-earn', 'tray-full']);
   });
-  it('earn while full is lost and tray unchanged', () => {
+  it('filling the tray resets every counter', () => {
+    const counters = { ...zero(), red: 9, blue: 7, green: 3 };
+    const r = countClears(counters, ['blue', 'blue', 'blue', 'blue'], clears('red', 1));
+    expect(r.tray).toHaveLength(5);
+    expect(r.counters).toEqual(zero());
+    expect(r.events.map((e) => e.t)).toEqual(['tray-earn', 'tray-full']);
+  });
+  it('clears while full are not counted', () => {
     const full: Color[] = ['red', 'red', 'red', 'red', 'red'];
-    const r = countClears(zero(), full, clears('blue', 10));
+    const r = countClears(zero(), full, clears('blue', 30));
     expect(r.tray).toEqual(full);
-    expect(r.events).toEqual([{ t: 'tray-lost', color: 'blue', from: { row: 0, col: 1 } }]);
+    expect(r.counters).toEqual(zero());
+    expect(r.events).toEqual([]);
+  });
+  it('the rest of the round after filling is not counted', () => {
+    const r = countClears(zero(), ['red', 'red', 'red', 'red'], [...clears('red', 10), ...clears('blue', 15)]);
+    expect(r.tray).toHaveLength(5);
+    expect(r.counters.blue).toBe(0);
+    expect(r.counters).toEqual(zero());
+    expect(r.events.map((e) => e.t)).toEqual(['tray-earn', 'tray-full']);
   });
   it('rocks and prisms do not count', () => {
     const r = countClears(zero(), [], [...clears('rock', 12), ...clears('prism', 12)]);
