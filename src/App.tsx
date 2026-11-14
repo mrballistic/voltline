@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
 import GlobalStyles from '@mui/material/GlobalStyles';
@@ -10,6 +10,7 @@ import AIControls from './components/AIControls';
 import BoardCanvas from './components/BoardCanvas';
 import GameControls from './components/GameControls';
 import GameOverDialog from './components/GameOverDialog';
+import HowToPlayDialog from './components/HowToPlayDialog';
 import Header from './components/Header';
 import TrayNotice from './components/TrayNotice';
 import { theme } from './theme';
@@ -39,6 +40,7 @@ const pageStyles = {
 export default function App() {
   const host = useRef<HTMLDivElement>(null);
   const { ui, actions, failed } = useGame(host, seed);
+  const [helpOpen, setHelpOpen] = useState(false);
   const over = ui?.over ?? false;
   // The best of the game that ended (recordBest's rule), not of the mode toggled afterwards.
   const best = ui ? (ui.overAI ? ui.best.ai : ui.best.player) : 0;
@@ -57,6 +59,7 @@ export default function App() {
           <TrayNotice trayFull={ui?.trayFull ?? false} />
           <GameControls
             hintDisabled={(ui?.busy ?? true) || (ui?.aiOn ?? false)} over={over} onHint={actions.hint} onNewGame={actions.newGame}
+            onHowToPlay={() => { actions.uiClick(); setHelpOpen(true); }}
             aiSlot={(
               <AIControls
                 on={ui?.aiOn ?? false} speed={ui?.aiSpeed ?? 'medium'} moves={ui?.aiMoves ?? 0} thinking={ui?.aiThinking ?? false}
@@ -71,6 +74,7 @@ export default function App() {
           </Typography>
         </Box>
       </Box>
+      <HowToPlayDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
       <GameOverDialog
         open={over}
         score={ui?.score ?? 0}

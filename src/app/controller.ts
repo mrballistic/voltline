@@ -296,6 +296,11 @@ export class GameController {
     await dealt;
   }
 
+  /** The click cue for chrome that doesn't change the game (the How to play button). */
+  uiClick(): void {
+    if (!this.disposed) this.audio.cue('ui-click');
+  }
+
   /** Shows the AI's ranked moves for the current board. */
   async hint(): Promise<void> {
     if (this.busy || this.aiOn || this.disposed || this._state.over) return;
