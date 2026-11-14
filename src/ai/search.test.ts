@@ -47,6 +47,12 @@ describe('rankMoves', () => {
     expect(rankMoves({ ...s, rngState: 1, seed: 1 })).toEqual(rankMoves({ ...s, rngState: 999, seed: 5 }));
   });
 
+  it('ignores the hidden rng at stingy levels', () => {
+    // Stingy refills re-roll from the rng the rollouts are given, which is the AI's own.
+    const s = { ...midGame(11, 3), level: 14 };
+    expect(rankMoves({ ...s, rngState: 1, seed: 1 })).toEqual(rankMoves({ ...s, rngState: 999, seed: 5 }));
+  });
+
   it('same state same ranking', () => {
     const s = midGame(3, 4);
     const again = structuredClone(s);
