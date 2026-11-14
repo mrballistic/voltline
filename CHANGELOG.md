@@ -2,6 +2,13 @@
 
 All notable changes to Voltline are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 1.2.1 (2026-11-14)
+
+### Added
+
+- Link previews: sharing voltline.mrballistic.com now shows a proper card (title, description and a 1200×630 image of a Prism firing lightning across the board) on social sites and in chat apps, and search engines get structured data describing Voltline as a free game for the web and the Mac.
+- Raster icons beside the SVG favicon: a `favicon.ico` (16, 32 and 48 px), an iOS home-screen icon, and 192 and 512 px icons in a web app manifest, so browsers and tools that can’t read SVG still show the V mark.
+
 ## 1.2.0 (2026-11-14)
 
 ### Added
