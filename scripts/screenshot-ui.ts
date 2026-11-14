@@ -23,14 +23,16 @@ const open = async () => {
 };
 
 /** Replaces the controller's state, as `newGame` would, and redeals the board. */
-const seed = (cells: Record<string, string>, over: Record<string, unknown>) => page.evaluate(async ({ cells, over }) => {
-  const t = await import('/src/engine/testing.ts');
+// The module path is a variable so tsc doesn't try to resolve the dev server's `/src/...` URL.
+const TESTING_URL = '/src/engine/testing.ts';
+const seed = (cells: Record<string, string>, over: Record<string, unknown>) => page.evaluate(async ({ cells, over, url }) => {
+  const t = await import(/* @vite-ignore */ url);
   const c = (window as any).__voltline.controller;
   c._state = t.makeState(t.boardWith(cells), over);
   c.shown = c.shownFrom(c._state);
   await c.d.player.show({ board: c._state.board, tray: c._state.tray });
   c.d.onChange(c.snapshot());
-}, { cells, over });
+}, { cells, over, url: TESTING_URL });
 
 // Tray full: five spare pieces and the persistent notice.
 await open();
