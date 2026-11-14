@@ -304,7 +304,6 @@ describe('planScript', () => {
       swap, step, score(),
       { t: 'tray-earn', color: 'red', from: at(7, 1), slot: 4 },
       { t: 'tray-full' },
-      { t: 'tray-lost', color: 'blue', from: at(7, 2) },
     ];
     const { items } = planScript(script);
     const popsEnd = Math.max(...of(items, 'pop').map(end));
@@ -316,10 +315,6 @@ describe('planScript', () => {
     expect(notice.action).toEqual({ a: 'notice', kind: 'tray-full' });
     expect(notice.atMs).toBe(end(fly));
     expect(cues(items, 'tray-full').map((p) => p.atMs)).toEqual([end(fly)]);
-    const lost = of(items, 'tray-lost')[0];
-    expect(lost.action).toEqual({ a: 'tray-lost', color: 'blue', from: at(7, 2) });
-    expect(lost.atMs).toBe(popsEnd);
-    expect(cues(items, 'tray-lost')).toHaveLength(1);
   });
 
   it('timeScale 2 halves totalMs', () => {

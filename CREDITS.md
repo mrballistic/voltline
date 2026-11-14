@@ -27,7 +27,6 @@ This file is generated from `audio-src/voltline-sounds.xlsx` by
 | `rock-break` | rock-break.wav | heyheytheree (Freesound), “Explosion” from the Pixel SFX Free pack | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | <https://freesound.org/s/871887/> |
 | `tray-earn` | tray-earn.wav | heyheytheree (Freesound), “Gem” from the Pixel SFX Free pack | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | <https://freesound.org/s/871890/> |
 | `tray-full` | tray-full.wav | heyheytheree (Freesound), “Error” from the Pixel SFX Free pack | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | <https://freesound.org/s/871886/> |
-| `tray-lost` | tray-lost.wav | heyheytheree (Freesound), “Cancel” from the Pixel SFX Free pack | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | <https://freesound.org/s/871877/> |
 | `tray-pick` | tray-pick.wav | heyheytheree (Freesound), “Select” from the Pixel SFX Free pack | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | <https://freesound.org/s/871903/> |
 | `tray-place` | tray-place.wav | heyheytheree (Freesound), “Confirm” from the Pixel SFX Free pack | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | <https://freesound.org/s/871881/> |
 | `hint-scan` | hint-scan.wav | heyheytheree (Freesound), “Dash” from the Pixel SFX Free pack | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | <https://freesound.org/s/871882/> |
