@@ -157,6 +157,27 @@ describe('specials', () => {
     expect(cells).toHaveLength(7);
   });
 
+  it('a prism seeded on rocks clears itself and every rock, and nothing chains from them', () => {
+    const b = parseBoard(pad([
+      'P X R X . . . .',
+      'Rc X . . . . . .',
+      'R Ba X P . . . .',
+    ]));
+    const { blasts, cells } = resolveBlasts(b, [{ at: { row: 0, col: 0 }, kind: 'prism', color: 'rock' }], new Set());
+    // Only the rocks and the seed: the charge, the arc and the other prism sit untouched.
+    expect(blasts).toEqual([{
+      kind: 'prism', at: { row: 0, col: 0 }, order: 0, color: 'rock',
+      cells: [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 0, col: 3 }, { row: 1, col: 1 }, { row: 2, col: 2 }],
+    }]);
+    expect(cells.map(key)).toEqual(['0,0', '0,1', '0,3', '1,1', '2,2']);
+  });
+
+  it('a prism caught in a blast still targets the most common color, never rocks', () => {
+    const b = parseBoard(pad(['Rc P X X X . . .', 'R . . . . . . .']));
+    const { blasts } = resolveBlasts(b, [{ at: { row: 0, col: 0 }, kind: 'charge' }], new Set());
+    expect(blasts[1]).toMatchObject({ kind: 'prism', color: 'red', order: 1 });
+  });
+
   it('prism with no gems on the board clears only itself', () => {
     const b = parseBoard(pad(['Rc P X . . . . .']));
     const { blasts } = resolveBlasts(
@@ -168,6 +189,19 @@ describe('specials', () => {
     // A caught prism on a board whose only gem is already being cleared still targets it.
     const r = resolveBlasts(b, [{ at: { row: 0, col: 0 }, kind: 'charge' }], new Set(['0,0']));
     expect(r.blasts[1]).toMatchObject({ kind: 'prism', color: 'red' });
+  });
+
+  it('a rock-tinted charge seed keeps its color and blasts its 3×3; what it chains is untinted', () => {
+    const b = parseBoard(pad([
+      'X X X X . . . .',
+      'R Bc G . . . .',
+      '. . . . . . . .',
+    ]));
+    const { blasts } = resolveBlasts(b, [{ at: { row: 0, col: 1 }, kind: 'charge', color: 'rock' }], new Set(['0,0', '0,1', '0,2', '0,3']));
+    expect(blasts).toEqual([
+      { kind: 'charge', at: { row: 0, col: 1 }, order: 0, color: 'rock', cells: [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 1, col: 2 }] },
+      { kind: 'charge', at: { row: 1, col: 1 }, order: 1, cells: [] },
+    ]);
   });
 
   it('supernova clears everything', () => {

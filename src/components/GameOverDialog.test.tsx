@@ -35,4 +35,22 @@ describe('GameOverDialog', () => {
     render(<GameOverDialog open={false} score={0} level={1} best={0} newBest={false} ai={false} onPlayAgain={() => {}} />);
     expect(screen.queryByText('No moves left')).toBeNull();
   });
+
+  it('focuses Play again, and Escape does not close it', async () => {
+    render(<GameOverDialog open score={10} level={1} best={10} newBest={false} ai={false} onPlayAgain={() => {}} />);
+    const play = screen.getByRole('button', { name: 'Play again' });
+    expect(play).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByRole('dialog', { name: 'No moves left' })).toBeInTheDocument();
+  });
+
+  it('is a 300 px centered column', () => {
+    render(<GameOverDialog open score={10} level={1} best={10} newBest={false} ai={false} onPlayAgain={() => {}} />);
+    const paper = screen.getByRole('dialog');
+    const style = getComputedStyle(paper);
+    expect(style.width).toBe('300px');
+    expect(style.flexDirection).toBe('column');
+    expect(style.alignItems).toBe('center');
+  });
 });

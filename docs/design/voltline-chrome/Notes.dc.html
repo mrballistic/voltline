@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Voltline copy changes and recommendations</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&amp;family=Rajdhani:wght@500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1200px; min-height: 2300px; box-sizing: border-box; padding: 56px; background: #0d0d18; font-family: Rajdhani, system-ui, sans-serif; color: #e6e9ff; display: flex; flex-direction: column; gap: 44px">
+
+<header style="display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.16em; color: #4dd8ff">VOLTLINE CHROME · HANDOFF NOTES</p>
+<h1 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 36px; letter-spacing: 0.04em">Changes, copy and recommendations</h1>
+</header>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.12em; color: #4dd8ff">What changed from the brief</h2>
+<sc-for list="{{changes}}" as="c" hint-placeholder-count="12">
+<div style="display: grid; grid-template-columns: 36px 240px minmax(0, 1fr); column-gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(120,140,255,0.1); font-size: 16px; line-height: 24px">
+<span style="font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; color: #ffe14d">{{c.n}}</span>
+<span style="font-weight: 700">{{c.what}}</span>
+<span style="color: #9aa3d6">{{c.why}}</span>
+</div>
+</sc-for>
+</section>
+
+<section style="display: flex; flex-direction: column">
+<h2 style="margin: 0 0 6px; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.12em; color: #4dd8ff">Copy changes</h2>
+<p style="margin: 0 0 14px; font-size: 16px; line-height: 24px; color: #9aa3d6">No visible string changes. Every line below is an accessible name or label that is new or behaves differently.</p>
+<div style="display: grid; grid-template-columns: 220px 280px minmax(0, 1fr); column-gap: 16px; padding: 0 0 10px; border-bottom: 1px solid rgba(120,140,255,0.22); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #9aa3d6">
+<span>WHERE</span><span>STRING</span><span>WHY</span>
+</div>
+<sc-for list="{{copy}}" as="c" hint-placeholder-count="7">
+<div style="display: grid; grid-template-columns: 220px 280px minmax(0, 1fr); column-gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(120,140,255,0.1); font-size: 16px; line-height: 24px">
+<span style="font-weight: 700">{{c.where}}</span>
+<span style="color: #ffe14d">{{c.str}}</span>
+<span style="color: #9aa3d6">{{c.why}}</span>
+</div>
+</sc-for>
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+<div style="padding: 20px 24px; border-radius: 10px; background: #14142a; box-shadow: inset 0 0 0 1px rgba(120,140,255,0.14); display: flex; flex-direction: column; gap: 12px">
+<h3 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #4dd8ff">Tap targets</h3>
+<p style="margin: 0; font-size: 16px; line-height: 24px">44 × 44 minimum on every control, phone and desktop: buttons, the mute button, the speed segments, the AI switch row and the volume slider’s hit area. Footer links get a 28 px tall target (above the 24 px floor in WCAG 2.5.8).</p>
+<p style="margin: 0; font-size: 16px; line-height: 24px; color: #9aa3d6">Cost: none on the phone (the cell stays 45, limited by width). On a 900 px tall desktop the cell drops from 56 to 53. If you want 56 back, use 40 px controls under (pointer: fine) only.</p>
+</div>
+<div style="padding: 20px 24px; border-radius: 10px; background: #14142a; box-shadow: inset 0 0 0 1px rgba(120,140,255,0.14); display: flex; flex-direction: column; gap: 12px">
+<h3 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #4dd8ff">Focus ring</h3>
+<div style="display: flex; gap: 16px; align-items: center">
+<span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; min-width: 110px; height: 44px; border-radius: 10px; background: #ff4fd8; color: #0a0a11; font-weight: 700; font-size: 14px; outline: 2px solid #ffe14d; outline-offset: 3px">New game</span>
+<span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; min-width: 110px; height: 44px; border-radius: 10px; background: #1a1a34; box-shadow: 0 0 0 12px #1a1a34; color: #0a0a11"><span style="display: inline-flex; align-items: center; justify-content: center; min-width: 110px; height: 44px; border-radius: 10px; background: #4dd8ff; font-weight: 700; font-size: 15px; outline: 2px solid #ffe14d; outline-offset: 3px">Got it</span></span>
+</div>
+<p style="margin: 0; font-size: 16px; line-height: 24px">2 px solid #ffe14d, 3 px offset, following each control’s radius, on :focus-visible only. 15.2:1 on the page, 13.0:1 on dialogs, and unlike any control’s own color, so it never blends into a cyan or magenta button.</p>
+<p style="margin: 0; font-size: 16px; line-height: 24px; color: #9aa3d6">Turn off MUI’s focus ripple (disableRipple on ButtonBase) so the ring is the only focus signal.</p>
+</div>
+<div style="padding: 20px 24px; border-radius: 10px; background: #14142a; box-shadow: inset 0 0 0 1px rgba(120,140,255,0.14); display: flex; flex-direction: column; gap: 12px">
+<h3 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #4dd8ff">Disabled treatment</h3>
+<div style="display: flex; gap: 16px; align-items: center">
+<span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; min-width: 110px; height: 44px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.3); font-weight: 700; font-size: 14px">Hint</span>
+<span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; min-width: 110px; height: 44px; box-sizing: border-box; border-radius: 10px; border: 1px dashed rgba(154,163,214,0.45); color: #7d86b8; font-weight: 700; font-size: 14px">Hint</span>
+</div>
+<p style="margin: 0; font-size: 16px; line-height: 24px">Left: today, about 2:1. Right: text #7d86b8 at 5.6:1, a dashed 1 px border, no fill, no glow. The dashed edge says “off” without relying on color, and the label stays readable.</p>
+<p style="margin: 0; font-size: 16px; line-height: 24px; color: #9aa3d6">Apply it to every disabled control: Hint, the AI switch and the speed toggle during graphics failure, and the muted volume slider.</p>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.12em; color: #4dd8ff">Theme overrides (MUI 9)</h2>
+<pre style="margin: 0; padding: 20px 24px; border-radius: 10px; background: #0a0a11; box-shadow: inset 0 0 0 1px rgba(120,140,255,0.14); font-family: ui-monospace, Menlo, monospace; font-size: 13px; line-height: 20px; color: #c8d0ff; white-space: pre-wrap">{{code}}</pre>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.12em; color: #4dd8ff">Assumptions and open questions</h2>
+<sc-for list="{{open}}" as="o" hint-placeholder-count="5">
+<p style="margin: 0; padding-left: 16px; text-indent: -16px; font-size: 16px; line-height: 24px"><span style="color: #4dd8ff">· </span>{{o}}</p>
+</sc-for>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":2300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const changes = [
+      { n: '01', what: 'AI dock', why: 'The AI controls move into their own board-width area. With AI off it shows only the switch; with AI on it lights magenta and adds speed and status. It has a fixed height, so the board never resizes.' },
+      { n: '02', what: 'Logo mark in the header', why: 'A 26 px V-trace mark leads the title. Decorative, aria-hidden. See the Logo page.' },
+      { n: '03', what: '44 px controls', why: 'Buttons, mute, speed segments, AI switch row and volume hit area are all 44 tall. The volume slider grows from 64 to 88 px wide.' },
+      { n: '04', what: 'Level label inline with the bar', why: 'Pays back the height the 44 px controls cost. Label on the left, bar fills the rest of a 360 px row.' },
+      { n: '05', what: 'Desktop cell 56 → 53', why: 'A side effect of 03 at 1440 × 900. The phone stays at 45.' },
+      { n: '06', what: 'Dialog surface #1a1a34', why: 'Drops MUI’s white elevation overlay, which actually renders #3b3b4d (not #2c2c3e) and cuts magenta to 3.8:1.' },
+      { n: '07', what: 'Focus ring', why: '2 px yellow, 3 px offset, on every control.' },
+      { n: '08', what: 'Disabled treatment', why: 'Dashed border and #7d86b8 text, replacing MUI’s 30% white.' },
+      { n: '09', what: 'Board frame', why: 'Cyan corner brackets just outside the board and tray, plus a yellow tray edge while the tray is full.' },
+      { n: '10', what: 'Graphics failure panel', why: 'Same footprint and brackets as the board, with a chip icon above the unchanged sentence.' },
+      { n: '11', what: 'Small type bumps', why: 'Speed segments 13 → 14; Play again and Got it 14 → 15.' },
+      { n: '12', what: 'New motion', why: 'Score flare, level bar ease, notice fades and button hover. All are listed with their reduced-motion fallbacks on the tokens board.' }
+    ];
+    const copy = [
+      { where: 'Mute button', str: 'aria-label “Mute” (always) + aria-pressed', why: 'Today the name flips between Mute and Unmute while also using a pressed state, which reads as “Unmute, pressed”. Keep one name and let aria-pressed carry the state.' },
+      { where: 'AI dock', str: 'role="group" aria-label “AI mode”', why: 'Names the new area so the switch and its controls read as one unit.' },
+      { where: 'Speed toggle, level bar', str: '“AI speed”, “Level {n} progress”', why: 'Already shipped; keep as is.' },
+      { where: 'How to play headings', str: 'The goal, Special pieces, …', why: 'Set without a trailing period, which I’m assuming matches what ships. Flagging it in case the brief’s periods were intended.' },
+      { where: 'Logo', str: 'none', why: 'The mark is aria-hidden. The h1 “Voltline” stays the accessible name.' }
+    ];
+    const code = [
+      'palette.background.paper: \'#14142a\'',
+      'palette.action.disabled: \'#7d86b8\'',
+      '',
+      'components: {',
+      '  MuiButtonBase: { defaultProps: { disableRipple: true },',
+      '    styleOverrides: { root: { \'&.Mui-focusVisible\': { outline: \'2px solid #ffe14d\', outlineOffset: 3 } } } },',
+      '  MuiButton: { styleOverrides: { root: { minHeight: 44, minWidth: 110,',
+      '    \'&.Mui-disabled\': { color: \'#7d86b8\', border: \'1px dashed rgba(154,163,214,0.45)\', background: \'transparent\', boxShadow: \'none\' } } } },',
+      '  MuiIconButton: { styleOverrides: { root: { width: 44, height: 44, borderRadius: 10 } } },',
+      '  MuiToggleButton: { styleOverrides: { root: { minHeight: 44, minWidth: 52, fontSize: 14,',
+      '    \'&.Mui-selected\': { color: \'#ff4fd8\', background: \'rgba(255,79,216,0.16)\', boxShadow: \'inset 0 0 0 1px #ff4fd8\' } } } },',
+      '  MuiDialog: { styleOverrides: { paper: { backgroundColor: \'#1a1a34\', backgroundImage: \'none\',',
+      '    border: \'1px solid #4dd8ff55\', margin: 16 } } },',
+      '  MuiSlider: { styleOverrides: { root: { width: 70, padding: \'20px 0\' }, thumb: { width: 18, height: 18 } } },',
+      '}',
+      '',
+      '@media (prefers-reduced-motion: reduce) { count-ups, flares, fades: duration 0; 404 flicker and swap: off }'
+    ].join('\n');
+    const open = [
+      'I designed from the brief and the screenshots I could open; the canvas pieces in the mockups are context only and redraw nothing the PixiJS layer owns.',
+      'The hint arrows in the Hint mockups are a rough sketch so the state reads; the canvas keeps its own art.',
+      'The logo is a proposal. If you like the direction, the next steps are an SVG export, a 1024 app icon and a check at 16 px on Windows.',
+      'Should the AI dock also hold a “Stop” affordance on phones? Right now the switch does that.',
+      'Desktop: if 53 px cells feel small, the alternative is 40 px controls for fine pointers only.'
+    ];
+    return { changes, copy, code, open };
+  }
+}
+</script>
+</body>
+</html>

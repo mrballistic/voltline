@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import BoardCanvas, { GRAPHICS_FAILED } from './BoardCanvas';
 import { useGame } from '../app/useGame';
+import { computeLayout } from '../render/layout';
 
 const createGame = vi.fn();
 vi.mock('../app/bootstrap', () => ({ createGame: (...args: unknown[]) => createGame(...args) }));
@@ -17,7 +18,27 @@ function Harness() {
 afterEach(() => {
   cleanup();
   createGame.mockReset();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
+
+/** Fakes the host's size and a ResizeObserver whose callback the test fires. */
+function fakeHostSize(size: { w: number; h: number }) {
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => size.w);
+  vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(() => size.h);
+  const observers: (() => void)[] = [];
+  vi.stubGlobal('ResizeObserver', class {
+    constructor(private readonly cb: () => void) { observers.push(() => this.cb()); }
+    observe() {}
+    disconnect() {}
+  });
+  return { resize: (w: number, h: number) => { size.w = w; size.h = h; observers.forEach((f) => f()); } };
+}
+
+function Bare({ failed = false }: { failed?: boolean }) {
+  const host = useRef<HTMLDivElement>(null);
+  return <div data-testid="column"><BoardCanvas host={host} failed={failed} /></div>;
+}
 
 describe('BoardCanvas', () => {
   it('shows a short message in the canvas area when the graphics fail to start', async () => {
@@ -26,6 +47,10 @@ describe('BoardCanvas', () => {
     render(<Harness />);
     expect((await screen.findByRole('alert')).textContent).toBe('Voltline couldn’t start the graphics. Try another browser.');
     expect(GRAPHICS_FAILED).toContain('couldn’t');
+    // The broken-chip icon is decorative.
+    const icon = screen.getByTestId('graphics-failed-icon');
+    expect(icon).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByRole('alert')).toContainElement(icon);
     error.mockRestore();
   });
 
@@ -38,5 +63,14 @@ describe('BoardCanvas', () => {
     expect(screen.queryByRole('alert')).toBeNull();
     unmount();
     expect(destroy).toHaveBeenCalledOnce();
+  });
+
+  it('publishes the board width as --vl-board-px on the app column, and follows resizes', async () => {
+    const host = fakeHostSize({ w: 390, h: 452 });
+    render(<Bare />);
+    const column = screen.getByTestId('column');
+    expect(column.style.getPropertyValue('--vl-board-px')).toBe(`${computeLayout(390, 452).board.size}px`);
+    host.resize(1440, 528);
+    await vi.waitFor(() => expect(column.style.getPropertyValue('--vl-board-px')).toBe(`${computeLayout(1440, 528).board.size}px`));
   });
 });

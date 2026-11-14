@@ -24,7 +24,7 @@ function refIsLegalSwap(board: Board, a: Pos, b: Pos): boolean {
   const p = board[a.row][a.col];
   const q = board[b.row][b.col];
   if (!p || !q) return false;
-  if (p.kind === 'prism' || q.kind === 'prism') return p.kind !== 'rock' && q.kind !== 'rock';
+  if (p.kind === 'prism' || q.kind === 'prism') return true;
   return refSwapCreatesMatch(board, a, b);
 }
 
@@ -125,6 +125,7 @@ describe('move generation fast path', () => {
     let boards = 0;
     let swapsChecked = 0;
     let productiveSeen = 0;
+    let prismRockSeen = 0;
     for (const s of fixtures()) {
       boards++;
       for (let row = 0; row < BOARD_SIZE; row++) {
@@ -139,6 +140,11 @@ describe('move generation fast path', () => {
       }
       const ref = refProductiveMoves(s);
       productiveSeen += ref.length;
+      for (const m of ref) {
+        if (m.type !== 'swap') continue;
+        const kinds = [s.board[m.a.row][m.a.col]!.kind, s.board[m.b.row][m.b.col]!.kind].sort();
+        if (kinds[0] === 'prism' && kinds[1] === 'rock') prismRockSeen++;
+      }
       expect(productiveMoves(s)).toEqual(ref);
       for (const cap of [0, 1, 3, 20, 1000]) expect(countProductiveMoves(s, cap)).toBe(Math.min(ref.length, cap));
       expect(isGameOver(s)).toBe(ref.length === 0);
@@ -146,5 +152,6 @@ describe('move generation fast path', () => {
     expect(boards).toBeGreaterThanOrEqual(500);
     expect(swapsChecked).toBe(boards * 112);
     expect(productiveSeen).toBeGreaterThan(boards); // the fixtures are not all dead boards
+    expect(prismRockSeen).toBeGreaterThan(0); // and they exercise prism↔rock swaps
   }, 30_000); // ~580 boards; can take ~7 s on a CI runner with coverage on
 });

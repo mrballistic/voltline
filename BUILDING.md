@@ -95,13 +95,13 @@ Notarization uploads the app to Apple, so run it only for a build you mean to sh
 
 ## The app icon
 
-The icon’s source is `src-tauri/icons/source.svg`. After editing it, run
+The icon is the Voltline V mark. Its design master is `docs/design/voltline-chrome/logo-app-icon.svg`, and `src-tauri/icons/source.svg` is a copy of it with an explicit 1024 px size. Edit the master, copy it over `source.svg` (keeping `width="1024" height="1024"`), then run
 
 ```
 npx tsx scripts/render-icon.ts
 ```
 
-which renders it at 1024 px with Chromium (via Playwright, so `npx playwright install chromium` once) and regenerates every size in `src-tauri/icons/` with `npx tauri icon`. Commit the regenerated files.
+which renders it at 1024 px with Chromium (via Playwright, so `npx playwright install chromium` once) and regenerates every size in `src-tauri/icons/` with `npx tauri icon`. The script stops if `source.svg` has drifted from the master. Commit the regenerated files.
 
 ## Troubleshooting
 

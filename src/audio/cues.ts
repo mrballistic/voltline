@@ -6,7 +6,7 @@ export type CueName =
   | 'charge-create' | 'charge-blast' | 'arc-create' | 'arc-blast'
   | 'prism-create' | 'prism-blast' | 'prism-supernova'
   | 'rock-drop' | 'rock-break'
-  | 'tray-earn' | 'tray-full' | 'tray-lost' | 'tray-pick' | 'tray-place'
+  | 'tray-earn' | 'tray-full' | 'tray-pick' | 'tray-place'
   | 'hint-scan' | 'hint-lock'
   | 'level-up' | 'board-in' | 'game-over' | 'new-best'
   | 'ui-click' | 'ui-toggle'
@@ -14,6 +14,12 @@ export type CueName =
 
 /** Cues with their own manifest entry (the match-chain-N files are variants of `match`, found via `chainSet`). */
 export type ManifestCue = Exclude<CueName, `match-chain-${number}`>;
+
+/**
+ * Master volume. Fixed since the header's volume slider was dropped (chrome spec, Todd's call);
+ * 0.8 keeps the mix where the old slider's default had it.
+ */
+export const MASTER_VOLUME = 0.8;
 
 export interface CueSpec {
   bus: 'sfx' | 'ui' | 'music';
@@ -55,7 +61,6 @@ export const CUES: Record<ManifestCue, CueSpec> = {
   'rock-break': sfx(-3),
   'tray-earn': sfx(-3),
   'tray-full': sfx(-3),
-  'tray-lost': sfx(-3),
   'tray-pick': sfx(-6),
   'tray-place': sfx(-3),
   'hint-scan': sfx(-3, 1, 100),

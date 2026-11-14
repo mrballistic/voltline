@@ -23,6 +23,7 @@ export class PieceSprite extends Container {
   /** 0 → `glow.alphaLo`/`scaleLo`, 1 → `alphaHi`/`scaleHi`; tweened by the breathing loop. */
   private readonly breath = { v: 0.5 };
   private tween: gsap.core.Tween | null = null;
+  private spin: gsap.core.Tween | null = null;
   private breathing = false;
   private selected = false;
 
@@ -45,6 +46,7 @@ export class PieceSprite extends Container {
     this.halo.visible = halo !== null;
     if (halo) this.halo.texture = halo;
     this.restart();
+    this.restartSpin();
   }
 
   /** Idle breathing of the halo, with a random phase so the board never pulses in unison. */
@@ -52,6 +54,7 @@ export class PieceSprite extends Container {
     if (on === this.breathing) return;
     this.breathing = on;
     this.restart();
+    this.restartSpin();
   }
 
   /** Steady bright ring plus a faster, brighter halo pulse (when motion is allowed). */
@@ -72,6 +75,26 @@ export class PieceSprite extends Container {
       this.halo.scale.set(lerp(G.scaleLo, G.scaleHi, v));
     }
   };
+
+  /** The Prism turns slowly at rest (same gate as breathing); it never touches the container. */
+  private restartSpin() {
+    const want = this.breathing && this.piece.kind === 'prism';
+    if (want && this.spin) return;
+    this.spin?.kill();
+    this.spin = null;
+    this.body.rotation = 0;
+    this.halo.rotation = 0;
+    if (!want) return;
+    const turn = { a: 0 };
+    this.spin = gsap.to(turn, {
+      a: Math.PI * 2, duration: ANIM.prismSpinS, ease: 'none', repeat: -1,
+      onUpdate: () => { this.body.rotation = turn.a; this.halo.rotation = turn.a; },
+    });
+    this.spin.totalTime(Math.random() * ANIM.prismSpinS);
+    // totalTime() doesn't fire onUpdate, so set the starting angle now (no snap from 0 on the first frame).
+    this.body.rotation = turn.a;
+    this.halo.rotation = turn.a;
+  }
 
   private restart() {
     const phase = this.tween ? this.tween.totalTime() : Math.random() * G.periodS;
@@ -96,6 +119,8 @@ export class PieceSprite extends Container {
   override destroy(options?: DestroyOptions): void {
     this.tween?.kill();
     this.tween = null;
+    this.spin?.kill();
+    this.spin = null;
     // Textures belong to PieceTextures and are shared by every sprite: never destroy them here.
     super.destroy({ ...(typeof options === 'object' ? options : {}), children: true, texture: false, textureSource: false });
   }

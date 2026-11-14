@@ -8,10 +8,10 @@ import type { AISpeed } from './ports';
 export interface GameActions {
   newGame(): void;
   hint(): void;
+  uiClick(): void;
   setAI(on: boolean): void;
   setAISpeed(s: AISpeed): void;
   setMuted(m: boolean): void;
-  setVolume(v: number): void;
 }
 
 export function useGame(host: RefObject<HTMLElement | null>, seed?: number) {
@@ -55,10 +55,10 @@ export function useGame(host: RefObject<HTMLElement | null>, seed?: number) {
   const actions = useMemo<GameActions>(() => ({
     newGame: () => call((c) => void c.newGame()),
     hint: () => call((c) => void c.hint()),
+    uiClick: () => call((c) => c.uiClick()),
     setAI: (on) => call((c) => c.setAI(on)),
     setAISpeed: (s) => call((c) => c.setAISpeed(s)),
     setMuted: (m) => call((c) => c.setMuted(m)),
-    setVolume: (v) => call((c) => c.setVolume(v)),
   }), [call]);
 
   return { ui, actions, failed };

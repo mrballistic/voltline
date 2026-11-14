@@ -5,12 +5,14 @@ import { gsap } from 'gsap';
 import { applyMove, productiveMoves } from '../engine';
 import type { Move, Step } from '../engine';
 import type { BoardView } from '../render/BoardView';
+import { PieceSprite } from '../render/PieceSprite';
 import type { TrayView } from '../render/TrayView';
 import type { GameController } from './controller';
 
 /** One sprite as drawn in one frame, in canvas CSS px (position less pivot, so a dragged piece shows its offset). */
 export interface SpriteSample { id: number; x: number; y: number; sx: number; sy: number; alpha: number; visible: boolean }
-export interface FrameSample { t: number; sprites: SpriteSample[] }
+/** `tray` holds the tray's own pieces: slot pieces and any flyer carried by a drag or flying home. */
+export interface FrameSample { t: number; sprites: SpriteSample[]; tray: SpriteSample[] }
 
 export interface DebugHandle {
   controller: GameController;
@@ -35,14 +37,17 @@ export function installDebugHandle(deps: {
   app: Application; board: BoardView; tray: TrayView; controller: GameController;
   audio: { state: () => string; played: readonly string[] };
 }): () => void {
-  const { app, board, controller } = deps;
+  const { app, board, tray, controller } = deps;
   let frames: FrameSample[] | null = null;
+  const toSample = (s: PieceSprite): SpriteSample => ({
+    id: s.id, x: s.x - s.pivot.x, y: s.y - s.pivot.y, sx: s.scale.x, sy: s.scale.y, alpha: s.alpha, visible: s.visible,
+  });
   const sample = () => {
-    frames?.push({
+    if (!frames) return;
+    frames.push({
       t: performance.now(),
-      sprites: board.allSprites().map((s) => ({
-        id: s.id, x: s.x - s.pivot.x, y: s.y - s.pivot.y, sx: s.scale.x, sy: s.scale.y, alpha: s.alpha, visible: s.visible,
-      })),
+      sprites: board.allSprites().map(toSample),
+      tray: tray.root.children.filter((c): c is PieceSprite => c instanceof PieceSprite).map(toSample),
     });
   };
   // After the render, so a sample is exactly what that frame drew.

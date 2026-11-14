@@ -25,6 +25,8 @@ export const ANIM = {
   boardOutMs: 500,
   glow: { alphaLo: 0.221, alphaHi: 0.793, scaleLo: 0.983, scaleHi: 1.031, periodS: 3.46 },
   selectPulseS: 0.9,
+  /** Seconds for one full turn of a resting Prism (body and halo together). */
+  prismSpinS: 9,
   // Hint arrows: weaker ones fade lowest-first over revealMs, then the best pulses (pulseS per
   // cycle) for holdMs. maxArrows and maxPlacements cap what is drawn (spec §7.3).
   hint: { revealMs: 1000, holdMs: 4000, maxArrows: 12, maxPlacements: 3, pulseS: 0.8 },
@@ -32,6 +34,9 @@ export const ANIM = {
   reducedMotionTimeScale: 1.6,
   // Invalid swap: a short horizontal shake of both pieces once they are back (off with reduced motion).
   invalidShake: { cells: 0.07, ms: 150, cycles: 3 },
+  // Refused tray drop: the flyer shakes side to side where it was dropped, then flies home over
+  // dragReturnMs (no shake with reduced motion).
+  refuseShake: { cells: 0.07, ms: 150, cycles: 3 },
   supernovaShake: { px: 7, ms: 340 },
   // Effect-only values (src/render/effects.ts). Sizes in cells, speeds in cells/s. Effects are
   // fire-and-forget: none of these delays a play.

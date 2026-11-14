@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Voltline tokens · color, glow, contrast</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&amp;family=Rajdhani:wght@500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1200px; min-height: 1900px; box-sizing: border-box; padding: 56px; background: #0d0d18; font-family: Rajdhani, system-ui, sans-serif; color: #e6e9ff; display: flex; flex-direction: column; gap: 40px">
+
+<header style="display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.16em; color: #4dd8ff">VOLTLINE CHROME · TOKENS 1 OF 2</p>
+<h1 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 36px; letter-spacing: 0.04em">Color, glow and contrast</h1>
+<p style="margin: 0; max-width: 820px; font-size: 18px; line-height: 26px; color: #9aa3d6">Every value is what ships today unless its status says otherwise. Contrast is WCAG 2.1, measured on the page (#0a0a11) and on the proposed dialog surface (#1a1a34). Rows marked <span style="color: #ffe14d; font-weight: 700">Changed</span> or <span style="color: #ffe14d; font-weight: 700">New</span> are my proposals.</p>
+</header>
+
+<section style="display: flex; flex-direction: column">
+<h2 style="margin: 0 0 14px; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.12em; color: #4dd8ff">Color</h2>
+<div style="display: grid; grid-template-columns: 52px 210px 250px minmax(0, 1fr) 76px 76px 80px; column-gap: 16px; align-items: center; padding: 0 0 10px; border-bottom: 1px solid rgba(120,140,255,0.22); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #9aa3d6">
+<span></span><span>TOKEN</span><span>VALUE</span><span>USE</span><span>ON PAGE</span><span>ON DIALOG</span><span>STATUS</span>
+</div>
+<sc-for list="{{colors}}" as="r" hint-placeholder-count="30">
+<div style="display: grid; grid-template-columns: 52px 210px 250px minmax(0, 1fr) 76px 76px 80px; column-gap: 16px; align-items: center; min-height: 48px; padding: 6px 0; border-bottom: 1px solid rgba(120,140,255,0.1); font-size: 15px; line-height: 20px">
+<span style="width: 36px; height: 36px; border-radius: 8px; background: {{r.sw}}; box-shadow: inset 0 0 0 1px rgba(230,233,255,0.18)"></span>
+<span style="font-weight: 700">{{r.token}}</span>
+<span style="font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: #c8d0ff">{{r.value}}</span>
+<span style="color: #9aa3d6">{{r.use}}</span>
+<span style="font-variant-numeric: tabular-nums">{{r.page}}</span>
+<span style="font-variant-numeric: tabular-nums">{{r.dlg}}</span>
+<span style="font-weight: 700; color: {{r.stColor}}">{{r.status}}</span>
+</div>
+</sc-for>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.12em; color: #4dd8ff">Why the dialog surface changes</h2>
+<div style="display: flex; gap: 24px; align-items: stretch">
+<div style="flex: 1 1 0; padding: 20px; border-radius: 10px; background: #3b3b4d; border: 1px solid #4dd8ff55; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px">Today: #14142a + overlay</span>
+<span style="font-size: 15px; color: #9aa3d6">Best 12,480 · 4.5:1, just passing</span>
+<span style="font-size: 15px; color: #ff4fd8">Magenta text · 3.8:1, fails</span>
+<span style="font-size: 14px; color: #e6e9ff">MUI’s 16.5% white overlay at elevation 24 computes to #3b3b4d, a flat gray that mutes the neon. The brief’s #2c2c3e matches a 10% overlay.</span>
+</div>
+<div style="flex: 1 1 0; padding: 20px; border-radius: 10px; background: #1a1a34; border: 1px solid #4dd8ff55; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px">Proposed: #1a1a34, no overlay</span>
+<span style="font-size: 15px; color: #9aa3d6">Best 12,480 · 6.9:1</span>
+<span style="font-size: 15px; color: #ff4fd8">Magenta text · 5.9:1</span>
+<span style="font-size: 14px; color: #e6e9ff">A deep blue one step above the page. It still lifts off the dimmed board behind the backdrop, and the cyan border carries the edge. Set backgroundImage: none on the dialog paper.</span>
+</div>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column">
+<h2 style="margin: 0 0 14px; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.12em; color: #4dd8ff">Glow</h2>
+<div style="display: grid; grid-template-columns: 220px 120px 300px minmax(0, 1fr) 80px; column-gap: 16px; align-items: center; padding: 0 0 10px; border-bottom: 1px solid rgba(120,140,255,0.22); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #9aa3d6">
+<span>ELEMENT</span><span>SAMPLE</span><span>VALUE</span><span>NOTES</span><span>STATUS</span>
+</div>
+<sc-for list="{{glows}}" as="g" hint-placeholder-count="11">
+<div style="display: grid; grid-template-columns: 220px 120px 300px minmax(0, 1fr) 80px; column-gap: 16px; align-items: center; min-height: 48px; padding: 6px 0; border-bottom: 1px solid rgba(120,140,255,0.1); font-size: 15px; line-height: 20px">
+<span style="font-weight: 700">{{g.el}}</span>
+<span style="font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 16px; color: {{g.color}}; text-shadow: {{g.shadow}}">{{g.sample}}</span>
+<span style="font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: #c8d0ff">{{g.value}}</span>
+<span style="color: #9aa3d6">{{g.note}}</span>
+<span style="font-weight: 700; color: {{g.stColor}}">{{g.status}}</span>
+</div>
+</sc-for>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":1900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const Y = '#ffe14d', K = '#7d86b8';
+    const c = (sw, token, value, use, page, dlg, status) => ({ sw, token, value, use, page, dlg, status, stColor: status === 'Kept' ? K : Y });
+    const colors = [
+      c('#0a0a11', 'bg.page', '#0a0a11', 'Page background', '—', '—', 'Kept'),
+      c('linear-gradient(rgba(120,140,255,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(120,140,255,0.35) 1px, #0a0a11 1px)', 'bg.grid', 'rgba(120,140,255,0.06) · 1px / 24px', 'Circuit grid, fixed to body (swatch exaggerated)', '—', '—', 'Kept'),
+      c('#14142a', 'surface.panel', '#14142a', 'MUI paper, any non-dialog panel', '—', '—', 'Kept'),
+      c('#1a1a34', 'surface.dialog', '#1a1a34', 'Dialog paper, no elevation overlay (was #14142a + 16.5% white ≈ #3b3b4d)', '—', '—', 'Changed'),
+      c('#4dd8ff55', 'border.dialog', '1px #4dd8ff55', 'Dialog edge', '—', '—', 'Kept'),
+      c('rgba(0,0,0,0.5)', 'backdrop', 'rgba(0,0,0,0.5)', 'Behind dialogs; board stays visible', '—', '—', 'Kept'),
+      c('#e6e9ff', 'text.primary', '#e6e9ff', 'Body, labels, dialog copy', '16.4', '14.1', 'Kept'),
+      c('#9aa3d6', 'text.secondary', '#9aa3d6', 'Best, AI moves, footer, muted icon', '8.1', '6.9', 'Kept'),
+      c('#ffffff', 'text.score', '#ffffff', 'Score digits (with cyan glow)', '19.7', '16.9', 'Kept'),
+      c('#7d86b8', 'text.disabled', '#7d86b8', 'Disabled control text (replaces MUI 30% white)', '5.6', '4.8', 'New'),
+      c('#4dd8ff', 'accent.cyan', '#4dd8ff', 'Title, volume, Hint, Play again, Got it, headings', '11.8', '10.1', 'Kept'),
+      c('#ff4fd8', 'accent.magenta', '#ff4fd8', 'New game, How to play, AI dock on, Thinking…', '6.9', '5.9', 'Kept'),
+      c('#ff7be3', 'accent.magenta.hover', '#ff7be3', 'New game hover fill; #0a0a11 text on it 8.6:1', '8.6', '7.4', 'Kept'),
+      c('#85e5ff', 'accent.cyan.hover', '#85e5ff', 'Play again / Got it hover fill; #0a0a11 text on it 13.8:1', '—', '—', 'New'),
+      c('#2fbde6', 'accent.cyan.pressed', '#2fbde6', 'Play again / Got it pressed fill; #0a0a11 text on it 9.0:1', '—', '—', 'New'),
+      c('#e63fc2', 'accent.magenta.pressed', '#e63fc2', 'New game pressed fill; #0a0a11 text on it 5.5:1', '—', '—', 'New'),
+      c('#ffe14d', 'accent.yellow', '#ffe14d', 'Tray-full notice, New best!, focus ring', '15.2', '13.0', 'Kept'),
+      c('#3bffb0', 'accent.green', '#3bffb0', 'Level {n}! notice', '15.1', '13.0', 'Kept'),
+      c('#ffe14d', 'focus.ring', '2px solid #ffe14d · offset 3px', 'Every focusable control, :focus-visible only', '15.2', '13.0', 'New'),
+      c('#2c7188', 'border.hint', '1px rgba(77,216,255,0.5)', 'Hint outline (UI boundary, needs 3:1)', '3.6', '—', 'Kept'),
+      c('#4b4f6a', 'border.disabled', '1px dashed rgba(154,163,214,0.45)', 'Disabled outline; dash is the non-color cue (disabled is exempt from 1.4.11)', '2.5', '—', 'New'),
+      c('rgba(120,140,255,0.16)', 'level.track', 'rgba(120,140,255,0.16)', 'Level bar track', '—', '—', 'Kept'),
+      c('linear-gradient(90deg, #4dd8ff, #ff4fd8)', 'level.fill', '90deg #4dd8ff → #ff4fd8', 'Level bar fill, glow 0 0 10px #ff4fd8aa', '—', '—', 'Kept'),
+      c('rgba(16,16,34,0.78)', 'board.well', 'rgba(16,16,34,0.78) · inset 1px rgba(120,140,255,0.12)', 'Panel behind board and tray (canvas stays transparent)', '—', '—', 'Kept'),
+      c('rgba(77,216,255,0.5)', 'board.corner', '2px rgba(77,216,255,0.5)', 'Corner brackets 8px outside board + tray', '—', '—', 'New'),
+      c('rgba(255,225,77,0.45)', 'tray.full.edge', 'inset 1px rgba(255,225,77,0.45)', 'Tray outline while the tray is full', '—', '—', 'New'),
+      c('rgba(154,163,214,0.2)', 'dock.off.edge', '1px rgba(154,163,214,0.2)', 'AI dock outline when AI is off', '—', '—', 'New'),
+      c('rgba(255,79,216,0.45)', 'dock.on.edge', '1px rgba(255,79,216,0.45) · wash 6%', 'AI dock outline and wash when AI is on', '—', '—', 'New'),
+      c('#c8d0ff', 'text.gfxFail', '#c8d0ff', 'Graphics failure sentence and icon', '13.1', '—', 'Kept'),
+      c('#eef0ff', '404.ink', '#eef0ff', '404 numerals and lead line', '17.4', '—', 'Kept'),
+      c('#a9adc9', '404.dim', '#a9adc9', '404 second line', '8.9', '—', 'Kept'),
+      c('#4de8ff', '404.cyan', '#4de8ff', '404 heading and button', '13.4', '—', 'Kept'),
+      c('#8084a3', '404.footnote', '#8084a3', '404 footnote', '5.4', '—', 'Kept')
+    ];
+    const g = (el, sample, color, shadow, value, note, status) => ({ el, sample, color, shadow, value, note, status, stColor: status === 'Kept' ? K : Y });
+    const glows = [
+      g('Title', 'Voltline', '#4dd8ff', '0 0 12px #4dd8ff88', 'text-shadow 0 0 12px #4dd8ff88', '', 'Kept'),
+      g('Score', '8,640', '#ffffff', '0 0 14px #4dd8ff88', 'text-shadow 0 0 14px #4dd8ff88', 'Rest state', 'Kept'),
+      g('Score flare', '8,640', '#ffffff', '0 0 22px #4dd8ffcc', 'text-shadow 0 0 22px #4dd8ffcc', 'Peaks for 120 ms on each increase, eases back over 400 ms. Off with reduced motion.', 'New'),
+      g('Level-up line', 'Level 2!', '#3bffb0', '0 0 12px #3bffb088', 'text-shadow 0 0 12px #3bffb088', '', 'Kept'),
+      g('Tray notice', 'Tray full', '#ffe14d', '0 0 10px #ffe14d88', 'text-shadow 0 0 10px #ffe14d88', '', 'Kept'),
+      g('New best!', 'New best!', '#ffe14d', '0 0 12px #ffe14d88', 'text-shadow 0 0 12px #ffe14d88', '', 'Kept'),
+      g('Level bar fill', '———', '#ff4fd8', '0 0 10px #ff4fd8aa', 'box-shadow 0 0 10px #ff4fd8aa', '', 'Kept'),
+      g('New game', 'New game', '#ff4fd8', '0 0 14px #ff4fd855', 'box-shadow 0 0 14px #ff4fd855', 'Hover raises to 0 0 18px #ff4fd888', 'New'),
+      g('Play again / Got it', 'Play again', '#4dd8ff', '0 0 14px #4dd8ff55', 'box-shadow 0 0 14px #4dd8ff55', 'Hover raises to 0 0 18px #4dd8ff88', 'New'),
+      g('Thinking… dot', '●', '#ff4fd8', '0 0 8px #ff4fd8', 'box-shadow 0 0 8px #ff4fd8', '6 px dot before the word', 'New'),
+      g('Pieces and swatches', '◆', '#ff4fd8', '0 0 6px #ff4fd8', 'feGaussianBlur ≈ 2.5–4 / 100 units, merged under', 'Canvas owns it; swatches reuse it. Rocks get none.', 'Kept')
+    ];
+    return { colors, glows };
+  }
+}
+</script>
+</body>
+</html>

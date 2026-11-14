@@ -26,7 +26,7 @@ export interface HintViewLike {
 
 export type AISpeed = 'slow' | 'medium' | 'fast';
 
-export interface Prefs { bestPlayer: number; bestAI: number; aiSpeed: AISpeed; muted: boolean; volume: number }
+export interface Prefs { bestPlayer: number; bestAI: number; aiSpeed: AISpeed; muted: boolean }
 
 export interface PrefsStore { load(): Prefs; save(p: Prefs): void }
 

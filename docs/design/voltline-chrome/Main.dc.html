@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Voltline · playing</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&amp;family=Rajdhani:wght@500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="position: relative; width: {{W}}px; height: {{H}}px; overflow: hidden; background-color: #0a0a11; background-image: linear-gradient(rgba(120,140,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(120,140,255,0.06) 1px, transparent 1px); background-size: 24px 24px; font-family: Rajdhani, system-ui, sans-serif; color: #e6e9ff; display: flex; justify-content: center">
+
+<svg width="0" height="0" aria-hidden="true" style="position: absolute; width: 0; height: 0; overflow: hidden">
+<defs>
+<filter id="vlglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4" result="b"></feGaussianBlur><feMerge><feMergeNode in="b"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter>
+<linearGradient id="vl-prism-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff3b5c"></stop><stop offset="0.35" stop-color="#ffe14d"></stop><stop offset="0.65" stop-color="#3bffb0"></stop><stop offset="1" stop-color="#4d7bff"></stop></linearGradient>
+<symbol id="vl-r" viewBox="0 0 100 100"><g filter="url(#vlglow)" stroke="#ff3b5c" fill="#ff3b5c" fill-opacity="0.14" stroke-width="7"><circle cx="50" cy="50" r="33"></circle></g></symbol>
+<symbol id="vl-b" viewBox="0 0 100 100"><g filter="url(#vlglow)" stroke="#4d7bff" fill="#4d7bff" fill-opacity="0.14" stroke-width="7"><rect x="18" y="18" width="64" height="64" rx="12"></rect></g></symbol>
+<symbol id="vl-y" viewBox="0 0 100 100"><g filter="url(#vlglow)" stroke="#ffe14d" fill="#ffe14d" fill-opacity="0.14" stroke-width="7" stroke-linejoin="round"><polygon points="50,15 86,80 14,80"></polygon></g></symbol>
+<symbol id="vl-g" viewBox="0 0 100 100"><g filter="url(#vlglow)" stroke="#3bffb0" fill="#3bffb0" fill-opacity="0.14" stroke-width="7" stroke-linejoin="round"><polygon points="50,14 81,32 81,68 50,86 19,68 19,32"></polygon></g></symbol>
+<symbol id="vl-m" viewBox="0 0 100 100"><g filter="url(#vlglow)" stroke="#ff4fd8" fill="#ff4fd8" fill-opacity="0.14" stroke-width="7" stroke-linejoin="round"><polygon points="50,13 87,50 50,87 13,50"></polygon></g></symbol>
+<symbol id="vl-o" viewBox="0 0 100 100"><g filter="url(#vlglow)" stroke="#ff9a2e" fill="#ff9a2e" fill-opacity="0.14" stroke-width="7" stroke-linejoin="round"><polygon points="39,15 61,15 61,39 85,39 85,61 61,61 61,85 39,85 39,61 15,61 15,39 39,39"></polygon></g></symbol>
+<symbol id="vl-c" viewBox="0 0 100 100"><g filter="url(#vlglow)" stroke="#4de8ff" fill="#4de8ff" fill-opacity="0.14" stroke-width="7" stroke-linejoin="round"><polygon points="50,14 59.4,39.1 86.1,40.3 65.2,56.9 72.3,82.7 50,68 27.7,82.7 34.8,56.9 13.9,40.3 40.6,39.1"></polygon></g></symbol>
+<symbol id="vl-charge" viewBox="0 0 100 100"><g filter="url(#vlglow)"><circle cx="50" cy="50" r="33" stroke="#ff3b5c" fill="#ff3b5c" fill-opacity="0.14" stroke-width="7"></circle><circle cx="50" cy="50" r="11" fill="#ff3b5c" stroke="#ffffff" stroke-width="4"></circle></g></symbol>
+<symbol id="vl-arc" viewBox="0 0 100 100"><g filter="url(#vlglow)"><rect x="18" y="18" width="64" height="64" rx="12" stroke="#4d7bff" fill="#4d7bff" fill-opacity="0.14" stroke-width="7"></rect><g fill="none" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"><polyline points="38,18 44,10 50,19 56,10 62,18"></polyline><polyline points="38,82 44,90 50,81 56,90 62,82"></polyline><polyline points="18,38 10,44 19,50 10,56 18,62"></polyline><polyline points="82,38 90,44 81,50 90,56 82,62"></polyline></g></g></symbol>
+<symbol id="vl-prism" viewBox="0 0 100 100"><g filter="url(#vlglow)"><circle cx="50" cy="50" r="32" fill="none" stroke="url(#vl-prism-g)" stroke-width="8"></circle><circle cx="50" cy="50" r="8" fill="#ffffff"></circle></g></symbol>
+<symbol id="vl-rock" viewBox="0 0 100 100"><rect x="44" y="9" width="12" height="9" rx="2" fill="#45454f"></rect><rect x="44" y="82" width="12" height="9" rx="2" fill="#45454f"></rect><rect x="9" y="44" width="9" height="12" rx="2" fill="#45454f"></rect><rect x="82" y="44" width="9" height="12" rx="2" fill="#45454f"></rect><rect x="18" y="18" width="64" height="64" rx="10" fill="#24242c" stroke="#45454f" stroke-width="6"></rect><path d="M37 37 L63 63 M63 37 L37 63" stroke="#52525c" stroke-width="6" stroke-linecap="round"></path></symbol>
+<marker id="vl-ah" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="3.2" markerHeight="3.2" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#ffffff"></path></marker>
+</defs>
+</svg>
+
+<main style="width: {{colW}}px; height: 100%; display: flex; flex-direction: column">
+
+<header style="display: flex; flex-direction: column; gap: 4px; padding: 12px 16px 4px">
+<div style="height: 44px; display: flex; align-items: center; justify-content: space-between">
+<div style="display: flex; align-items: center; gap: 10px">
+<svg width="26" height="26" viewBox="0 0 100 100" aria-hidden="true" style="overflow: visible"><defs><linearGradient id="vl-mark-g" x1="10" y1="0" x2="80" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4dd8ff"></stop><stop offset="1" stop-color="#ff4fd8"></stop></linearGradient></defs><g transform="translate(6 3)" filter="url(#vlglow)"><path d="M16 20 L44 80 L60 48 L48 48 L72 14" fill="none" stroke="url(#vl-mark-g)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="16" cy="20" r="7" fill="#0a0a11" stroke="#4dd8ff" stroke-width="5"></circle><circle cx="72" cy="14" r="7" fill="#0a0a11" stroke="#ff4fd8" stroke-width="5"></circle></g></svg>
+<h1 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 18px; letter-spacing: 0.18em; color: #4dd8ff; text-shadow: 0 0 12px #4dd8ff88">Voltline</h1>
+</div>
+<div style="display: flex; align-items: center; gap: 4px">
+<label style="position: relative; display: block; width: 88px; height: 44px">
+<span aria-hidden="true" style="position: absolute; left: 9px; right: 9px; top: 20px; height: 4px; border-radius: 2px; background: {{vt.track}}"></span>
+<span aria-hidden="true" style="position: absolute; left: 9px; top: 20px; height: 4px; border-radius: 2px; width: {{vt.fill}}px; background: #4dd8ff; box-shadow: 0 0 8px #4dd8ff88"></span>
+<span aria-hidden="true" style="position: absolute; top: 13px; left: {{vt.thumb}}px; width: 18px; height: 18px; box-sizing: border-box; border-radius: 50%; background: {{vt.thumbBg}}; border: 2px solid {{vt.thumbEdge}}; box-shadow: {{vt.glow}}"></span>
+<input type="range" min="0" max="100" step="5" value="{{vol}}" onChange="{{onVol}}" disabled="{{muted}}" aria-label="Volume" style="position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer">
+</label>
+<button type="button" aria-label="Mute" aria-pressed="{{mutedStr}}" onClick="{{onMute}}" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 10px; background: transparent; cursor: pointer">
+<sc-if value="{{soundOn}}" hint-placeholder-val="{{ true }}">
+<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#4dd8ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 4px #4dd8ff88)"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="#4dd8ff" fill-opacity="0.2"></path><path d="M15.5 9a4 4 0 0 1 0 6"></path><path d="M18.5 6.5a7.5 7.5 0 0 1 0 11"></path></svg>
+</sc-if>
+<sc-if value="{{muted}}" hint-placeholder-val="{{ false }}">
+<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#9aa3d6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"></path><path d="M16 9.5l5 5M21 9.5l-5 5"></path></svg>
+</sc-if>
+</button>
+</div>
+</div>
+
+<div style="align-self: center; min-width: 8ch; text-align: center; font-weight: 700; font-size: {{scoreFs}}px; line-height: 1.1; font-variant-numeric: tabular-nums; color: #ffffff; text-shadow: 0 0 14px #4dd8ff88">{{score}}</div>
+<div style="height: 20px; line-height: 20px; text-align: center; font-size: 15px; font-weight: 500; color: #9aa3d6; font-variant-numeric: tabular-nums">{{bestLine}}</div>
+<div style="height: 20px; display: flex; justify-content: center">
+<div style="width: {{barW}}px; display: flex; align-items: center; gap: 12px">
+<span style="flex: 0 0 auto; min-width: 84px; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #e6e9ff; white-space: nowrap">Level {{level}}</span>
+<div aria-hidden="true" style="flex: 1 1 auto; height: 8px; border-radius: 4px; background: rgba(120,140,255,0.16)">
+<div style="height: 8px; width: {{pct}}%; border-radius: 4px; background: linear-gradient(90deg, #4dd8ff, #ff4fd8); box-shadow: 0 0 10px #ff4fd8aa"></div>
+</div>
+</div>
+</div>
+<div role="status" aria-live="polite" style="height: 26px; line-height: 26px; text-align: center; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 16px; color: #3bffb0; text-shadow: 0 0 12px #3bffb088">{{levelUpText}}</div>
+</header>
+
+<div style="flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center">
+<div style="position: relative; width: {{bw}}px; height: {{stackH}}px">
+<div aria-hidden="true" style="position: absolute; left: -8px; top: -8px; width: 16px; height: 16px; border-left: 2px solid rgba(77,216,255,0.5); border-top: 2px solid rgba(77,216,255,0.5); border-top-left-radius: 4px"></div>
+<div aria-hidden="true" style="position: absolute; right: -8px; top: -8px; width: 16px; height: 16px; border-right: 2px solid rgba(77,216,255,0.5); border-top: 2px solid rgba(77,216,255,0.5); border-top-right-radius: 4px"></div>
+<div aria-hidden="true" style="position: absolute; left: -8px; bottom: -8px; width: 16px; height: 16px; border-left: 2px solid rgba(77,216,255,0.5); border-bottom: 2px solid rgba(77,216,255,0.5); border-bottom-left-radius: 4px"></div>
+<div aria-hidden="true" style="position: absolute; right: -8px; bottom: -8px; width: 16px; height: 16px; border-right: 2px solid rgba(77,216,255,0.5); border-bottom: 2px solid rgba(77,216,255,0.5); border-bottom-right-radius: 4px"></div>
+
+<sc-if value="{{gfx}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="position: absolute; inset: 0; box-sizing: border-box; border-radius: 10px; background: rgba(16,16,34,0.82); box-shadow: inset 0 0 0 1px rgba(200,208,255,0.22); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 32px; text-align: center">
+<svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<rect x="20" y="20" width="32" height="32" rx="5" stroke="#c8d0ff" stroke-width="2.5" stroke-dasharray="5 4"></rect>
+<path d="M28 20v-8M36 20v-8M44 20v-8M28 52v8M36 52v8M44 52v8M52 28h8M52 36h8M52 44h8" stroke="#c8d0ff" stroke-width="2.5"></path>
+<path d="M20 28h-5M20 44h-8" stroke="#c8d0ff" stroke-width="2.5"></path>
+<path d="M11 36h3" stroke="#c8d0ff" stroke-width="2.5" opacity="0.5"></path>
+<path d="M38.5 26l-7 11h6.5l-4 9" stroke="#ffe14d" stroke-width="2.5" style="filter: drop-shadow(0 0 4px #ffe14d99)"></path>
+</svg>
+<p style="margin: 0; max-width: 280px; font-size: 18px; line-height: 26px; font-weight: 500; color: #c8d0ff">Voltline couldn’t start the graphics. Try another browser.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{notGfx}}" hint-placeholder-val="{{ true }}">
+<div aria-label="Game board" style="position: absolute; left: 0; top: 0; width: {{bw}}px; height: {{bw}}px; border-radius: 10px; background: rgba(16,16,34,0.78); box-shadow: inset 0 0 0 1px rgba(120,140,255,0.12); display: grid; grid-template-columns: repeat(8, {{c}}px); grid-auto-rows: {{c}}px">
+<sc-for list="{{cells}}" as="cell" hint-placeholder-count="64">
+<div style="display: flex; align-items: center; justify-content: center"><svg width="{{cell.p}}" height="{{cell.p}}" viewBox="0 0 100 100" aria-hidden="true" style="overflow: visible"><use href="#{{cell.k}}"></use></svg></div>
+</sc-for>
+</div>
+
+<sc-if value="{{hint}}" hint-placeholder-val="{{ false }}">
+<svg width="{{bw}}" height="{{bw}}" viewBox="0 0 {{bw}} {{bw}}" aria-hidden="true" style="position: absolute; left: 0; top: 0; overflow: visible; filter: drop-shadow(0 0 6px #4dd8ff)">
+<line x1="{{ar.w1.x1}}" y1="{{ar.w1.y1}}" x2="{{ar.w1.x2}}" y2="{{ar.w1.y2}}" stroke="#ffffff" stroke-width="5" stroke-linecap="round" marker-end="url(#vl-ah)" opacity="0.3"></line>
+<line x1="{{ar.w2.x1}}" y1="{{ar.w2.y1}}" x2="{{ar.w2.x2}}" y2="{{ar.w2.y2}}" stroke="#ffffff" stroke-width="5" stroke-linecap="round" marker-end="url(#vl-ah)" opacity="0.5"></line>
+<line x1="{{ar.b.x1}}" y1="{{ar.b.y1}}" x2="{{ar.b.x2}}" y2="{{ar.b.y2}}" stroke="#ffffff" stroke-width="6" stroke-linecap="round" marker-end="url(#vl-ah)"></line>
+</svg>
+<div aria-hidden="true" style="position: absolute; left: {{ar.w1.lx}}px; top: {{ar.w1.ly}}px; transform: translate(-50%, -100%); opacity: 0.3; padding: 1px 6px; border-radius: 4px; background: rgba(10,10,17,0.85); box-shadow: inset 0 0 0 1px rgba(77,216,255,0.5); font-weight: 700; font-size: 13px; color: #ffffff; white-space: nowrap">≈ 240</div>
+<div aria-hidden="true" style="position: absolute; left: {{ar.w2.lx}}px; top: {{ar.w2.ly}}px; transform: translate(-50%, -100%); opacity: 0.5; padding: 1px 6px; border-radius: 4px; background: rgba(10,10,17,0.85); box-shadow: inset 0 0 0 1px rgba(77,216,255,0.5); font-weight: 700; font-size: 13px; color: #ffffff; white-space: nowrap">≈ 380</div>
+<div aria-hidden="true" style="position: absolute; left: {{ar.b.lx}}px; top: {{ar.b.ly}}px; transform: translate(-50%, -100%); padding: 1px 6px; border-radius: 4px; background: rgba(10,10,17,0.85); box-shadow: inset 0 0 0 1px #4dd8ff; font-weight: 700; font-size: 13px; color: #ffffff; white-space: nowrap">≈ 1,240</div>
+</sc-if>
+
+<div aria-label="Tray" style="position: absolute; left: 0; top: {{trayTop}}px; width: {{bw}}px; height: {{trayH}}px; box-sizing: border-box; padding: 0 {{pad}}px; border-radius: 10px; background: rgba(16,16,34,0.78); box-shadow: inset 0 0 0 1px {{trayEdge}}; display: flex; align-items: center; justify-content: space-between">
+<sc-for list="{{slots}}" as="slot" hint-placeholder-count="5">
+<div style="width: {{slot.s}}px; height: {{slot.s}}px; border-radius: 8px; background: rgba(10,10,17,0.6); box-shadow: inset 0 0 0 1px rgba(154,163,214,0.16); display: flex; align-items: center; justify-content: center">
+<sc-if value="{{slot.full}}" hint-placeholder-val="{{ false }}"><svg width="{{slot.p}}" height="{{slot.p}}" viewBox="0 0 100 100" aria-hidden="true" style="overflow: visible"><use href="#{{slot.k}}"></use></svg></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+
+<div role="status" aria-live="polite" style="height: 24px; line-height: 24px; text-align: center; font-size: 16px; font-weight: 500; color: #ffe14d; text-shadow: 0 0 10px #ffe14d88">{{trayText}}</div>
+
+<div style="display: flex; justify-content: center; gap: 12px; padding: 4px 16px 0">
+<sc-if value="{{hintOn}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{onHint}}" style="min-width: 110px; height: 44px; padding: 0 16px; box-sizing: border-box; border-radius: 10px; border: 1px solid rgba(77,216,255,0.5); background: transparent; color: #4dd8ff; font-family: Rajdhani, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.04em; cursor: pointer">Hint</button>
+</sc-if>
+<sc-if value="{{hintOff}}" hint-placeholder-val="{{ false }}">
+<button type="button" disabled style="min-width: 110px; height: 44px; padding: 0 16px; box-sizing: border-box; border-radius: 10px; border: 1px dashed rgba(154,163,214,0.45); background: transparent; color: #7d86b8; font-family: Rajdhani, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.04em; cursor: not-allowed">Hint</button>
+</sc-if>
+<button type="button" onClick="{{onHow}}" style="min-width: 110px; height: 44px; padding: 0 16px; box-sizing: border-box; border-radius: 10px; border: 1px solid #ff4fd8; background: rgba(255,79,216,0.08); color: #ff4fd8; font-family: Rajdhani, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.04em; cursor: pointer">How to play</button>
+<button type="button" onClick="{{onNew}}" style="min-width: 110px; height: 44px; padding: 0 16px; box-sizing: border-box; border-radius: 10px; border: 0; background: #ff4fd8; color: #0a0a11; font-family: Rajdhani, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.04em; box-shadow: 0 0 14px #ff4fd855; cursor: pointer">New game</button>
+</div>
+
+<div style="display: flex; justify-content: center; padding: 8px 16px 0">
+<div role="group" aria-label="AI mode" style="width: {{bw}}px; height: 52px; box-sizing: border-box; padding: 0 3px; border-radius: 10px; border: 1px solid {{dock.edge}}; background: {{dock.bg}}; display: flex; align-items: center; gap: 8px">
+<button type="button" role="switch" aria-checked="{{aiStr}}" onClick="{{onAi}}" style="height: 44px; flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 0 6px; border: 0; border-radius: 8px; background: transparent; color: {{dock.label}}; font-family: Rajdhani, system-ui, sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.04em; cursor: pointer">
+<span aria-hidden="true" style="position: relative; display: block; width: 40px; height: 22px; border-radius: 11px; background: {{sw.track}}; box-shadow: inset 0 0 0 1px {{sw.edge}}"><span style="position: absolute; top: 3px; left: {{sw.x}}px; width: 16px; height: 16px; border-radius: 50%; background: {{sw.thumb}}; box-shadow: {{sw.glow}}"></span></span>
+AI
+</button>
+<sc-if value="{{aiOn}}" hint-placeholder-val="{{ false }}">
+<div role="group" aria-label="AI speed" style="flex: 0 0 auto; display: flex; height: 44px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(154,163,214,0.4)">
+<sc-for list="{{speeds}}" as="sp" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{sp.pressed}}" onClick="{{sp.pick}}" style="min-width: 52px; height: 44px; padding: 0 {{spPad}}px; border: 0; border-radius: 8px; background: {{sp.bg}}; box-shadow: {{sp.edge}}; color: {{sp.color}}; font-family: Rajdhani, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.04em; cursor: pointer">{{sp.label}}</button>
+</sc-for>
+</div>
+<div style="margin-left: auto; padding-right: 8px; display: flex; flex-direction: column; align-items: flex-end; font-size: 15px; line-height: 18px; font-weight: 500; white-space: nowrap">
+<span style="color: #9aa3d6; font-variant-numeric: tabular-nums">AI moves {{aiMoves}}</span>
+<span role="status" style="display: flex; align-items: center; gap: 6px; color: #ff4fd8; opacity: {{thinkOp}}"><span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: #ff4fd8; box-shadow: 0 0 8px #ff4fd8"></span>Thinking…</span>
+</div>
+</sc-if>
+</div>
+</div>
+
+<footer style="margin-top: auto; padding: 8px 16px; text-align: center; font-size: 13px; font-weight: 500; color: #9aa3d6">
+<a href="#credits" style="display: inline-block; padding: 6px 2px; color: #9aa3d6; text-decoration: underline; text-underline-offset: 2px">Credits</a> · <a href="#license" style="display: inline-block; padding: 6px 2px; color: #9aa3d6; text-decoration: underline; text-underline-offset: 2px">MIT License</a>
+</footer>
+</main>
+
+<sc-if value="{{gameOver}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center">
+<div role="dialog" aria-modal="true" aria-labelledby="vl-go-title" style="width: 300px; box-sizing: border-box; padding: 28px 24px 24px; border-radius: 10px; background: #1a1a34; border: 1px solid #4dd8ff55; box-shadow: 0 24px 64px rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center">
+<h2 id="vl-go-title" style="margin: 0 0 10px; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 20px; color: #e6e9ff">No moves left</h2>
+<div style="font-size: 22px; font-weight: 500; line-height: 28px; font-variant-numeric: tabular-nums; color: #ffffff">Score {{go.score}}</div>
+<div style="font-size: 18px; font-weight: 500; line-height: 24px; color: #e6e9ff">Level {{go.level}}</div>
+<div style="font-size: 18px; font-weight: 500; line-height: 24px; font-variant-numeric: tabular-nums; color: #9aa3d6">{{go.best}}</div>
+<sc-if value="{{go.newBest}}" hint-placeholder-val="{{ false }}">
+<div style="margin-top: 8px; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 16px; color: #ffe14d; text-shadow: 0 0 12px #ffe14d88">New best!</div>
+</sc-if>
+<button type="button" onClick="{{onNew}}" style="margin-top: 18px; min-width: 140px; height: 44px; padding: 0 20px; border: 0; border-radius: 10px; background: #4dd8ff; color: #0a0a11; font-family: Rajdhani, system-ui, sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.04em; box-shadow: 0 0 14px #4dd8ff55; outline: {{ring}}; outline-offset: 3px; cursor: pointer">Play again</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{howTo}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center">
+<div role="dialog" aria-modal="true" aria-labelledby="vl-how-title" style="width: {{dlgW}}px; height: {{dlgH}}px; box-sizing: border-box; border-radius: 10px; background: #1a1a34; border: 1px solid #4dd8ff55; box-shadow: 0 24px 64px rgba(0,0,0,0.6); display: flex; flex-direction: column; overflow: hidden">
+<h2 id="vl-how-title" style="margin: 0; padding: 22px 24px 14px; text-align: center; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 20px; color: #e6e9ff">How to play</h2>
+<div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex">
+<div style="flex: 1 1 auto; min-height: 0; overflow-y: {{howOverflow}}; scrollbar-width: thin; scrollbar-color: rgba(77,216,255,0.5) transparent; padding: 0 24px">
+<div style="margin-top: {{howShift}}px; padding: 4px 0 24px; display: flex; flex-direction: column; gap: 20px">
+
+<section>
+<h3 style="margin: 0 0 6px; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #4dd8ff">The goal</h3>
+<p style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 500">Swap two neighboring pieces to line up three or more of the same color. They clear, new pieces drop in, and every match that follows chains for more points. A swap that makes no match slides back.</p>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0 0 -4px; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #4dd8ff">Special pieces</h3>
+<div style="display: flex; gap: 12px; align-items: flex-start"><svg width="36" height="36" viewBox="0 0 100 100" aria-hidden="true" style="flex: 0 0 36px; overflow: visible"><use href="#vl-charge"></use></svg><p style="margin: 6px 0 0; font-size: 16px; line-height: 24px; font-weight: 500"><b style="font-weight: 700">Charge.</b> Made by matching 4 in a line. Clears the 3×3 area around it.</p></div>
+<div style="display: flex; gap: 12px; align-items: flex-start"><svg width="36" height="36" viewBox="0 0 100 100" aria-hidden="true" style="flex: 0 0 36px; overflow: visible"><use href="#vl-arc"></use></svg><p style="margin: 6px 0 0; font-size: 16px; line-height: 24px; font-weight: 500"><b style="font-weight: 700">Arc.</b> Made by an L or T shape. Clears its whole row and column.</p></div>
+<div style="display: flex; gap: 12px; align-items: flex-start"><svg width="36" height="36" viewBox="0 0 100 100" aria-hidden="true" style="flex: 0 0 36px; overflow: visible"><use href="#vl-prism"></use></svg><p style="margin: 6px 0 0; font-size: 16px; line-height: 24px; font-weight: 500"><b style="font-weight: 700">Prism.</b> Made by matching 5 in a line. Swap it with a colored piece to clear every piece of that color (rocks stay).</p></div>
+<p style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 500; color: #9aa3d6">Specials chain: an explosion that reaches another special sets it off.</p>
+</section>
+
+<section>
+<h3 style="margin: 0 0 6px; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #4dd8ff">The tray</h3>
+<p style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 500">Every 10 pieces of one color you clear earns a spare piece of that color. The tray holds five, and counting pauses while it’s full, so spend one. Tap a tray piece, then a plain piece on the board (or drag it there) to swap it in. Placing costs a move.</p>
+</section>
+
+<section>
+<h3 style="margin: 0 0 6px; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #4dd8ff">Rocks</h3>
+<div style="display: flex; gap: 12px; align-items: flex-start"><svg width="36" height="36" viewBox="0 0 100 100" aria-hidden="true" style="flex: 0 0 36px"><use href="#vl-rock"></use></svg><p style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 500">From level 5, gray rocks start appearing. Clear them by matching three, or with an explosion. A Prism swapped with a rock clears every rock on the board.</p></div>
+</section>
+
+<section>
+<h3 style="margin: 0 0 6px; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #4dd8ff">Levels and game over</h3>
+<p style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 500">Fill the progress bar to level up. Past level 8, refills get harder. The game ends when no move can make a match, tray placements included, so a spare piece can save you.</p>
+</section>
+
+<section>
+<h3 style="margin: 0 0 6px; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #4dd8ff">Hint and AI mode</h3>
+<p style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 500"><b style="font-weight: 700">Hint</b> shows the best moves as arrows.</p>
+<p style="margin: 4px 0 0; font-size: 16px; line-height: 24px; font-weight: 500"><b style="font-weight: 700">AI mode</b> plays for you until you switch it off.</p>
+</section>
+
+<section>
+<h3 style="margin: 0 0 6px; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #4dd8ff">Controls</h3>
+<p style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 500">Tap or click a piece, then a neighbor. Or drag (or swipe) a piece toward a neighbor.</p>
+</section>
+
+</div>
+</div>
+<sc-if value="{{howScrolled}}" hint-placeholder-val="{{ false }}">
+<div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 28px; background: linear-gradient(#1a1a34, rgba(26,26,52,0)); pointer-events: none"></div>
+<div aria-hidden="true" style="position: absolute; right: 4px; top: {{thumbTop}}px; width: 4px; height: {{thumbH}}px; border-radius: 2px; background: rgba(77,216,255,0.5)"></div>
+</sc-if>
+<div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 32px; background: linear-gradient(rgba(26,26,52,0), #1a1a34); pointer-events: none"></div>
+</div>
+<div style="padding: 14px 24px 20px; display: flex; justify-content: center; border-top: 1px solid rgba(120,140,255,0.14)">
+<button type="button" onClick="{{onGotIt}}" style="min-width: 140px; height: 44px; padding: 0 20px; border: 0; border-radius: 10px; background: #4dd8ff; color: #0a0a11; font-family: Rajdhani, system-ui, sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.04em; box-shadow: 0 0 14px #4dd8ff55; outline: {{ring}}; outline-offset: 3px; cursor: pointer">Got it</button>
+</div>
+</div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["idle","hint","ai","tray","levelup","muted","gfx","gameover","gameover-best","gameover-ai","howto","howto-scrolled"],"default":"idle","section":"State"},"device":{"editor":"enum","options":["phone","desktop"],"default":"phone","section":"State"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = this.state || {};
+    const desk = (this.props.device ?? 'phone') === 'desktop';
+    const screen = st.screen ?? this.props.screen ?? 'idle';
+    const muted = st.muted ?? (screen === 'muted');
+    const ai = st.ai ?? (screen === 'ai' || screen === 'gameover-ai');
+    const speed = st.speed ?? 'Medium';
+    const vol = st.vol ?? 80;
+
+    const c = desk ? 53 : 45;
+    const bw = 8 * c;
+    const gap = Math.round(0.3 * c);
+    const trayH = Math.round(1.2 * c);
+    const slotS = Math.round(0.9 * c);
+    const pad = Math.round(0.15 * c);
+    const piece = Math.round(0.82 * c);
+
+    const gameOver = screen.indexOf('gameover') === 0;
+    const howTo = screen.indexOf('howto') === 0;
+    const howScrolled = screen === 'howto-scrolled';
+    const gfx = screen === 'gfx';
+    const hint = screen === 'hint';
+    const trayFull = screen === 'tray';
+    const lvlUp = screen === 'levelup';
+
+    const S = {
+      idle: { score: '8,640', best: 'Best 12,480', level: 3, pct: 58, tray: 'rc', moves: 0 },
+      hint: { score: '8,640', best: 'Best 12,480', level: 3, pct: 58, tray: 'rc', moves: 0 },
+      ai: { score: '9,860', best: 'AI best 15,200', level: 3, pct: 71, tray: 'b', moves: 12 },
+      tray: { score: '6,310', best: 'Best 12,480', level: 3, pct: 40, tray: 'rbygc', moves: 0 },
+      levelup: { score: '2,150', best: 'Best 12,480', level: 2, pct: 6, tray: 'gm', moves: 0 },
+      muted: { score: '8,640', best: 'Best 12,480', level: 3, pct: 58, tray: 'rc', moves: 0 },
+      gfx: { score: '0', best: 'Best 12,480', level: 1, pct: 0, tray: '', moves: 0 },
+      gameover: { score: '7,920', best: 'Best 12,480', level: 4, pct: 44, tray: 'rc', moves: 0 },
+      'gameover-best': { score: '12,480', best: 'Best 12,480', level: 4, pct: 37, tray: 'rc', moves: 0 },
+      'gameover-ai': { score: '14,060', best: 'AI best 15,200', level: 5, pct: 52, tray: 'by', moves: 214 },
+      howto: { score: '8,640', best: 'Best 12,480', level: 3, pct: 58, tray: 'rc', moves: 0 },
+      'howto-scrolled': { score: '8,640', best: 'Best 12,480', level: 3, pct: 58, tray: 'rc', moves: 0 }
+    };
+    const s = S[screen] || S.idle;
+    const GO = {
+      gameover: { score: '7,920', level: 4, best: 'Best 12,480', newBest: false },
+      'gameover-best': { score: '12,480', level: 4, best: 'Best 12,480', newBest: true },
+      'gameover-ai': { score: '14,060', level: 5, best: 'AI best 15,200', newBest: false }
+    };
+    const go = GO[screen] || GO.gameover;
+
+    const ids = { r: 'vl-r', b: 'vl-b', y: 'vl-y', g: 'vl-g', m: 'vl-m', o: 'vl-o', c: 'vl-c', C: 'vl-charge', A: 'vl-arc', P: 'vl-prism', k: 'vl-rock' };
+    let rows = ['rbyrgmco', 'gcomybry', 'ymgbCcog', 'brcyogmb', 'oybgmrcr', 'cAmobygm', 'morcyboc', 'ybgmrocb'];
+    if (lvlUp) rows = rows.slice().reverse().map((r) => r.replace('C', 'r').replace('A', 'g'));
+    if (screen === 'gameover-ai') rows = rows.map((r, i) => (i === 3 ? 'brckogmb' : i === 6 ? 'mokcyboc' : r));
+    const cells = [];
+    rows.forEach((r) => r.split('').forEach((ch) => cells.push({ k: ids[ch], p: piece })));
+
+    const slots = [0, 1, 2, 3, 4].map((i) => {
+      const ch = s.tray[i];
+      return { s: slotS, p: Math.round(slotS * 0.82), full: !!ch, k: ch ? ids[ch] : '' };
+    });
+
+    const ctr = (col, row) => [(col + 0.5) * c, (row + 0.5) * c];
+    const arrow = (a, b) => {
+      const p1 = ctr(a[0], a[1]);
+      const p2 = ctr(b[0], b[1]);
+      const ins = c * 0.2;
+      return { x1: p1[0] + ins, y1: p1[1], x2: p2[0] - ins, y2: p2[1], lx: (p1[0] + p2[0]) / 2, ly: p1[1] - c * 0.36 };
+    };
+    const ar = { b: arrow([2, 4], [3, 4]), w1: arrow([5, 1], [6, 1]), w2: arrow([0, 6], [1, 6]) };
+
+    const hintDisabled = hint || ai || gameOver || gfx;
+    const trackW = 70;
+    const v = muted ? 0 : vol;
+    const vt = {
+      track: muted ? 'rgba(154,163,214,0.22)' : 'rgba(77,216,255,0.22)',
+      fill: Math.round(trackW * v / 100),
+      thumb: Math.round(trackW * vol / 100),
+      thumbBg: muted ? '#0a0a11' : '#4dd8ff',
+      thumbEdge: muted ? '#7d86b8' : '#4dd8ff',
+      glow: muted ? 'none' : '0 0 8px #4dd8ffaa'
+    };
+    const sw = ai
+      ? { track: 'rgba(255,79,216,0.32)', edge: '#ff4fd8', thumb: '#ff4fd8', x: 21, glow: '0 0 8px #ff4fd8aa' }
+      : { track: 'rgba(154,163,214,0.12)', edge: 'rgba(154,163,214,0.6)', thumb: '#9aa3d6', x: 3, glow: 'none' };
+    const speeds = ['Slow', 'Medium', 'Fast'].map((l) => {
+      const on = l === speed;
+      return {
+        label: l,
+        pressed: String(on),
+        bg: on ? 'rgba(255,79,216,0.16)' : 'transparent',
+        edge: on ? 'inset 0 0 0 1px #ff4fd8' : 'none',
+        color: on ? '#ff4fd8' : '#9aa3d6',
+        pick: () => this.setState({ speed: l })
+      };
+    });
+
+    const thinking = ai && !gameOver && !gfx && !howTo;
+
+    return {
+      W: desk ? 1440 : 390,
+      H: desk ? 900 : 844,
+      colW: desk ? 640 : 390,
+      scoreFs: desk ? 46 : 36,
+      barW: desk ? 360 : 358,
+      c, bw, trayH, pad,
+      trayTop: bw + gap,
+      stackH: bw + gap + trayH,
+      cells, slots, ar,
+      score: s.score,
+      bestLine: ai ? 'AI best 15,200' : s.best,
+      level: s.level,
+      pct: s.pct,
+      levelUpText: lvlUp ? 'Level 2!' : '',
+      trayText: trayFull ? 'Tray full—spend one to free a slot.' : '',
+      trayEdge: trayFull ? 'rgba(255,225,77,0.45)' : 'rgba(120,140,255,0.12)',
+      gfx, notGfx: !gfx, hint, gameOver, howTo, howScrolled,
+      hintOn: !hintDisabled, hintOff: hintDisabled,
+      muted, soundOn: !muted, mutedStr: String(muted),
+      vol, vt, sw, speeds,
+      aiStr: String(ai),
+      aiOn: ai,
+      spPad: desk ? 14 : 8,
+      dock: ai
+        ? { edge: 'rgba(255,79,216,0.45)', bg: 'rgba(255,79,216,0.06)', label: '#ff4fd8' }
+        : { edge: 'rgba(154,163,214,0.2)', bg: 'transparent', label: '#e6e9ff' },
+      aiMoves: s.moves,
+      thinkOp: thinking ? 1 : 0,
+      go,
+      ring: desk && (gameOver || howTo) ? '2px solid #ffe14d' : 'none',
+      dlgW: desk ? 600 : 358,
+      dlgH: desk ? 868 : 812,
+      howOverflow: howScrolled ? 'hidden' : 'auto',
+      howShift: howScrolled ? (desk ? -200 : -560) : 0,
+      thumbTop: desk ? 150 : 280,
+      thumbH: desk ? 560 : 330,
+      onVol: (e) => this.setState({ vol: Number(e.target.value) }),
+      onMute: () => this.setState({ muted: !muted }),
+      onAi: () => this.setState({ ai: !ai }),
+      onHint: () => {
+        this.setState({ screen: 'hint' });
+        setTimeout(() => this.setState({ screen: 'idle' }), 3200);
+      },
+      onHow: () => this.setState({ screen: 'howto' }),
+      onGotIt: () => this.setState({ screen: 'idle' }),
+      onNew: () => this.setState({ screen: 'idle' })
+    };
+  }
+}
+</script>
+</body>
+</html>

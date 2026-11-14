@@ -5,8 +5,10 @@
 import { TRAY_CAPACITY, applyMove, canPlace, isAdjacent, newGame } from '../engine';
 import type { Color, GameState, Move, Pos } from '../engine';
 import type { AIClient } from '../ai/client';
+import { MASTER_VOLUME } from '../audio/cues';
 import type { RankedMove } from '../ai/search';
 import { ANIM } from '../render/constants';
+import type { HeldDrop, InputHandlers } from '../render/input';
 import type { Action } from '../render/plan';
 import type { ScriptPlayerLike } from '../render/player';
 import { silentSound, type AISpeed, type HintViewLike, type Prefs, type PrefsStore, type SoundLike } from './ports';
@@ -28,7 +30,6 @@ export interface UiSnapshot {
   /** The AI loop is waiting on a ranking. */
   aiThinking: boolean;
   muted: boolean;
-  volume: number;
   /** Set when the game just ended: its score beat the saved best for its kind (strictly). */
   newBest: boolean;
   /** The kind of the game that last ended (AI mode moved in it), which picks the best to show. */
@@ -103,13 +104,20 @@ export class GameController {
   private disposed = false;
   private newBest = false;
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
+  /** A tray drop made while a move played, tried when the board is next idle (one at most). */
+  private held: { slot: number; at: Pos; color: Color; settle: (outcome: HeldDrop) => void } | null = null;
+  /** New games waiting for the move playing to finish before they replace the board. */
+  private newGamesWaiting = 0;
+  /** From a level-up notice to the end of its move: the board is being replaced, so the engine's
+   * board is one the player hasn't seen yet, and no drop is held for it. */
+  private boardLeaving = false;
 
   constructor(deps: GameControllerDeps) {
     this.d = deps;
     this.prefs = deps.prefs.load();
     this.audio = deps.audio ?? silentSound;
     this.audio.setMuted(this.prefs.muted);
-    this.audio.setVolume(this.prefs.volume);
+    this.audio.setVolume(MASTER_VOLUME);
     this._state = deps.initial ?? newGame(this.nextSeed());
     this.shown = this.shownFrom(this._state);
   }
@@ -136,7 +144,6 @@ export class GameController {
       aiMoves: this.aiMoves,
       aiThinking: this.aiThinking,
       muted: this.prefs.muted,
-      volume: this.prefs.volume,
       newBest: this.newBest,
       overAI: this.aiMoves > 0,
       best: { player: this.prefs.bestPlayer, ai: this.prefs.bestAI },
@@ -157,6 +164,10 @@ export class GameController {
       case 'notice':
         this.notice = a.level === undefined ? { kind: a.kind } : { kind: a.kind, level: a.level };
         if (a.kind === 'game-over') s.over = true;
+        // The board a held drop was aimed at is going away, or the game is over. Game over needs
+        // no flag: `s.over` above keeps canHoldDrop false from here on.
+        if (a.kind === 'level-up') this.boardLeaving = true;
+        if (a.kind === 'level-up' || a.kind === 'game-over') this.cancelHeld();
         if (this.noticeTimer) clearTimeout(this.noticeTimer);
         this.noticeTimer = null;
         if (a.kind === 'level-up') {
@@ -220,12 +231,33 @@ export class GameController {
     this.selected = null;
     this.selectedSlot = null;
     if (slot < this._state.tray.length && canPlace(this._state.board, this._state.tray, slot, at)) this.fire({ type: 'place', slot, at });
-    else this.emit();
+    else {
+      // A refused drop says no out loud, with the same cue a swap that makes no match plays.
+      this.audio.cue('swap-invalid');
+      this.emit();
+    }
   }
 
   /** Whether player input would be taken right now (not while a move plays, in AI mode, or over). */
   get canAcceptInput(): boolean {
     return this.acceptsInput();
+  }
+
+  /** Whether a tray drop made now can wait for the move playing (AI mode off, the game not shown
+   * over, the board not being replaced by a level-up or a waiting new game). */
+  get canHoldDrop(): boolean {
+    return this.busy && !this.aiOn && !this.disposed && !this.shown.over && !this.boardLeaving && this.newGamesWaiting === 0;
+  }
+
+  /**
+   * A tray drop (slot `slot`, showing `color`) made while a move plays. It is tried with `place`
+   * once the board is idle, against the board as it is then; it is cancelled, with no sound, by a
+   * new game, a level-up, the game ending or AI mode turning on, and none is held from a level-up
+   * notice to the end of its move (the new board isn't drawn yet). One at most: a second is cancelled.
+   */
+  placeWhenIdle(slot: number, at: Pos, color: Color): Promise<HeldDrop> {
+    if (!this.canHoldDrop || this.held) return Promise.resolve('cancelled');
+    return new Promise((settle) => { this.held = { slot, at, color, settle }; });
   }
 
   swap(a: Pos, b: Pos): void {
@@ -274,10 +306,16 @@ export class GameController {
   async newGame(): Promise<void> {
     if (!this.disposed) this.audio.cue('ui-click');
     this.endAILoop(); // a ranking for the old game must never land on the new one
-    while (this.current) {
-      const c = this.current;
-      await c.catch(() => {});
-      if (this.current === c) break; // never spin on a task whose cleanup didn't clear it
+    this.cancelHeld(); // nor a drop aimed at the old board
+    this.newGamesWaiting++; // and no new drop is held for it while the old move finishes
+    try {
+      while (this.current) {
+        const c = this.current;
+        await c.catch(() => {});
+        if (this.current === c) break; // never spin on a task whose cleanup didn't clear it
+      }
+    } finally {
+      this.newGamesWaiting--;
     }
     if (this.disposed) return;
     this.recordBest();
@@ -294,6 +332,11 @@ export class GameController {
     const dealt = this.run(() => this.d.player.show({ board, tray }));
     if (this.aiOn) this.startAILoop(); // it waits for the deal like any other move
     await dealt;
+  }
+
+  /** The click cue for chrome that doesn't change the game (the How to play button). */
+  uiClick(): void {
+    if (!this.disposed) this.audio.cue('ui-click');
   }
 
   /** Shows the AI's ranked moves for the current board. */
@@ -326,8 +369,10 @@ export class GameController {
     this.selected = null;
     this.selectedSlot = null;
     this.d.hint.clear();
-    if (on) this.startAILoop();
-    else this.endAILoop();
+    if (on) {
+      this.cancelHeld();
+      this.startAILoop();
+    } else this.endAILoop();
     this.emit();
   }
 
@@ -346,12 +391,6 @@ export class GameController {
     this.emit();
   }
 
-  setVolume(v: number): void {
-    this.savePrefs({ volume: Math.min(1, Math.max(0, v)) });
-    this.audio.setVolume(this.prefs.volume);
-    this.emit();
-  }
-
   /** The canvas changed size. Deferred to the end of the running timeline. */
   relayout(): void {
     if (this.busy) this.relayoutPending = true;
@@ -360,6 +399,7 @@ export class GameController {
 
   dispose(): void {
     this.disposed = true;
+    this.cancelHeld();
     this.endAILoop();
     this.clearNotice();
     this.d.ai.dispose();
@@ -508,6 +548,7 @@ export class GameController {
         this.report(err);
       } finally {
         this.busy = false;
+        this.boardLeaving = false;
         if (this.current === task) this.current = null;
       }
       try {
@@ -515,9 +556,34 @@ export class GameController {
       } catch (err) {
         this.report(err);
       }
+      // Idle now: a drop held through the move is tried, through `place` like any other.
+      try {
+        this.settleHeld();
+      } catch (err) {
+        this.report(err);
+      }
     });
     this.current = task;
     await task;
+  }
+
+  /** Tries the held drop against the board as it is now; a tray that moved under it cancels it. */
+  private settleHeld(): void {
+    const h = this.held;
+    if (!h) return;
+    this.held = null;
+    if (!this.acceptsInput() || this._state.tray[h.slot] !== h.color) {
+      h.settle('cancelled');
+      return;
+    }
+    this.place(h.slot, h.at);
+    h.settle(this.busy ? 'placed' : 'refused');
+  }
+
+  private cancelHeld(): void {
+    const h = this.held;
+    this.held = null;
+    h?.settle('cancelled');
   }
 
   private clearNotice(): void {
@@ -566,4 +632,17 @@ export class GameController {
   private emit(): void {
     if (!this.disposed) this.d.onChange(this.snapshot());
   }
+}
+
+/** The controller as pointer input calls it (bootstrap's wiring, and the input tests'). */
+export function inputHandlers(c: GameController): InputHandlers {
+  return {
+    tapCell: (p) => c.tapCell(p),
+    tapSlot: (slot) => c.tapSlot(slot),
+    swap: (a, b) => c.swap(a, b),
+    place: (slot, at) => c.place(slot, at),
+    canAcceptInput: () => c.canAcceptInput,
+    canHoldDrop: () => c.canHoldDrop,
+    placeWhenIdle: (slot, at, color) => c.placeWhenIdle(slot, at, color),
+  };
 }

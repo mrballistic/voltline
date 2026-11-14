@@ -1,0 +1,61 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-11-13T17:00:00Z"},
+  "title": "Voltline chrome",
+  "launch": {"view": "canvas", "page": "phone"},
+  "pages": [
+    {"id": "phone", "name": "Phone 390×844"},
+    {"id": "desktop", "name": "Desktop 1440×900"},
+    {"id": "specs", "name": "Tokens and specs"},
+    {"id": "logo", "name": "Logo"}
+  ],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 390, "h": 844, "title": "Playing · idle (interactive)", "page": "phone", "is_interactive": true},
+    "Phone-hint.dc.html": {"x": 470, "y": 0, "w": 390, "h": 844, "title": "Hint active", "page": "phone"},
+    "Phone-ai.dc.html": {"x": 940, "y": 0, "w": 390, "h": 844, "title": "AI mode · Thinking…", "page": "phone"},
+    "Phone-tray.dc.html": {"x": 1410, "y": 0, "w": 390, "h": 844, "title": "Tray full", "page": "phone"},
+    "Phone-levelup.dc.html": {"x": 1880, "y": 0, "w": 390, "h": 844, "title": "Level up", "page": "phone"},
+    "Phone-muted.dc.html": {"x": 2350, "y": 0, "w": 390, "h": 844, "title": "Muted", "page": "phone"},
+    "Phone-gfx.dc.html": {"x": 2820, "y": 0, "w": 390, "h": 844, "title": "Graphics failure", "page": "phone"},
+    "Phone-gameover.dc.html": {"x": 0, "y": 1244, "w": 390, "h": 844, "title": "Game over", "page": "phone"},
+    "Phone-gameover-best.dc.html": {"x": 470, "y": 1244, "w": 390, "h": 844, "title": "Game over · New best!", "page": "phone"},
+    "Phone-gameover-ai.dc.html": {"x": 940, "y": 1244, "w": 390, "h": 844, "title": "Game over · AI best", "page": "phone"},
+    "Phone-howto.dc.html": {"x": 1410, "y": 1244, "w": 390, "h": 844, "title": "How to play · top", "page": "phone"},
+    "Phone-howto-scrolled.dc.html": {"x": 1880, "y": 1244, "w": 390, "h": 844, "title": "How to play · scrolled", "page": "phone"},
+    "NotFound.dc.html": {"x": 2350, "y": 1244, "w": 390, "h": 844, "title": "404", "page": "phone"},
+
+    "Desktop-idle.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 900, "title": "Playing · idle (interactive)", "page": "desktop", "is_interactive": true},
+    "Desktop-hint.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 900, "title": "Hint active", "page": "desktop"},
+    "Desktop-ai.dc.html": {"x": 3040, "y": 0, "w": 1440, "h": 900, "title": "AI mode · Thinking…", "page": "desktop"},
+    "Desktop-tray.dc.html": {"x": 0, "y": 1020, "w": 1440, "h": 900, "title": "Tray full", "page": "desktop"},
+    "Desktop-levelup.dc.html": {"x": 1520, "y": 1020, "w": 1440, "h": 900, "title": "Level up", "page": "desktop"},
+    "Desktop-muted.dc.html": {"x": 3040, "y": 1020, "w": 1440, "h": 900, "title": "Muted", "page": "desktop"},
+    "Desktop-gameover.dc.html": {"x": 0, "y": 2040, "w": 1440, "h": 900, "title": "Game over", "page": "desktop"},
+    "Desktop-gameover-best.dc.html": {"x": 1520, "y": 2040, "w": 1440, "h": 900, "title": "Game over · New best!", "page": "desktop"},
+    "Desktop-gameover-ai.dc.html": {"x": 3040, "y": 2040, "w": 1440, "h": 900, "title": "Game over · AI best", "page": "desktop"},
+    "Desktop-howto.dc.html": {"x": 0, "y": 3060, "w": 1440, "h": 900, "title": "How to play · top", "page": "desktop"},
+    "Desktop-howto-scrolled.dc.html": {"x": 1520, "y": 3060, "w": 1440, "h": 900, "title": "How to play · scrolled", "page": "desktop"},
+    "Desktop-gfx.dc.html": {"x": 3040, "y": 3060, "w": 1440, "h": 900, "title": "Graphics failure", "page": "desktop"},
+    "Desktop-404.dc.html": {"x": 0, "y": 4080, "w": 1440, "h": 900, "title": "404", "page": "desktop"},
+
+    "Logo.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 1180, "title": "Logo proposal", "page": "logo"},
+    "Tokens-color.dc.html": {"x": 0, "y": 0, "w": 1200, "h": 1900, "title": "Tokens · color, glow, contrast", "page": "specs"},
+    "Tokens-type.dc.html": {"x": 1280, "y": 0, "w": 1200, "h": 2400, "title": "Tokens · type, space, motion", "page": "specs"},
+    "Components.dc.html": {"x": 2560, "y": 0, "w": 1440, "h": 2560, "title": "Component specs", "page": "specs"},
+    "Notes.dc.html": {"x": 4080, "y": 0, "w": 1200, "h": 2300, "title": "Copy changes and recommendations", "page": "specs"}
+  },
+  "order": [
+    "Main.dc.html", "Phone-hint.dc.html", "Phone-ai.dc.html", "Phone-tray.dc.html", "Phone-levelup.dc.html", "Phone-muted.dc.html", "Phone-gfx.dc.html",
+    "Phone-gameover.dc.html", "Phone-gameover-best.dc.html", "Phone-gameover-ai.dc.html", "Phone-howto.dc.html", "Phone-howto-scrolled.dc.html", "NotFound.dc.html",
+    "Desktop-idle.dc.html", "Desktop-hint.dc.html", "Desktop-ai.dc.html", "Desktop-tray.dc.html", "Desktop-levelup.dc.html", "Desktop-muted.dc.html",
+    "Desktop-gameover.dc.html", "Desktop-gameover-best.dc.html", "Desktop-gameover-ai.dc.html", "Desktop-howto.dc.html", "Desktop-howto-scrolled.dc.html", "Desktop-gfx.dc.html", "Desktop-404.dc.html",
+    "Tokens-color.dc.html", "Tokens-type.dc.html", "Components.dc.html", "Notes.dc.html", "Logo.dc.html"
+  ],
+  "notes": {
+    "phoneRow1": {"x": 0, "y": -280, "text": "Phone portrait · playing states", "kind": "title1", "maxW": 3210, "page": "phone"},
+    "phoneRow2": {"x": 0, "y": 964, "text": "Phone portrait · dialogs and edge states", "kind": "title1", "maxW": 2740, "page": "phone"},
+    "deskTitle": {"x": 0, "y": -280, "text": "Desktop · 1440×900", "kind": "title1", "maxW": 4480, "page": "desktop"},
+    "specsTitle": {"x": 0, "y": -280, "text": "Tokens, component specs, copy and recommendations", "kind": "title1", "maxW": 5280, "page": "specs"}
+  },
+  "designSystems": []
+}

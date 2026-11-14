@@ -25,7 +25,6 @@ export const AUDIO_FILES: readonly string[] = [
   'swap-invalid',
   'tray-earn',
   'tray-full',
-  'tray-lost',
   'tray-pick',
   'tray-place',
   'ui-click',

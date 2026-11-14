@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { applyMove, newGame, productiveMoves } from '../engine';
+import { applyMove, canPlace, levelTarget, newGame, productiveMoves } from '../engine';
 import type { GameState, Move, Pos, Step } from '../engine';
 import { boardWith, makeState } from '../engine/testing';
 import { createAIClient, type AIClient } from '../ai/client';
 import { rankMoves, type RankedMove } from '../ai/search';
 import { ANIM } from '../render/constants';
-import type { Action } from '../render/plan';
+import { planScript, type Action } from '../render/plan';
 import type { ScriptPlayerLike, ShownState } from '../render/player';
 import { AI_PACE, GameController, type GameControllerDeps, type UiSnapshot } from './controller';
-import type { CueName } from '../audio/cues';
+import { MASTER_VOLUME, type CueName } from '../audio/cues';
 import type { HintViewLike, Prefs, PrefsStore, SoundLike } from './ports';
 
 const SEED = 42;
@@ -133,7 +133,7 @@ function deadEnding(): GameState {
 }
 
 function memoryPrefs(initial: Partial<Prefs> = {}): PrefsStore & { saved: Prefs[] } {
-  let prefs: Prefs = { bestPlayer: 0, bestAI: 0, aiSpeed: 'medium', muted: false, volume: 0.8, ...initial };
+  let prefs: Prefs = { bestPlayer: 0, bestAI: 0, aiSpeed: 'medium', muted: false, ...initial };
   const saved: Prefs[] = [];
   return { saved, load: () => ({ ...prefs }), save: (p) => { prefs = { ...p }; saved.push({ ...p }); } };
 }
@@ -490,15 +490,17 @@ describe('GameController', () => {
 
 
   describe('sound', () => {
-    it('mute and volume prefs reach the audio engine at start and on every change', () => {
+    it('the mute pref reaches the audio engine at start and on every change; volume is the fixed default', () => {
       const audio = new FakeAudio();
-      const { c } = rig({ audio, prefs: memoryPrefs({ muted: true, volume: 0.3 }) });
-      expect(audio.calls).toEqual(['muted:true', 'volume:0.3']);
+      // A volume left in old saved prefs is ignored: there's no control to change it any more.
+      const legacy = { muted: true, volume: 0.1 } as Partial<Prefs>;
+      const { c } = rig({ audio, prefs: memoryPrefs(legacy) });
+      expect(audio.calls).toEqual(['muted:true', `volume:${MASTER_VOLUME}`]);
+      expect(MASTER_VOLUME).toBe(0.8);
+      expect(c.snapshot()).not.toHaveProperty('volume');
       audio.calls = [];
-      c.setVolume(0.55);
-      c.setVolume(2);
       c.setMuted(false);
-      expect(audio.calls).toEqual(['volume:0.55', 'volume:1', 'muted:false', 'ui-toggle']);
+      expect(audio.calls).toEqual(['muted:false', 'ui-toggle']);
     });
 
     it('ui cues fire once each, from the actions the player takes', async () => {
@@ -837,5 +839,191 @@ describe('GameController', () => {
       await ai.answer();
       expect(player.scripts).toHaveLength(0);
     });
+  });
+});
+
+describe('held tray drops', () => {
+  /** Whether `p` has settled within a tick; 'pending' if not. */
+  const settled = <T>(p: Promise<T>) => Promise.race([p, flush().then(() => 'pending' as const)]);
+  const plainOf = (s: GameState, at: Pos) => {
+    const t = s.board[at.row][at.col];
+    return t?.kind === 'gem' && t.special === 'none' ? t.color : null;
+  };
+  const cells = (): Pos[] => Array.from({ length: 64 }, (_, i) => ({ row: Math.floor(i / 8), col: i % 8 }));
+
+  /**
+   * A fresh game with two red tray pieces, a first move placing one where red makes no match (so
+   * that cell is red once it plays, and the game goes on), and a cell red can take before and after.
+   */
+  function twoReds() {
+    const base: GameState = { ...newGame(SEED), tray: ['red', 'red'] };
+    for (const at of cells()) {
+      if (!canPlace(base.board, base.tray, 0, at)) continue;
+      const first: Move = { type: 'place', slot: 0, at };
+      const after = applyMove(base, first).state;
+      if (after.over || plainOf(after, at) !== 'red' || after.tray[0] !== 'red') continue;
+      const open = cells().find((p) => canPlace(base.board, ['red'], 0, p) && canPlace(after.board, after.tray, 0, p))!;
+      const red = cells().find((p) => plainOf(base, p) === 'red')!;
+      return { base, first, at, open, red };
+    }
+    throw new Error('no fixture');
+  }
+  const heldRig = (extra: { ai?: AIClient } = {}) => {
+    const f = twoReds();
+    const audio = new FakeAudio();
+    const r = rig({ initial: f.base, audio, ...extra });
+    audio.calls = [];
+    return { ...r, ...f, audio };
+  };
+
+  it('a refused drop plays swap-invalid once; an accepted or busy one plays nothing from here', async () => {
+    const { c, audio, red, open } = heldRig();
+    c.place(0, red);
+    expect(audio.cues).toEqual(['swap-invalid']);
+    c.place(0, open);
+    expect(c.snapshot().busy).toBe(true);
+    c.place(0, red); // busy: ignored, quietly
+    expect(audio.cues).toEqual(['swap-invalid']);
+  });
+
+  it('a drop can be held only while a move plays with AI mode off', async () => {
+    const { c, player, first } = heldRig();
+    expect(c.canHoldDrop).toBe(false);
+    await expect(c.placeWhenIdle(0, first.at, 'red')).resolves.toBe('cancelled');
+    void c.submit(first);
+    expect(c.canHoldDrop).toBe(true);
+    c.setAI(true);
+    expect(c.canHoldDrop).toBe(false);
+    c.setAI(false);
+    await player.finish();
+    expect(c.canHoldDrop).toBe(false);
+  });
+
+  it('a drop held through a move does nothing until the board is idle, then places once', async () => {
+    const { c, player, audio, first, open } = heldRig();
+    void c.submit(first);
+    const out = c.placeWhenIdle(0, open, 'red');
+    expect(await settled(out)).toBe('pending');
+    expect(player.scripts).toHaveLength(1);
+    await player.finish();
+    await expect(out).resolves.toBe('placed');
+    expect(player.scripts).toHaveLength(2);
+    expect(player.scripts[1][0]).toMatchObject({ t: 'place', slot: 0, at: open });
+    expect(c.snapshot().busy).toBe(true);
+    await player.finish();
+    expect(player.scripts).toHaveLength(2);
+    expect(c.state.moves).toBe(2);
+    expect(audio.cues).toEqual([]);
+  });
+
+  it('a held drop whose cell can’t take it by idle time is refused, with the refusal cue', async () => {
+    const { c, player, audio, first, at } = heldRig();
+    void c.submit(first);
+    const out = c.placeWhenIdle(0, at, 'red'); // the cell the first move turns red
+    await player.finish();
+    await expect(out).resolves.toBe('refused');
+    expect(player.scripts).toHaveLength(1);
+    expect(audio.cues).toEqual(['swap-invalid']);
+    expect(c.canAcceptInput).toBe(true);
+  });
+
+  it('a held drop is cancelled at once, without sound, by a new game', async () => {
+    const { c, player, audio, first, open } = heldRig();
+    void c.submit(first);
+    const out = c.placeWhenIdle(0, open, 'red');
+    const ng = c.newGame();
+    await expect(out).resolves.toBe('cancelled');
+    // Nor is a new drop held for the old board while the new game waits.
+    expect(c.canHoldDrop).toBe(false);
+    await expect(c.placeWhenIdle(0, open, 'red')).resolves.toBe('cancelled');
+    await player.finish();
+    await ng;
+    expect(player.scripts).toHaveLength(1);
+    expect(audio.cues).toEqual(['ui-click']);
+  });
+
+  it('a held drop is cancelled at once, without sound, by a level-up or the game ending', async () => {
+    for (const notice of [{ a: 'notice', kind: 'level-up', level: 2 }, { a: 'notice', kind: 'game-over' }] as Action[]) {
+      const { c, player, audio, first, open } = heldRig();
+      void c.submit(first);
+      const out = c.placeWhenIdle(0, open, 'red');
+      player.emit(notice);
+      await expect(out).resolves.toBe('cancelled');
+      await player.finish();
+      expect(player.scripts).toHaveLength(1);
+      expect(audio.cues).toEqual([]);
+    }
+  });
+
+  it('a held drop is cancelled at once, without sound, when AI mode turns on', async () => {
+    const ai = new FakeAI();
+    const { c, player, audio, first, open } = heldRig({ ai });
+    void c.submit(first);
+    const out = c.placeWhenIdle(0, open, 'red');
+    c.setAI(true);
+    await expect(out).resolves.toBe('cancelled');
+    expect(audio.cues).toEqual(['ui-toggle']);
+    await player.finish();
+    expect(player.scripts).toHaveLength(1);
+    c.setAI(false);
+  });
+
+  it('one held drop at most: a second is cancelled and the first still places', async () => {
+    const { c, player, first, open, at } = heldRig();
+    void c.submit(first);
+    const one = c.placeWhenIdle(0, open, 'red');
+    await expect(c.placeWhenIdle(0, at, 'red')).resolves.toBe('cancelled');
+    await player.finish();
+    await expect(one).resolves.toBe('placed');
+    expect(player.scripts[1][0]).toMatchObject({ t: 'place', at: open });
+  });
+
+  it('a held drop whose slot no longer holds its color is cancelled, not placed', async () => {
+    const { c, player, audio, first, open } = heldRig();
+    void c.submit(first);
+    const out = c.placeWhenIdle(0, open, 'blue');
+    await player.finish();
+    await expect(out).resolves.toBe('cancelled');
+    expect(player.scripts).toHaveLength(1);
+    expect(audio.cues).toEqual([]);
+  });
+
+  it('no drop is held from a real level-up’s notice to the end of its move, so none lands on the unseen board', async () => {
+    // One productive swap (row 7 becomes R-R-R), a point short of level 2, and a red to drop.
+    const base = makeState(boardWith({ '7,1': 'R', '6,2': 'R' }), { score: levelTarget(1) - 1, tray: ['red'] });
+    const audio = new FakeAudio();
+    const { c, player } = rig({ initial: base, audio });
+    const swap = firstSwap(base);
+    const { script, state: next } = applyMove(base, swap);
+    expect(next.level).toBe(2);
+    void c.submit(swap);
+    // Play the planned actions up to the level-up notice, as the script player would.
+    const actions = planScript(script).items.map((i) => i.action);
+    const at = actions.findIndex((a) => a.a === 'notice' && a.kind === 'level-up');
+    expect(at).toBeGreaterThanOrEqual(0);
+    const target = cells().find((p) => canPlace(next.board, next.tray, 0, p))!;
+    expect(c.canHoldDrop).toBe(true); // before the notice, a drop may wait
+    for (const a of actions.slice(0, at + 1)) player.emit(a);
+    // Board-out: the old board is falling away and the engine's board is the unseen new one.
+    expect(c.canHoldDrop).toBe(false);
+    await expect(c.placeWhenIdle(0, target, 'red')).resolves.toBe('cancelled');
+    for (const a of actions.slice(at + 1)) player.emit(a);
+    expect(c.canHoldDrop).toBe(false); // still the same move, board-in included
+    await player.finish();
+    expect(player.scripts).toHaveLength(1); // nothing placed on the new board
+    expect(c.state.tray).toEqual(['red']);
+    expect(c.state.board).toEqual(next.board);
+    expect(audio.cues).not.toContain('swap-invalid');
+    // The guard ends with that move: the next one may hold a drop again.
+    void c.submit(firstSwap(c.state));
+    expect(c.canHoldDrop).toBe(true);
+  });
+
+  it('dispose cancels a held drop', async () => {
+    const { c, first, open } = heldRig();
+    void c.submit(first);
+    const out = c.placeWhenIdle(0, open, 'red');
+    c.dispose();
+    await expect(out).resolves.toBe('cancelled');
   });
 });

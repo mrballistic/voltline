@@ -87,21 +87,27 @@ await page.getByRole('button', { name: 'Hint' }).click();
 await page.waitForTimeout(1600);
 await tap(0, 0); // clears the hint
 await tap(0, 0);
-const ai = page.getByRole('switch', { name: 'AI' }).or(page.getByLabel('AI'));
-await ai.first().click();
+// Exact: a loose “AI” label match would also find the dock (“AI mode”) and the speed group.
+const ai = page.getByRole('switch', { name: 'AI', exact: true });
+await ai.click();
 await page.waitForTimeout(150);
-await ai.first().click();
+await ai.click();
 await idle(page);
-await page.getByRole('button', { name: 'Mute' }).click();
+// The button is always named “Mute”; aria-pressed says whether sound is off.
+const mute = page.getByRole('button', { name: 'Mute' });
+check(await mute.getAttribute('aria-pressed') === 'false', 'Mute starts unpressed');
+await mute.click();
 await page.waitForTimeout(100);
+check(await mute.getAttribute('aria-pressed') === 'true', 'Mute is pressed while muted');
 const mutedBefore = await audio(page);
 await tap(2, 2); // muted: no select
 await tap(2, 2);
 await page.waitForTimeout(100);
 const mutedAfter = await audio(page);
 check(mutedAfter.starts === mutedBefore.starts, `muted taps start nothing (${mutedAfter.starts - mutedBefore.starts})`);
-await page.getByRole('button', { name: 'Unmute' }).click();
+await mute.click();
 await page.waitForTimeout(100);
+check(await mute.getAttribute('aria-pressed') === 'false', 'Mute is unpressed again after unmuting');
 const a3 = await audio(page);
 const ui = count(a3.played.slice(a2.played.length));
 console.log('     ui cues:', JSON.stringify(ui));

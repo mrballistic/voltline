@@ -13,18 +13,19 @@ export function countClears(
   const nextTray = [...tray];
   const events: Step[] = [];
   for (const c of cleared) {
+    if (nextTray.length >= TRAY_CAPACITY) break; // counting pauses while the tray is full
     if (!isColor(c.key)) continue;
     const color = c.key;
     nextCounters[color] += 1;
     if (nextCounters[color] < TRAY_THRESHOLD) continue;
-    nextCounters[color] -= TRAY_THRESHOLD;
-    if (nextTray.length < TRAY_CAPACITY) {
-      const slot = nextTray.length;
-      nextTray.push(color);
-      events.push({ t: 'tray-earn', color, from: c.at, slot });
-      if (nextTray.length === TRAY_CAPACITY) events.push({ t: 'tray-full' });
+    const slot = nextTray.length;
+    nextTray.push(color);
+    events.push({ t: 'tray-earn', color, from: c.at, slot });
+    if (nextTray.length === TRAY_CAPACITY) {
+      events.push({ t: 'tray-full' });
+      for (const k of COLORS) nextCounters[k] = 0; // filling the tray starts every color over
     } else {
-      events.push({ t: 'tray-lost', color, from: c.at });
+      nextCounters[color] -= TRAY_THRESHOLD;
     }
   }
   return { counters: nextCounters, tray: nextTray, events };

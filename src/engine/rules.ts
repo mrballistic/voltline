@@ -2,11 +2,23 @@ import type { MatchShape } from './types';
 
 export const TRAY_CAPACITY = 5;
 export const TRAY_THRESHOLD = 10;
-export const ROCK_START_LEVEL = 10;
+export const ROCK_START_LEVEL = 5;
+// Past this level rocks come faster (and, from STINGY_START_LEVEL, refills turn stingy).
+const HARD_LEVEL = 8;
 
 export function rockChance(level: number): number {
   if (level < ROCK_START_LEVEL) return 0;
-  return Math.min(0.03 + 0.01 * (level - ROCK_START_LEVEL), 0.1);
+  if (level <= HARD_LEVEL) return 0.03 + 0.01 * (level - ROCK_START_LEVEL);
+  return Math.min(0.06 + 0.015 * (level - HARD_LEVEL), 0.18);
+}
+
+export const STINGY_START_LEVEL = 9;
+
+// Chance that a refill gem which would complete a 3-in-a-row is re-rolled once to a color that
+// doesn't (see gravity.ts).
+export function stinginess(level: number): number {
+  if (level < STINGY_START_LEVEL) return 0;
+  return Math.min(0.1 * (level - HARD_LEVEL), 0.6);
 }
 
 export const MATCH_BASE: Record<MatchShape, number> = { line3: 100, line4: 200, line5: 500, cross: 300 };
