@@ -31,7 +31,6 @@ export type Step =
   | { t: 'score'; chain: number; combo: number; points: number; total: number }
   | { t: 'tray-earn'; color: Color; from: Pos; slot: number }
   | { t: 'tray-full' }
-  | { t: 'tray-lost'; color: Color; from: Pos }
   | { t: 'fall'; falls: Fall[]; spawns: Spawn[] }
   | { t: 'level-up'; level: number; board: Board }
   | { t: 'game-over' };

@@ -222,6 +222,16 @@ describe('applyMove', () => {
     expect(state.moves).toBe(1);
   });
 
+  it('counting resumes from 0 after spending a piece from a full tray', () => {
+    const full = makeState(boardWith(LINE3), { tray: ['red', 'red', 'red', 'red', 'red'] });
+    const paused = applyMove(full, LINE3_SWAP).state;
+    expect(Object.values(paused.counters).every((n) => n === 0)).toBe(true);
+    expect(paused.tray).toHaveLength(5);
+    const placed = applyMove(makeState(boardWith(LINE3), { tray: ['red', 'red', 'red', 'red', 'red'] }), { type: 'place', slot: 0, at: P(7, 2) }).state;
+    expect(placed.tray).toHaveLength(4);
+    expect(placed.counters.red).toBeGreaterThanOrEqual(3);
+  });
+
   it('placement onto rock returns empty script', () => {
     const s = makeState(boardWith({ ...LINE3, '4,4': 'X' }), { tray: ['red'] });
     const r = applyMove(s, { type: 'place', slot: 0, at: P(4, 4) });

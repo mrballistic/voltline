@@ -38,7 +38,7 @@ export interface ScriptPlayerDeps {
   effects: Effects;
   audio: CueSink;
   /**
-   * Receives `score`, `notice` and `tray-lost` at their planned instants, and `tray-fly` when the
+   * Receives `score` and `notice` at their planned instants, and `tray-fly` when the
    * piece lands in its slot (so the tray, and the “tray full” notice, never run ahead of it).
    */
   onAction: (a: Action) => void;
@@ -47,7 +47,7 @@ export interface ScriptPlayerDeps {
 
 type Tl = gsap.core.Timeline;
 const S = (ms: number) => ms / 1000;
-const FORWARDED = new Set<Action['a']>(['score', 'notice', 'tray-fly', 'tray-lost']);
+const FORWARDED = new Set<Action['a']>(['score', 'notice', 'tray-fly']);
 /** Screen shake per blast kind (none with reduced motion). */
 const SHAKE: Partial<Record<Blast['kind'], { px: number; ms: number }>> = {
   charge: ANIM.chargeShake, supernova: ANIM.supernovaShake,
@@ -219,9 +219,6 @@ class PlayContext {
       case 'tray-fly':
         this.trayFly(tl, a, at, dur);
         break;
-      case 'tray-lost':
-        this.trayLost(tl, a, at, dur);
-        break;
       case 'board-out':
         this.boardOut(tl, at, dur);
         break;
@@ -378,15 +375,6 @@ class PlayContext {
       const to = this.d.tray.slotXY(slot);
       return { x: lerp(p.x, to.x, k), y: lerp(p.y, to.y, k), scale: lerp(1, this.d.tray.slotScale(), k), alpha: 1 };
     }, 'power2.inOut', () => this.d.tray.setTray(trayAfter));
-  }
-
-  /** The tray was full: the earned piece drifts up and fades away. */
-  private trayLost(tl: Tl, a: Extract<Action, { a: 'tray-lost' }>, at: number, dur: number): void {
-    const { color, from } = a;
-    this.fly(tl, color, at, dur, (k) => {
-      const p = this.d.board.cellXY(from.row - k, from.col);
-      return { x: p.x, y: p.y, scale: 1 - k / 2, alpha: 1 - k };
-    }, 'power2.out');
   }
 
   /** The whole board drops out of the bottom edge under the same gravity, fading as it goes. */

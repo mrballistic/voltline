@@ -16,7 +16,6 @@ export type Action =
   | { a: 'spawn'; piece: Piece; col: number; fromRow: number; toRow: number }
   | { a: 'land'; id: number }
   | { a: 'tray-fly'; color: Color; from: Pos; slot: number }
-  | { a: 'tray-lost'; color: Color; from: Pos }
   | { a: 'score'; total: number; points: number; chain: number; combo: number }
   | { a: 'notice'; kind: 'tray-full' | 'level-up' | 'game-over'; level?: number }
   | { a: 'board-out' } | { a: 'board-in'; board: Board }
@@ -117,13 +116,6 @@ class Planner {
         const { flyEnd } = this.current();
         this.put(flyEnd, 0, { a: 'notice', kind: 'tray-full' });
         this.cue(flyEnd, 'tray-full');
-        break;
-      }
-      case 'tray-lost': {
-        const { popsEnd } = this.current();
-        this.put(popsEnd, ANIM.trayFlyMs, { a: 'tray-lost', color: s.color, from: s.from });
-        this.cue(popsEnd + ANIM.trayFlyMs, 'tray-lost');
-        this.trayEnd = Math.max(this.trayEnd, popsEnd + ANIM.trayFlyMs);
         break;
       }
       case 'fall':
