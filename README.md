@@ -4,6 +4,8 @@ A neon match-three puzzle game with explosive special pieces, chain reactions, a
 
 **Play it:** https://voltline.mrballistic.com
 
+**Mac app:** download the disk image from the [latest release](https://github.com/mrballistic/voltline/releases/latest), open it and drag Voltline to Applications. It runs natively on Apple Silicon and Intel Macs, needs macOS 13 or later, and is signed and notarized by Apple, so it opens without a warning. It’s the same game, offline, in its own window.
+
 ![Voltline in a desktop browser: the title, score and level bar above a glowing neon board of circles, squares, triangles, hexagons, diamonds, plus signs and stars, the tray below with corner brackets around both, Hint, How to play and New game buttons, and the AI switch in its own bar](docs/screenshots/app-desktop.webp)
 
 Voltline is an original game. It has its own pieces, its own look and its own sounds; it borrows only the genre’s mechanics.
