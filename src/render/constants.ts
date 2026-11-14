@@ -25,6 +25,8 @@ export const ANIM = {
   boardOutMs: 500,
   glow: { alphaLo: 0.221, alphaHi: 0.793, scaleLo: 0.983, scaleHi: 1.031, periodS: 3.46 },
   selectPulseS: 0.9,
+  /** Seconds for one full turn of a resting Prism (body and halo together). */
+  prismSpinS: 9,
   // Hint arrows: weaker ones fade lowest-first over revealMs, then the best pulses (pulseS per
   // cycle) for holdMs. maxArrows and maxPlacements cap what is drawn (spec §7.3).
   hint: { revealMs: 1000, holdMs: 4000, maxArrows: 12, maxPlacements: 3, pulseS: 0.8 },
