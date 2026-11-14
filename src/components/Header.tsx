@@ -36,7 +36,7 @@ export default function Header({ ui, onMuted }: HeaderProps) {
       </Stack>
       <Stack spacing={0.5} sx={{ mt: 0.5, alignItems: 'center' }}>
         <ScoreDisplay score={ui?.score ?? 0} />
-        <Typography sx={{ fontSize: 15, color: 'text.secondary', fontVariantNumeric: 'tabular-nums', minHeight: 20 }}>
+        <Typography sx={{ fontSize: 15, color: 'text.secondary', fontVariantNumeric: 'tabular-nums', height: 20, lineHeight: '20px' }}>
           {ui ? `${ui.aiOn ? 'AI best' : 'Best'} ${best.toLocaleString('en-US')}` : ''}
         </Typography>
         <LevelBar level={ui?.level ?? 1} progress={ui?.levelProgress ?? 0} />

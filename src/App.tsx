@@ -74,7 +74,7 @@ export default function App() {
               disabled={failed} onToggle={actions.setAI} onSpeed={actions.setAISpeed}
             />
           </Box>
-          <Typography component="footer" sx={{ mt: 'auto', py: 1, fontSize: 13, color: 'text.secondary' }}>
+          <Typography component="footer" sx={{ mt: 'auto', py: 1, fontSize: 13, lineHeight: '16px', color: 'text.secondary' }}>
             <Link href={CREDITS_URL} target="_blank" rel="noopener noreferrer" color="inherit" sx={footerLinkSx}>Credits</Link>
             {' · '}
             <Link href={`${CREDITS_URL.replace('CREDITS.md', 'LICENSE')}`} target="_blank" rel="noopener noreferrer" color="inherit" sx={footerLinkSx}>MIT License</Link>
