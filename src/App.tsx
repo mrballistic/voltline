@@ -56,7 +56,7 @@ export default function App() {
           <BoardCanvas host={host} failed={failed} />
           <TrayNotice trayFull={ui?.trayFull ?? false} />
           <GameControls
-            busy={(ui?.busy ?? true) || (ui?.aiOn ?? false)} over={over} onHint={actions.hint} onNewGame={actions.newGame}
+            hintDisabled={(ui?.busy ?? true) || (ui?.aiOn ?? false)} over={over} onHint={actions.hint} onNewGame={actions.newGame}
             aiSlot={(
               <AIControls
                 on={ui?.aiOn ?? false} speed={ui?.aiSpeed ?? 'medium'} moves={ui?.aiMoves ?? 0} thinking={ui?.aiThinking ?? false}

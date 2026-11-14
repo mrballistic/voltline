@@ -707,6 +707,20 @@ describe('GameController', () => {
       c.setAI(false);
     });
 
+    it('a move that fails during AI mode reports once and turns AI mode off', async () => {
+      const ai = new FakeAI();
+      ai.auto = true;
+      const { c, player, errors } = rig({ ai });
+      player.play = (script) => { player.scripts.push(script); return Promise.reject(new Error('play failed')); };
+      c.setAI(true);
+      await until(() => !c.snapshot().aiOn);
+      await flush();
+      expect(errors.map((e) => (e as Error).message)).toEqual(['play failed']);
+      expect(c.snapshot()).toMatchObject({ aiOn: false, aiThinking: false, busy: false });
+      expect(c.canAcceptInput).toBe(true); // the player can take over
+      expect(player.scripts).toHaveLength(1);
+    });
+
     it('dispose stops the loop', async () => {
       const ai = new FakeAI();
       const { c, player } = rig({ ai });

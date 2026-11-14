@@ -347,8 +347,10 @@ export class GameController {
   private startAILoop(): void {
     this.endAILoop();
     const gen = this.aiGen;
+    // A failed move or hint must not leave AI mode on with nothing playing and input locked.
     this.aiLoop(gen).catch((err: unknown) => {
       if (gen === this.aiGen) this.setThinking(false);
+      if (gen === this.aiGen && this.aiOn) this.setAI(false);
       this.report(err);
     });
   }
