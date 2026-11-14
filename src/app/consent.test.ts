@@ -69,6 +69,13 @@ describe('choose', () => {
     expect(Array.from(layer[1])).toEqual(['config', GA_ID]);
   });
 
+  it('configures GA with gtag’s defaults, so cookie_domain stays auto (shared across *.mrballistic.com)', () => {
+    choose('granted');
+    const config = (window.dataLayer as IArguments[]).find((a) => a[0] === 'config')!;
+    expect(config).toHaveLength(2);
+    expect(config[2]).toBeUndefined();
+  });
+
   it('declining saves the choice and loads nothing', () => {
     choose('denied');
     expect(readConsent()).toBe('denied');

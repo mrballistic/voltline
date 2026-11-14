@@ -71,6 +71,8 @@ export function loadAnalytics(): void {
     window.dataLayer!.push(arguments);
   };
   window.gtag('js', new Date());
+  // gtag's defaults, cookie_domain 'auto' included: one GA client ID across *.mrballistic.com, as
+  // mrballistic.com intends (see ARCHITECTURE.md, Analytics and consent).
   window.gtag('config', GA_ID);
 }
 
