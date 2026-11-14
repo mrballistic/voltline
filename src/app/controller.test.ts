@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { applyMove, canPlace, newGame, productiveMoves } from '../engine';
+import { applyMove, canPlace, levelTarget, newGame, productiveMoves } from '../engine';
 import type { GameState, Move, Pos, Step } from '../engine';
 import { boardWith, makeState } from '../engine/testing';
 import { createAIClient, type AIClient } from '../ai/client';
 import { rankMoves, type RankedMove } from '../ai/search';
 import { ANIM } from '../render/constants';
-import type { Action } from '../render/plan';
+import { planScript, type Action } from '../render/plan';
 import type { ScriptPlayerLike, ShownState } from '../render/player';
 import { AI_PACE, GameController, type GameControllerDeps, type UiSnapshot } from './controller';
 import type { CueName } from '../audio/cues';
@@ -984,6 +984,37 @@ describe('held tray drops', () => {
     await expect(out).resolves.toBe('cancelled');
     expect(player.scripts).toHaveLength(1);
     expect(audio.cues).toEqual([]);
+  });
+
+  it('no drop is held from a real level-up’s notice to the end of its move, so none lands on the unseen board', async () => {
+    // One productive swap (row 7 becomes R-R-R), a point short of level 2, and a red to drop.
+    const base = makeState(boardWith({ '7,1': 'R', '6,2': 'R' }), { score: levelTarget(1) - 1, tray: ['red'] });
+    const audio = new FakeAudio();
+    const { c, player } = rig({ initial: base, audio });
+    const swap = firstSwap(base);
+    const { script, state: next } = applyMove(base, swap);
+    expect(next.level).toBe(2);
+    void c.submit(swap);
+    // Play the planned actions up to the level-up notice, as the script player would.
+    const actions = planScript(script).items.map((i) => i.action);
+    const at = actions.findIndex((a) => a.a === 'notice' && a.kind === 'level-up');
+    expect(at).toBeGreaterThanOrEqual(0);
+    const target = cells().find((p) => canPlace(next.board, next.tray, 0, p))!;
+    expect(c.canHoldDrop).toBe(true); // before the notice, a drop may wait
+    for (const a of actions.slice(0, at + 1)) player.emit(a);
+    // Board-out: the old board is falling away and the engine's board is the unseen new one.
+    expect(c.canHoldDrop).toBe(false);
+    await expect(c.placeWhenIdle(0, target, 'red')).resolves.toBe('cancelled');
+    for (const a of actions.slice(at + 1)) player.emit(a);
+    expect(c.canHoldDrop).toBe(false); // still the same move, board-in included
+    await player.finish();
+    expect(player.scripts).toHaveLength(1); // nothing placed on the new board
+    expect(c.state.tray).toEqual(['red']);
+    expect(c.state.board).toEqual(next.board);
+    expect(audio.cues).not.toContain('swap-invalid');
+    // The guard ends with that move: the next one may hold a drop again.
+    void c.submit(firstSwap(c.state));
+    expect(c.canHoldDrop).toBe(true);
   });
 
   it('dispose cancels a held drop', async () => {

@@ -108,6 +108,9 @@ export class GameController {
   private held: { slot: number; at: Pos; color: Color; settle: (outcome: HeldDrop) => void } | null = null;
   /** New games waiting for the move playing to finish before they replace the board. */
   private newGamesWaiting = 0;
+  /** From a level-up notice to the end of its move: the board is being replaced, so the engine's
+   * board is one the player hasn't seen yet, and no drop is held for it. */
+  private boardLeaving = false;
 
   constructor(deps: GameControllerDeps) {
     this.d = deps;
@@ -162,7 +165,9 @@ export class GameController {
       case 'notice':
         this.notice = a.level === undefined ? { kind: a.kind } : { kind: a.kind, level: a.level };
         if (a.kind === 'game-over') s.over = true;
-        // The board a held drop was aimed at is going away, or the game is over.
+        // The board a held drop was aimed at is going away, or the game is over. Game over needs
+        // no flag: `s.over` above keeps canHoldDrop false from here on.
+        if (a.kind === 'level-up') this.boardLeaving = true;
         if (a.kind === 'level-up' || a.kind === 'game-over') this.cancelHeld();
         if (this.noticeTimer) clearTimeout(this.noticeTimer);
         this.noticeTimer = null;
@@ -240,15 +245,16 @@ export class GameController {
   }
 
   /** Whether a tray drop made now can wait for the move playing (AI mode off, the game not shown
-   * over, no new game waiting to replace the board). */
+   * over, the board not being replaced by a level-up or a waiting new game). */
   get canHoldDrop(): boolean {
-    return this.busy && !this.aiOn && !this.disposed && !this.shown.over && this.newGamesWaiting === 0;
+    return this.busy && !this.aiOn && !this.disposed && !this.shown.over && !this.boardLeaving && this.newGamesWaiting === 0;
   }
 
   /**
    * A tray drop (slot `slot`, showing `color`) made while a move plays. It is tried with `place`
    * once the board is idle, against the board as it is then; it is cancelled, with no sound, by a
-   * new game, a level-up, the game ending or AI mode turning on. One at most: a second is cancelled.
+   * new game, a level-up, the game ending or AI mode turning on, and none is held from a level-up
+   * notice to the end of its move (the new board isn't drawn yet). One at most: a second is cancelled.
    */
   placeWhenIdle(slot: number, at: Pos, color: Color): Promise<HeldDrop> {
     if (!this.canHoldDrop || this.held) return Promise.resolve('cancelled');
@@ -549,6 +555,7 @@ export class GameController {
         this.report(err);
       } finally {
         this.busy = false;
+        this.boardLeaving = false;
         if (this.current === task) this.current = null;
       }
       try {

@@ -456,22 +456,22 @@ if (section(7, 'held drops')) {
       const r = await holdOnto(plainFor);
       check(r.busyBeforeUp && !!r.heldFlyer, `held, then ${name}: held while the first drop played`);
       const before = await played();
-      // Count the controller's place calls from here: a cancelled drop must make none.
-      await page.evaluate(() => {
-        const c = window.__voltline!.controller as unknown as { place: (...a: unknown[]) => void; places?: number };
-        const place = c.place.bind(c);
-        c.places = 0;
-        c.place = (...a) => { c.places!++; place(...a); };
-      });
       await act();
+      // Cancelled at once, not at idle: still at 0.01× and with the first drop still playing, the
+      // flyer has already left the drop point on its way home (a cancel that waited for idle, or
+      // a hold that went on to place, would leave it sitting there).
+      await page.evaluate(() => window.__voltline!.record());
+      await page.waitForTimeout(1500);
+      const early = await page.evaluate(() => window.__voltline!.stop());
+      const stillBusy = (await snap()).busy;
+      check(stillBusy && early.length > 0 && !flyerNear(early.at(-1), r.c) && !!early.at(-1)!.tray.some((q) => q.id === FLYER_ID),
+        `held, then ${name}: the flyer leaves for home at once, while the first drop still plays (${fps(early)} fps)`);
       await page.evaluate(() => window.__voltline!.timeScale(1));
       const frames = await untilFlyerGone();
       check(!frames.at(-1)?.tray.some((q) => q.id === FLYER_ID), `held, then ${name}: the flyer goes home (${fps(frames)} fps)`);
       check((await played()) === before, `held, then ${name}: no refusal sound`);
       if (name === 'AI mode') await page.evaluate(() => window.__voltline!.controller.setAI(false));
       check(await idleWithin(10_000), `held, then ${name}: the board goes idle`);
-      const places = await page.evaluate(() => (window.__voltline!.controller as unknown as { places: number }).places);
-      check(places === 0, `held, then ${name}: nothing placed (${places} place calls)`);
     });
   }
 }
