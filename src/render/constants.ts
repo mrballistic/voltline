@@ -32,6 +32,9 @@ export const ANIM = {
   reducedMotionTimeScale: 1.6,
   // Invalid swap: a short horizontal shake of both pieces once they are back (off with reduced motion).
   invalidShake: { cells: 0.07, ms: 150, cycles: 3 },
+  // Refused tray drop: the flyer shakes side to side where it was dropped, then flies home over
+  // dragReturnMs (no shake with reduced motion).
+  refuseShake: { cells: 0.07, ms: 150, cycles: 3 },
   supernovaShake: { px: 7, ms: 340 },
   // Effect-only values (src/render/effects.ts). Sizes in cells, speeds in cells/s. Effects are
   // fire-and-forget: none of these delays a play.

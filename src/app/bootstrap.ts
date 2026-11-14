@@ -130,7 +130,7 @@ export async function createGame(
     swap: (a, b) => controller.swap(a, b),
     place: (slot, at) => controller.place(slot, at),
     canAcceptInput: () => controller.canAcceptInput,
-  });
+  }, { reducedMotion });
 
   // Textures are drawn for one cell size, so a new size means new textures. The views keep every
   // sprite in place relative to the board; the controller re-snaps to the model once idle.
