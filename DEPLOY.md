@@ -40,25 +40,25 @@ A version with a hyphen (`1.1.0-rc.1`) deploys the same way and is marked a prer
 | Job | What it does |
 |---|---|
 | **Verify release tag** | Refuses the tag unless it is on `main`, matches `package.json`'s version, **and** has a section in `CHANGELOG.md`. |
-| **ci** | Calls `ci.yml`: lint, type-check, tests with coverage thresholds (`src/engine` and `src/ai`), build, a short AI bench run and a bundle hygiene check (no API keys, no LLM endpoints, no Google Fonts in `dist/`). |
-| **Deploy to production** | Builds the site on Node 26, then over SSH as `voltline-deploy`: rsyncs everything except `index.html` into `/var/www/voltline`, then rsyncs again with `--delete` so `index.html` lands last and stale hashed bundles go. Finally it smoke-tests the public site: the page has `<title>Voltline</title>`, and the first bundle named in the built `index.html` is served as 200 with a JavaScript content type. |
+| **ci** | Calls `ci.yml`: lint, type-check, tests with coverage thresholds (`src/engine` and `src/ai`), build, a short AI bench run, a bundle hygiene check (no API keys, no LLM endpoints, no Google Fonts in `dist/`) and the Playwright browser smoke test (`npm run smoke`). |
+| **Deploy to production** | Builds the site on Node 26, then over SSH as `voltline-deploy`: rsyncs everything except `index.html` into `/var/www/voltline`, then rsyncs again with `--delete` so `index.html` lands last and stale hashed bundles go. Both passes skip `/.well-known/`, where certbot's webroot renewal writes (see [Gotchas](#gotchas)). Finally it smoke-tests the public site: the page has `<title>Voltline</title>`, the first bundle named in the built `index.html` is served as 200 with a JavaScript content type, and an unknown path returns a real 404 with the 404 page as its body. |
 | **GitHub Release** | After a successful deploy, creates the release for the tag (“Voltline 1.0.0”) with that version's `CHANGELOG.md` section as its notes. It is the only job with `contents: write`, and it never sees the deploy secrets. An existing release is left alone, so hand-edited notes survive a re-run. |
 
 Deploys are serialized (`concurrency: deploy`, shared with any other workflow that uses the group), so two tags pushed close together run one after the other.
 
-CI also runs on every PR to `main` and every push to `main`. The Playwright browser smoke test (`npm run smoke`) is not wired in yet; its steps are a commented placeholder in `ci.yml`.
+CI also runs on every PR to `main` and every push to `main`. Its Playwright smoke test drives the production build under `vite preview` with the production CSP and no SPA fallback (`appType: 'mpa'`), so a missing file 404s there as it does on the server. Every job has a `timeout-minutes`, except the deploy's `ci` job, which calls a reusable workflow and can't set one; the `check` job it runs has its own.
 
 ## Production layout
 
 | | |
 |---|---|
 | Host | `mrballistic.com`, Ubuntu 24.04 LTS (shared with `initech.mrballistic.com` and other sites; nothing here touches them) |
-| Site | `https://voltline.mrballistic.com` (Apache vhost `voltline-le-ssl.conf`, Let's Encrypt via certbot) |
+| Site | `https://voltline.mrballistic.com` (Apache vhost `voltline-le-ssl.conf`, Let's Encrypt via `certbot certonly --webroot`) |
 | Files | `/var/www/voltline`, owned by `voltline-deploy`, dirs `755`, files `644` (Apache can read but not write) |
 | Logs | `/var/log/apache2/voltline-{access,error}.log` |
 | Node on the server | Not needed. The site is built in CI; the server only holds the output. |
 
-Apache serves static files only: no proxy modules, no `.htaccess` (`AllowOverride None`). The vhost has no SPA fallback (Voltline has no client-side routes): any unknown path returns a real 404 status with the funny `404.html` (`ErrorDocument 404 /404.html`), a year-long immutable cache for hashed bundles and sounds (matched by file extension), `no-cache` for `index.html` and `404.html`, HSTS, `nosniff`, a referrer policy, MIME types for `.webm` and `.m4a`, and a Content-Security-Policy matching the desktop app's: `default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:`.
+Apache serves static files only: no proxy modules, no `.htaccess` (`AllowOverride None`). The vhost has no SPA fallback (Voltline has no client-side routes): any unknown path returns a real 404 status with the funny `404.html` (`ErrorDocument 404 /404.html`), a year-long immutable cache for the hashed files under `/assets`, a one-day cache that then revalidates (`public, max-age=86400, must-revalidate`; Apache's ETag turns an unchanged file into a 304) for the sounds and icons outside `/assets`, which keep their names when replaced, `no-cache` for `index.html` and `404.html`, HSTS, `nosniff`, a referrer policy, MIME types for `.webm` and `.m4a`, and a Content-Security-Policy matching the desktop app's: `default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:`.
 
 ### The deploy user
 
@@ -112,7 +112,7 @@ For rebuilding the box from scratch. Apache and certbot already exist on the sha
 ```bash
 # 1. System packages (fresh box only)
 sudo apt update
-sudo apt install -y apache2 certbot python3-certbot-apache rsync
+sudo apt install -y apache2 certbot rsync
 
 # 2. The deploy user and the web root. No sudo rights for this user.
 sudo useradd -r -m -s /bin/bash voltline-deploy
@@ -125,9 +125,11 @@ sudo a2enmod ssl headers rewrite
 sudo cp deploy/apache-voltline.conf /etc/apache2/sites-available/voltline.conf
 sudo a2ensite voltline
 sudo apache2ctl configtest && sudo systemctl reload apache2
-sudo certbot --apache -d voltline.mrballistic.com
-# certbot's generated 443 vhost is a redirect loop here; replace it with the known-good one
+# The webroot plugin writes the challenge under /var/www/voltline/.well-known/
+# and never edits Apache config, so the 443 vhost is installed by hand.
+sudo certbot certonly --webroot -w /var/www/voltline -d voltline.mrballistic.com
 sudo cp deploy/apache-voltline-le-ssl.conf /etc/apache2/sites-available/voltline-le-ssl.conf
+sudo a2ensite voltline-le-ssl
 sudo apache2ctl configtest && sudo systemctl reload apache2
 
 # 4. Deploy key for voltline-deploy: see "CI secrets and the deploy key" above
@@ -165,10 +167,12 @@ Players who loaded the old page keep working: hashed assets are removed on the n
 What carried over from the initech pipeline and applies to a static site.
 
 - **Install the port-80 vhost before certbot.** Apache's configtest fails on a 443 block whose certificate doesn't exist yet, so the 443 vhost can only come after issuance.
-- **certbot's generated 443 vhost is unreliable.** It copies the port-80 vhost, so a redirect-only port-80 vhost yields a redirect-only 443 vhost: an infinite https to https loop. Always replace it with `deploy/apache-voltline-le-ssl.conf`.
+- **The certificate comes from `certbot certonly --webroot -w /var/www/voltline`, not `certbot --apache`.** The webroot plugin never writes Apache config, so `deploy/apache-voltline-le-ssl.conf` is the only 443 vhost (the Apache plugin would generate one by copying the redirect-only port-80 vhost, an https to https loop). Two consequences: the 443 vhost's `Include /etc/letsencrypt/options-ssl-apache.conf` relies on a file the shared server already has from its other certbot sites (on a fresh box, check it exists before `configtest`), and a renewal does not reload Apache by itself, so the box needs a deploy hook that runs `systemctl reload apache2` (`ls /etc/letsencrypt/renewal-hooks/deploy/`).
 - **Keep the ACME path out of the redirect.** The port-80 vhost redirects everything except `/.well-known/acme-challenge/`, so renewals keep working. Check with `sudo certbot renew --dry-run`.
+- **Keep `/.well-known/` out of the deploy.** Renewal writes its challenge file into `/var/www/voltline/.well-known/acme-challenge/`, inside the web root the deploy mirrors with `--delete`. Without `--exclude=/.well-known/` on both rsync passes, a deploy deletes that directory, and one that overlaps a renewal deletes the challenge file mid-check, failing the renewal.
 - **`index.html` goes last.** Uploading it first would serve a page whose hashed assets are not there yet. The workflow's two-pass rsync exists for this.
-- **A missing asset must 404.** The vhost has no `FallbackResource`, so any unknown path, including a missing file under `/assets` or `/audio`, answers 404 (with `404.html` as the body). Never add a fallback to `index.html`: HTML would be served as a JS module or a sound, and the audio loader relies on the status. The cache header is matched by file extension, not URL, so the error page never gets the immutable header.
+- **A missing asset must 404.** The vhost has no `FallbackResource`, so any unknown path, including a missing file under `/assets` or `/audio`, answers 404 (with `404.html` as the body). Never add a fallback to `index.html`: HTML would be served as a JS module or a sound. The cache headers are picked by file extension first (the URL only decides between `/assets` and the rest), so the error page, served from `/404.html`, never gets a long-lived header.
+- **Only hashed files are immutable.** Sounds and icons keep their names when they change (placeholder sounds get replaced under the same name), so they get a one-day, revalidating cache rather than the year-long immutable one, which would pin the old file in every browser that saw it.
 - **The deploy user has no sudo, on purpose.** If a future step needs Apache config or certbot, do it by hand as your admin account instead of widening the deploy user.
 - **ssh only offers keys it knows about.** A key with a non-default filename needs a `Host` entry with `IdentityFile` in `~/.ssh/config`; without one, ssh falls back to a password prompt, which the server refuses.
 - **ssh flattens its arguments into one string.** `ssh host bash -s -- "$PUBKEY"` splits the key at its spaces on the far side, which silently wrote a broken `authorized_keys` once. Copy files with `scp` instead.

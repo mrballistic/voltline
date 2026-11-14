@@ -41,6 +41,7 @@ jobs:
   verify:
     name: Verify release tag
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -68,6 +69,8 @@ jobs:
       - name: CHANGELOG has notes for the tag
         run: node scripts/release-notes.mjs "${GITHUB_REF_NAME#v}"
 
+  # A job that calls a reusable workflow can't set timeout-minutes; ci.yml's
+  # check job carries its own.
   ci:
     needs: verify
     uses: ./.github/workflows/ci.yml
@@ -76,6 +79,7 @@ jobs:
     name: Deploy to production
     needs: ci
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # The deploy secrets live in this environment, which only v* tags may
     # use (Settings → Environments → production → deployment tags). A
     # workflow on any branch, or a fork's PR, can't read them.
@@ -119,11 +123,13 @@ jobs:
       # bundles. index.html is uncached and points at the new hashes, so it
       # goes in the second pass to avoid serving a page whose assets aren't
       # there yet. The key is pinned to rrsync, so the remote path is relative
-      # to /var/www/voltline.
+      # to /var/www/voltline. /.well-known/ is never touched: certbot's
+      # webroot renewal writes its challenge files there, and --delete would
+      # otherwise remove them (and fail a renewal that overlaps a deploy).
       - name: Upload site
         run: |
-          rsync -rltz --chmod=D755,F644 --exclude=index.html dist/ deploy-target:./
-          rsync -rltz --chmod=D755,F644 --delete dist/ deploy-target:./
+          rsync -rltz --chmod=D755,F644 --exclude=/.well-known/ --exclude=index.html dist/ deploy-target:./
+          rsync -rltz --chmod=D755,F644 --exclude=/.well-known/ --delete dist/ deploy-target:./
 
       # Saved to files rather than piped into grep -q: under pipefail, grep
       # exiting early can SIGPIPE curl and fail a healthy check. The asset
@@ -156,6 +162,7 @@ jobs:
     name: GitHub Release
     needs: deploy
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
     env:
