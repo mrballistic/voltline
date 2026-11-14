@@ -72,6 +72,20 @@ describe('rankMoves', () => {
     expect(ranked.slice(1).map((r) => r.move)).toContainEqual(line3);
   });
 
+  it('ranks prism↔rock swaps and prefers them on a rock-heavy board', () => {
+    // The prism at (0,1) touches rocks (0,0) and (1,1) and a gem (0,2); nothing else on the board
+    // moves. Swapping with a rock clears all ten rocks, swapping with the gem only its color.
+    const rocks = ['0,0', '1,1', '2,3', '3,1', '3,5', '4,7', '5,0', '5,2', '6,4', '7,6'];
+    const s = makeState(boardWith({ '0,1': 'P', ...Object.fromEntries(rocks.map((k) => [k, 'X'])) }));
+    const withRock = [swap(0, 0, 0, 1), swap(0, 1, 1, 1)];
+    const withGem = swap(0, 1, 0, 2);
+    expect(productiveMoves(s)).toEqual([withRock[0], withGem, withRock[1]]);
+    const ranked = rankMoves(s);
+    expect(ranked.map((r) => r.move).slice(0, 2)).toEqual(expect.arrayContaining(withRock));
+    expect(ranked[2].move).toEqual(withGem);
+    expect(ranked[0].expectedPoints).toBeGreaterThanOrEqual(20 * (rocks.length + 1));
+  });
+
   it('avoids a move that ends the game when another exists', () => {
     // (2,4)↔(2,5) makes a magenta column at the top of col 4 and leaves the blue setup in row 3
     // alone. (3,4)↔(3,5) clears blue in row 3, which drops col 5 and breaks the magenta setup,

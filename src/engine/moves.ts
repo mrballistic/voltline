@@ -13,14 +13,14 @@ export function pieceAt(board: Board, p: Pos): Piece | null {
 
 /**
  * The swap rule shared by move listing and `applyMove`; adjacency is the caller's check.
- * A prism swaps legally with any gem or prism and never with a rock (spec §5.3), even when
- * the rock would complete a rock line.
+ * A prism swaps legally with any piece: a gem (clears its color), a prism (supernova) or a
+ * rock (clears every rock; 1.1 spec §6).
  */
 export function isLegalSwap(board: Board, a: Pos, b: Pos): boolean {
   const p = pieceAt(board, a);
   const q = pieceAt(board, b);
   if (!p || !q) return false;
-  if (p.kind === 'prism' || q.kind === 'prism') return p.kind !== 'rock' && q.kind !== 'rock';
+  if (p.kind === 'prism' || q.kind === 'prism') return true;
   return swapCreatesMatch(board, a, b);
 }
 

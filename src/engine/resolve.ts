@@ -116,7 +116,9 @@ function prismOpening(board: Board, a: Pos, b: Pos): Opening {
     return { seeds: [{ kind: 'supernova', at: b }], preCleared: [a], created: [] };
   }
   const [prismAt, partner] = fromA.kind === 'prism' ? [b, fromB] : [a, fromA];
-  if (partner.kind !== 'gem') throw new Error('prism swap partner must be a gem');
+  // Rocks aren't specials, so the blast reaches only rocks and nothing chains from them.
+  if (partner.kind === 'rock') return { seeds: [{ kind: 'prism', at: prismAt, color: 'rock' }], preCleared: [], created: [] };
+  if (partner.kind !== 'gem') throw new Error('prism swap partner must be a gem or a rock');
   if (partner.special === 'none') {
     return { seeds: [{ kind: 'prism', at: prismAt, color: partner.color }], preCleared: [], created: [] };
   }

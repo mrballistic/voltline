@@ -5,6 +5,7 @@ import type { Blast, BlastKind, Pos } from '../engine';
 import { ANIM } from './constants';
 import { PixiEffects, type EffectTextures } from './effects';
 import { PieceSprite } from './PieceSprite';
+import { effectColor } from './textures';
 import type { PieceTextures } from './textures';
 
 const FRAME_MS = 1000 / 60;
@@ -144,6 +145,7 @@ describe('PixiEffects', () => {
       blast('arc', { row: 4, col: 2 }, row(4)),
       blast('arc', { row: 7, col: 7 }, []),
       { ...blast('prism', { row: 3, col: 3 }, row(5)), color: 'cyan' },
+      { ...blast('prism', { row: 3, col: 3 }, row(2)), color: 'rock' },
       blast('prism', { row: 3, col: 3 }, []),
       blast('supernova', { row: 3, col: 4 }, [...row(0), ...row(7)]),
       blast('supernova', { row: 3, col: 4 }, []),
@@ -209,6 +211,15 @@ describe('PixiEffects', () => {
     const at = (ms: number) => seen[Math.floor(ms / FRAME_MS)];
     expect(at(3 * ANIM.prismBoltStaggerMs)).toBeLessThan(targets.length);
     for (const g of started) expect(g.blendMode).toBe('add');
+  });
+
+  it('a prism swapped with a rock throws its bolts in rock gray', () => {
+    const rocks = [{ row: 1, col: 1 }, { row: 0, col: 5 }, { row: 6, col: 2 }];
+    r.fx.blast({ ...blast('prism', { row: 1, col: 1 }, rocks), color: 'rock' }, cellXY);
+    frame();
+    const tints = new Set(r.decals().map((s) => s.tint));
+    expect(tints.has(effectColor('rock'))).toBe(true);
+    expect(r.bolts().length).toBeGreaterThan(0);
   });
 
   it('a supernova flashes the whole board', () => {
