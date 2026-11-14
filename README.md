@@ -28,7 +28,7 @@ Bigger matches leave something behind.
 |---|---|---|
 | 4 in a line | **Charge** | Clears the 3×3 area around it |
 | An L or T shape | **Arc** | Clears its whole row and column |
-| 5 in a line | **Prism** | Swap it with any colored piece to clear every piece of that color, or with a rock to clear every rock |
+| 5 in a line | **Prism** | Swap it with any colored piece to clear every piece of that color, or with a rock to clear every rock. It turns slowly while it waits (reduced motion keeps it still). |
 
 ![Special pieces on the board: Charges with a bright inner ring, Arcs with crackling edges, a rainbow Prism, gray rocks, and three pieces waiting in the tray](docs/screenshots/pieces-specials.webp)
 
@@ -62,9 +62,9 @@ The AI is a search, not a chatbot. It looks at exactly what you can see (the boa
 
 ## Controls
 
-Click or tap a piece, then a neighbor, to swap. Or just drag (or swipe) a piece toward a neighbor: the swap happens as soon as you pull past a third of a cell. Tap a tray piece, then a board piece, to place it, or drag it straight onto the board. A drag that goes nowhere eases back.
+Click or tap a piece, then a neighbor, to swap. Or just drag (or swipe) a piece toward a neighbor: the swap happens as soon as you pull past a third of a cell. Tap a tray piece, then a board piece, to place it, or drag it straight onto the board. A drag that goes nowhere eases back. A tray piece dropped where it can’t go (a piece of its own color, a special or a rock) shakes, then flies home.
 
-Your best score is saved on this device, separately for you and for AI mode. Sound can be muted or turned down from the header.
+Your best score is saved on this device, separately for you and for AI mode. Sound can be switched on or off from the header.
 Sound starts with your first tap or key press, and goes quiet while the game’s tab is in the background.
 
 <img src="docs/screenshots/app-phone.webp" alt="Voltline on a phone: the same board filling the width, with the score above and the buttons below" width="260">
