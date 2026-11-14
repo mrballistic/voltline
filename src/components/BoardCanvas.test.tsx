@@ -47,6 +47,10 @@ describe('BoardCanvas', () => {
     render(<Harness />);
     expect((await screen.findByRole('alert')).textContent).toBe('Voltline couldn’t start the graphics. Try another browser.');
     expect(GRAPHICS_FAILED).toContain('couldn’t');
+    // The broken-chip icon is decorative.
+    const icon = screen.getByTestId('graphics-failed-icon');
+    expect(icon).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByRole('alert')).toContainElement(icon);
     error.mockRestore();
   });
 
