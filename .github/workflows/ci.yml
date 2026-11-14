@@ -41,8 +41,9 @@ jobs:
       - name: Bench (AI plays a few games)
         run: npm run bench -- --games 5 --max-moves 200
 
-      # Voltline makes no network calls at runtime: no LLM, no keys, and fonts
-      # are self-hosted. Fail loudly if the bundle ever reaches for any of that.
+      # No keys, no LLM endpoints, fonts self-hosted; analytics is the one,
+      # consented, exception (web build only). Fail loudly if the bundle ever
+      # reaches for any of the others.
       - name: Bundle hygiene (no keys, no LLM endpoints, no Google Fonts)
         run: |
           if grep -rEl 'AIza[0-9A-Za-z_-]{35}|sk-ant-|generativelanguage\.googleapis|api\.anthropic\.com|fonts\.googleapis\.com' dist; then

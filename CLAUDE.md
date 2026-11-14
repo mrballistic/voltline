@@ -4,7 +4,7 @@ Guidance for Claude Code and any other agent working in this repo. Read it fully
 
 ## What this is
 
-**Voltline** is an original neon match-three game: an 8×8 board, special pieces (Charge, Arc, Prism), a collectable tray, rocks, levels, and a deterministic search AI that powers AI mode and Hint. It is a static, offline web app (React 19 + MUI 9 chrome around a PixiJS canvas). Live at https://voltline.mrballistic.com.
+**Voltline** is an original neon match-three game: an 8×8 board, special pieces (Charge, Arc, Prism), a collectable tray, rocks, levels, and a deterministic search AI that powers AI mode and Hint. It is a static web app (React 19 + MUI 9 chrome around a PixiJS canvas); the desktop app is fully offline, and the web build’s only network call is opt-in analytics. Live at https://voltline.mrballistic.com.
 
 Any older notes you may have seen about "Bejeweled.ai", an LLM player, the Anthropic API, react-dnd, MUI 6, a CSS-grid renderer or GitHub Pages describe an abandoned design. Ignore them.
 
