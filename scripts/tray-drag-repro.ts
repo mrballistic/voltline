@@ -6,6 +6,7 @@
 // started while the previous drop still plays) and probes where a press picks up a slot.
 // The pass/fail version of these paths is section 6 of scripts/input-check.ts.
 import { chromium, firefox, webkit, type Page } from '@playwright/test';
+import { DECLINED_CONSENT } from './consent';
 import { computeLayout, traySlotCenter } from '../src/render/layout';
 import type { GameState, Pos } from '../src/engine';
 import type { DebugHandle } from '../src/app/debug';
@@ -43,6 +44,7 @@ interface Case { name: string; slot: number; to: Pos; dx?: number; dy?: number; 
 const browser = await ({ chromium, firefox, webkit }[process.env.BROWSER ?? 'chromium'] ?? chromium).launch();
 const dpr = Number(process.env.DPR ?? 1);
 const page = await (await browser.newContext({ viewport: { width: 900, height: 900 }, deviceScaleFactor: dpr })).newPage();
+await page.addInitScript(DECLINED_CONSENT);
 const rows: string[] = [];
 const run = async (c: Case) => {
   await open(page);

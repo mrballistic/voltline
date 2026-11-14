@@ -230,6 +230,8 @@ npx tsx scripts/screenshot-board.ts [baseUrl] [outDir] # static board, breathing
 npx tsx scripts/effects-check.ts [baseUrl] [outDir]   # slow-motion frames and contact sheets of each effect fixture, then the supernova frame check
 ```
 
+These scripts (and `screenshot-app.ts`, `screenshot-board.ts`, `input-check.ts`, `tray-drag-repro.ts`) answer the cookie banner before the page loads, with the `DECLINED_CONSENT` init script from `scripts/consent.ts`, so their screenshots and clicks never meet it.
+
 The effects check fails if, over 2 s of the supernova at full speed, any frame is dropped or the 95th-percentile frame work is 16.7 ms or more. It gates on frame work rather than the rAF delta because with vsync on every delta reads ~16.7 ms however cheap the frame. On an Apple Silicon Mac (headless Chromium, Metal, 2× DPR): 120 frames, rAF delta p95 16.8 ms, 0 dropped, frame work p50 0.7–1.3 ms and p95 1.2–2.7 ms.
 
 ```bash
