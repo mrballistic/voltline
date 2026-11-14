@@ -57,3 +57,27 @@ export function traySlotCenter(l: Layout, slot: number): { x: number; y: number 
   const step = l.tray.w / TRAY_CAPACITY;
   return { x: l.tray.x + step * (slot + 0.5), y: l.tray.y + l.tray.h / 2 };
 }
+
+/**
+ * The four corner brackets around the board-plus-tray stack: `size`×`size` px, `offset` px
+ * outside it, `width` px stroke, `radius` px corner. They fit inside `MARGIN_PX`.
+ */
+export const FRAME_GEOMETRY = { size: 16, offset: 8, radius: 4, width: 2 } as const;
+
+/** A bracket: its outer corner (x, y) and the directions (±1) its two arms run from it. */
+export interface FrameCorner { x: number; y: number; dx: 1 | -1; dy: 1 | -1 }
+
+/** Corner brackets for `l`, top-left, top-right, bottom-left, bottom-right, in container px. */
+export function frameCorners(l: Layout): FrameCorner[] {
+  const o = FRAME_GEOMETRY.offset;
+  const left = l.board.x - o;
+  const right = l.board.x + l.board.size + o;
+  const top = l.board.y - o;
+  const bottom = l.tray.y + l.tray.h + o;
+  return [
+    { x: left, y: top, dx: 1, dy: 1 },
+    { x: right, y: top, dx: -1, dy: 1 },
+    { x: left, y: bottom, dx: 1, dy: -1 },
+    { x: right, y: bottom, dx: -1, dy: -1 },
+  ];
+}

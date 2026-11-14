@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BOARD_SIZE } from '../engine';
-import { computeLayout, traySlotCenter, type Layout } from './layout';
+import { FRAME_GEOMETRY, computeLayout, frameCorners, traySlotCenter, type Layout } from './layout';
 
 /** Everything the layout draws must sit inside the container. */
 function expectFits(l: Layout, width: number, height: number) {
@@ -80,5 +80,34 @@ describe('computeLayout', () => {
     const l = computeLayout(0, 0);
     expect(l.cellPx).toBeGreaterThanOrEqual(1);
     expect(Number.isFinite(l.board.x)).toBe(true);
+  });
+});
+
+describe('frameCorners', () => {
+  it('puts four 16 px brackets 8 px outside the board-plus-tray stack', () => {
+    expect(FRAME_GEOMETRY).toEqual({ size: 16, offset: 8, radius: 4, width: 2 });
+    const l = computeLayout(390, 844);
+    const c = frameCorners(l);
+    const left = l.board.x - 8, top = l.board.y - 8;
+    const right = l.board.x + l.board.size + 8, bottom = l.tray.y + l.tray.h + 8;
+    // Each bracket is its outer corner and the directions its two arms run.
+    expect(c).toEqual([
+      { x: left, y: top, dx: 1, dy: 1 },
+      { x: right, y: top, dx: -1, dy: 1 },
+      { x: left, y: bottom, dx: 1, dy: -1 },
+      { x: right, y: bottom, dx: -1, dy: -1 },
+    ]);
+  });
+
+  it('the brackets fit inside the container at every size the layout handles', () => {
+    for (const [w, h] of [[390, 844], [1440, 900], [320, 480], [1200, 400], [777, 613], [360, 740], [1440, 528], [390, 452]]) {
+      const l = computeLayout(w, h);
+      for (const k of frameCorners(l)) {
+        expect(k.x).toBeGreaterThanOrEqual(0);
+        expect(k.y).toBeGreaterThanOrEqual(0);
+        expect(k.x).toBeLessThanOrEqual(w);
+        expect(k.y).toBeLessThanOrEqual(h);
+      }
+    }
   });
 });
