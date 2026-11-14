@@ -14,38 +14,64 @@ class CountingTarget extends EventTarget {
   }
 }
 
+type State = AudioContextState | 'none' | 'interrupted';
+
 function setup() {
   const calls: string[] = [];
-  const engine = { unlock: () => calls.push('unlock'), suspend: () => calls.push('suspend'), resume: () => calls.push('resume') };
+  // unlock creates a running context, as a real one does inside a gesture.
+  const engine = {
+    state: 'none' as State,
+    unlock() { calls.push('unlock'); this.state = 'running'; },
+    suspend() { calls.push('suspend'); this.state = 'suspended'; },
+    resume() { calls.push('resume'); this.state = 'running'; },
+  };
   const win = new CountingTarget();
   const doc = Object.assign(new CountingTarget(), { hidden: false });
-  const detach = attachAudioLifecycle(engine, win, doc);
-  const fire = (t: EventTarget, type: string) => t.dispatchEvent(new Event(type));
-  return { calls, win, doc, detach, fire };
+  const detach = attachAudioLifecycle(engine as Parameters<typeof attachAudioLifecycle>[0], win, doc);
+  const fire = (t: EventTarget, type: string, extra: Record<string, unknown> = {}) =>
+    t.dispatchEvent(Object.assign(new Event(type), extra));
+  return { calls, engine, win, doc, detach, fire };
 }
 
 describe('attachAudioLifecycle', () => {
-  it('unlocks on the first tap and removes its unlock listeners after it', () => {
-    const { calls, win, fire } = setup();
+  it('no context before the first gesture; a mouse press creates it', () => {
+    const { calls, engine, win, fire } = setup();
+    expect(engine.state).toBe('none');
+    fire(win, 'pointermove', { pointerType: 'mouse' });
     expect(calls).toEqual([]);
-    fire(win, 'pointerdown');
+    fire(win, 'pointerdown', { pointerType: 'mouse' });
     expect(calls).toEqual(['unlock']);
-    // Touch only grants audio permission when the tap ends, so the pointerup unlocks again, then stops.
-    fire(win, 'pointerup');
-    expect(calls).toEqual(['unlock', 'unlock']);
-    expect(win.live).toBe(0);
-    fire(win, 'pointerdown');
-    fire(win, 'pointerup');
-    fire(win, 'keydown');
-    expect(calls).toEqual(['unlock', 'unlock']);
+    fire(win, 'pointerup', { pointerType: 'mouse' });
+    fire(win, 'pointerdown', { pointerType: 'mouse' });
+    expect(calls).toEqual(['unlock']); // running: later gestures do nothing
   });
 
-  it('a first key press unlocks and removes the listeners too', () => {
+  it('a touch pointerdown does not create the context; its pointerup does', () => {
     const { calls, win, fire } = setup();
-    fire(win, 'keydown');
-    fire(win, 'pointerdown');
+    fire(win, 'pointerdown', { pointerType: 'touch' });
+    expect(calls).toEqual([]);
+    fire(win, 'pointerup', { pointerType: 'touch' });
     expect(calls).toEqual(['unlock']);
-    expect(win.live).toBe(0);
+    fire(win, 'pointerdown', { pointerType: 'pen' });
+    fire(win, 'pointerup', { pointerType: 'pen' });
+    expect(calls).toEqual(['unlock']);
+  });
+
+  it('a key press unlocks (Escape is not a gesture)', () => {
+    const { calls, win, fire } = setup();
+    fire(win, 'keydown', { key: 'Escape' });
+    expect(calls).toEqual([]);
+    fire(win, 'keydown', { key: 'a' });
+    expect(calls).toEqual(['unlock']);
+  });
+
+  it('a later gesture resumes a context that stopped running (iOS interruption)', () => {
+    const { calls, engine, win, fire } = setup();
+    fire(win, 'keydown', { key: 'Enter' });
+    engine.state = 'interrupted';
+    fire(win, 'pointerup', { pointerType: 'touch' });
+    expect(calls).toEqual(['unlock', 'unlock']);
+    expect(engine.state).toBe('running');
   });
 
   it('suspends while the tab is hidden and resumes on return', () => {
@@ -57,7 +83,7 @@ describe('attachAudioLifecycle', () => {
     expect(calls).toEqual(['suspend', 'resume']);
   });
 
-  it('detach removes every listener, unlock and visibility alike', () => {
+  it('detach removes every listener, gesture and visibility alike', () => {
     const { calls, win, doc, detach, fire } = setup();
     expect(win.live).toBeGreaterThan(0);
     expect(doc.live).toBe(1);
@@ -65,7 +91,7 @@ describe('attachAudioLifecycle', () => {
     detach(); // twice is harmless
     expect(win.live).toBe(0);
     expect(doc.live).toBe(0);
-    fire(win, 'pointerdown');
+    fire(win, 'pointerdown', { pointerType: 'mouse' });
     doc.hidden = true;
     fire(doc, 'visibilitychange');
     expect(calls).toEqual([]);

@@ -5,9 +5,9 @@
 // tap unlocks and plays `select`; moves, Hint, the AI switch and mute play their cues; a hidden
 // tab starts nothing, even with a move playing, and coming back plays no backlog. Fails on any
 // console error, or any warning other than the dev-only "[audio] missing" ones, which it lists.
-// Playwright's Chromium lets an AudioContext run without a gesture whatever the autoplay flags
-// (headless or headed), so what this can check is the engine's own gate: nothing starts before
-// the first input. The context's state before it is printed for information.
+// No AudioContext exists before the first gesture (the engine only fetches until then), so its
+// state reads `none`. Playwright's Chromium would let a context run without a gesture whatever the
+// autoplay flags, so the browser's own gate isn't observable here; the engine's is.
 import { chromium, type Page } from '@playwright/test';
 import type { DebugHandle } from '../src/app/debug';
 
@@ -31,13 +31,14 @@ page.on('console', (m) => {
 });
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
 // Every real source start, whatever started it.
-await page.addInitScript(() => {
+const countStarts = () => {
   const start = AudioBufferSourceNode.prototype.start;
   AudioBufferSourceNode.prototype.start = function (...args: Parameters<typeof start>) {
     window.__starts = (window.__starts ?? 0) + 1;
     return start.apply(this, args);
   };
-});
+};
+await page.addInitScript(countStarts);
 await page.goto(`${base}?seed=7`);
 await page.waitForFunction(() => window.__voltline !== undefined);
 await idle(page);
@@ -45,17 +46,20 @@ await page.waitForTimeout(500); // let the files decode
 
 const a0 = await audio(page);
 check(a0.starts === 0 && a0.played.length === 0, `silent before any input (${a0.starts} starts)`);
-console.log(`     context before input: ${a0.state}`);
+check(a0.state === 'none', `no audio context before the first gesture (${a0.state})`);
 
 const box = (await page.locator('canvas').boundingBox())!;
 const g = await page.evaluate(() => window.__voltline!.geometry());
 const at = (row: number, col: number) => ({ x: box.x + g.boardX + (col + 0.5) * g.cellPx, y: box.y + g.boardY + (row + 0.5) * g.cellPx });
 const tap = (row: number, col: number) => page.mouse.click(at(row, col).x, at(row, col).y);
 
-// 1. The first tap unlocks; a second tap on the same cell deselects (quiet), so the board is untouched.
+// 1. The first tap creates the context, and its own select still plays (held until the context
+// runs and the file decodes). A second tap on the same cell deselects (quiet).
 await tap(0, 0);
 await page.waitForFunction(() => window.__voltline!.audio().state === 'running');
-await page.waitForTimeout(100);
+await page.waitForTimeout(300);
+const first = await audio(page);
+check(first.played.join() === 'select', `the first tap’s own select played once (${first.played.join(', ') || 'nothing'})`);
 await tap(0, 0);
 await tap(3, 3);
 const a1 = await audio(page);
@@ -135,6 +139,24 @@ await page.waitForTimeout(100);
 const h3 = await audio(page);
 check(h3.starts > h2.starts, 'sound is back after the tab returns');
 await tap(4, 4);
+
+// 5. Touch: a phone-sized touch page; one tap creates the context on its pointerup, and its select plays.
+const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })).newPage();
+phone.on('pageerror', (e) => errors.push(`phone pageerror: ${e.message}`));
+await phone.addInitScript(countStarts);
+await phone.goto(`${base}?seed=7`);
+await phone.waitForFunction(() => window.__voltline !== undefined);
+await idle(phone);
+await phone.waitForTimeout(500);
+check((await audio(phone)).state === 'none', 'touch: no audio context before the first tap');
+const pbox = (await phone.locator('canvas').boundingBox())!;
+const pg = await phone.evaluate(() => window.__voltline!.geometry());
+await phone.touchscreen.tap(pbox.x + pg.boardX + 2.5 * pg.cellPx, pbox.y + pg.boardY + 2.5 * pg.cellPx);
+await phone.waitForFunction(() => window.__voltline!.audio().state === 'running');
+await phone.waitForTimeout(300);
+const touched = await audio(phone);
+check(touched.played.join() === 'select' && touched.starts === 1, `touch: the first tap’s select played once (${touched.played.join(', ') || 'nothing'})`);
+await phone.close();
 
 // The engine's log and the real source starts agree.
 check(h3.starts === h3.played.length, `every logged cue is a real source start (${h3.played.length} vs ${h3.starts})`);
