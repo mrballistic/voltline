@@ -28,7 +28,7 @@ Bigger matches leave something behind.
 |---|---|---|
 | 4 in a line | **Charge** | Clears the 3×3 area around it |
 | An L or T shape | **Arc** | Clears its whole row and column |
-| 5 in a line | **Prism** | Swap it with any piece to clear every piece of that color |
+| 5 in a line | **Prism** | Swap it with any colored piece to clear every piece of that color |
 
 ![Special pieces on the board: Charges with a bright inner ring, Arcs with crackling edges, a rainbow Prism, gray rocks, and three pieces waiting in the tray](docs/screenshots/pieces-specials.webp)
 
