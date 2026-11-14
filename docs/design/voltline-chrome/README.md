@@ -16,7 +16,7 @@ These are `.dc.html` files for the canvas runtime, so they don’t render on the
 | `Components.dc.html` | Button state matrix and per-component specs. |
 | `Notes.dc.html` | What changed, copy changes, recommendations, MUI theme sketch, open questions. |
 | `Logo.dc.html` | Logo proposal: construction, lockups, icon sizes, one-color versions. |
-| `logo-app-icon.svg` | 1024 app-icon master with the V mark (proposal). |
+| `logo-app-icon.svg` | 1024 app-icon master with the V mark. Adopted: the desktop icon renders from a copy, `src-tauri/icons/source.svg`. |
 | `canvas.json` | Canvas layout index. |
 
 The board pieces and hint arrows drawn in the mockups are context only; the PixiJS renderer owns them.

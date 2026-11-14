@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- Voltline app-icon master with the V mark (proposal; today's icon is src-tauri/icons/source.svg). -->
+  <!-- Voltline app-icon master with the V mark. The desktop icon renders from a copy, src-tauri/icons/source.svg (scripts/render-icon.ts). -->
   <defs>
     <linearGradient id="arc" x1="10" y1="0" x2="80" y2="0" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#4dd8ff"/>

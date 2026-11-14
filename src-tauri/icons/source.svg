@@ -1,50 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <!-- Voltline app icon: the Prism's gradient ring around a magenta diamond, on the
-       dark circuit-grid page. Shapes and colors come from the piece reference art
-       (docs/superpowers/specs/assets/voltline-pieces-reference.html, symbols v5 and v9).
-       The tile follows the macOS icon grid: an 824 px rounded square centered in 1024.
-       Render with `npx tsx scripts/render-icon.ts`. -->
+  <!-- Voltline app icon: the V mark on the dark circuit-grid page. A copy of the design master
+       docs/design/voltline-chrome/logo-app-icon.svg (with an explicit 1024 px size for rendering);
+       change the master and copy it here. Render with `npx tsx scripts/render-icon.ts`. -->
   <defs>
-    <clipPath id="tile"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
-    <radialGradient id="page" cx="50%" cy="42%" r="70%">
-      <stop offset="0" stop-color="#1a1a33"/>
-      <stop offset="1" stop-color="#0a0a11"/>
-    </radialGradient>
-    <pattern id="grid" width="58.86" height="58.86" patternUnits="userSpaceOnUse" x="100" y="100">
-      <path d="M58.86 0 V58.86 M0 58.86 H58.86" stroke="rgba(120,140,255,.10)" stroke-width="2" fill="none"/>
-    </pattern>
-    <linearGradient id="prism" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ff3b5c"/>
-      <stop offset=".33" stop-color="#ffe14d"/>
-      <stop offset=".66" stop-color="#3bffb0"/>
-      <stop offset="1" stop-color="#4d7bff"/>
+    <linearGradient id="arc" x1="10" y1="0" x2="80" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4dd8ff"/>
+      <stop offset="1" stop-color="#ff4fd8"/>
     </linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#788cff" stroke-opacity=".1" stroke-width="2"/>
+    </pattern>
     <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="12" result="b"/>
+      <feGaussianBlur stdDeviation="3.2" result="b"/>
       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <filter id="halo" x="-60%" y="-60%" width="220%" height="220%">
-      <feGaussianBlur stdDeviation="46"/>
-    </filter>
   </defs>
-
-  <g clip-path="url(#tile)">
-    <rect x="100" y="100" width="824" height="824" fill="url(#page)"/>
-    <rect x="100" y="100" width="824" height="824" fill="url(#grid)"/>
-
-    <!-- soft halos behind the ring and the gem -->
-    <circle cx="512" cy="512" r="262" fill="none" stroke="url(#prism)" stroke-width="96" opacity=".55" filter="url(#halo)"/>
-    <polygon points="512,358 640,512 512,666 384,512" fill="#ff4fd8" opacity=".45" filter="url(#halo)"/>
-
-    <!-- the Prism ring -->
-    <circle cx="512" cy="512" r="262" fill="none" stroke="url(#prism)" stroke-width="62" filter="url(#glow)"/>
-
-    <!-- the magenta diamond piece -->
-    <polygon points="512,358 640,512 512,666 384,512" fill="#ff4fd8" fill-opacity=".16"
-             stroke="#ff4fd8" stroke-width="30" stroke-linejoin="round" filter="url(#glow)"/>
-    <polygon points="512,412 594,512 512,612 430,512" fill="none" stroke="#ffd6f5" stroke-opacity=".55" stroke-width="6" stroke-linejoin="round"/>
-
-    <!-- inner edge highlight on the tile -->
-    <rect x="100" y="100" width="824" height="824" rx="185" fill="none" stroke="rgba(160,175,255,.18)" stroke-width="4"/>
+  <rect x="40" y="40" width="944" height="944" rx="210" fill="#0a0a11"/>
+  <rect x="40" y="40" width="944" height="944" rx="210" fill="url(#grid)"/>
+  <rect x="41" y="41" width="942" height="942" rx="209" fill="none" stroke="#4dd8ff" stroke-opacity=".3" stroke-width="4"/>
+  <g transform="translate(195 174) scale(7.2)" filter="url(#glow)">
+    <path d="M16 20 L44 80 L60 48 L48 48 L72 14" fill="none" stroke="url(#arc)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="16" cy="20" r="6.5" fill="#0a0a11" stroke="#4dd8ff" stroke-width="4.5"/>
+    <circle cx="72" cy="14" r="6.5" fill="#0a0a11" stroke="#ff4fd8" stroke-width="4.5"/>
   </g>
 </svg>

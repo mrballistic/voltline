@@ -1,14 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- Voltline favicon: the Prism ring around a magenta diamond (simplified from src-tauri/icons/source.svg). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Voltline favicon: the V mark for 16–32 px (public/logo-mark-small.svg), pads dropped, stroke thickened, on the page color. -->
   <defs>
-    <linearGradient id="prism" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ff3b5c"/>
-      <stop offset=".33" stop-color="#ffe14d"/>
-      <stop offset=".66" stop-color="#3bffb0"/>
-      <stop offset="1" stop-color="#4d7bff"/>
+    <linearGradient id="vl-arc-s" x1="10" y1="0" x2="80" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4dd8ff"/>
+      <stop offset="1" stop-color="#ff4fd8"/>
     </linearGradient>
   </defs>
-  <rect x="40" y="40" width="944" height="944" rx="210" fill="#0a0a11"/>
-  <circle cx="512" cy="512" r="300" fill="none" stroke="url(#prism)" stroke-width="90"/>
-  <polygon points="512,350 650,512 512,674 374,512" fill="#ff4fd8" fill-opacity=".25" stroke="#ff4fd8" stroke-width="42" stroke-linejoin="round"/>
+  <rect width="100" height="100" rx="22" fill="#0a0a11"/>
+  <g transform="translate(6 3)">
+    <path d="M16 20 L44 80 L60 48 L48 48 L72 14" fill="none" stroke="url(#vl-arc-s)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
 </svg>
