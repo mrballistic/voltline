@@ -58,7 +58,7 @@ export default function App() {
           <BoardCanvas host={host} failed={failed} />
           <TrayNotice trayFull={ui?.trayFull ?? false} />
           <GameControls
-            hintDisabled={(ui?.busy ?? true) || (ui?.aiOn ?? false)} over={over} onHint={actions.hint} onNewGame={actions.newGame}
+            hintDisabled={failed || (ui?.busy ?? true) || (ui?.aiOn ?? false)} over={over} onHint={actions.hint} onNewGame={actions.newGame}
             onHowToPlay={() => { actions.uiClick(); setHelpOpen(true); }}
           />
           <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', pt: 1 }}>

@@ -1,28 +1,39 @@
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
-import { NEON } from '../theme';
+import { CHROME, NEON } from '../theme';
+
+// Height, min width, focus ring, press and disabled styles come from the theme.
+const hintSx = {
+  borderColor: 'rgba(77,216,255,0.5)',
+  '&:hover': { borderColor: NEON.cyan, bgcolor: 'rgba(77,216,255,0.08)' },
+  '&:active': { bgcolor: 'rgba(77,216,255,0.16)' },
+} as const;
+const howToSx = {
+  borderColor: NEON.magenta, bgcolor: 'rgba(255,79,216,0.08)',
+  '&:hover': { borderColor: NEON.magenta, bgcolor: 'rgba(255,79,216,0.14)' },
+  '&:active': { bgcolor: 'rgba(255,79,216,0.22)' },
+} as const;
+const newGameSx = {
+  bgcolor: NEON.magenta, color: CHROME.page, boxShadow: `0 0 14px ${NEON.magenta}55`,
+  '&:hover': { bgcolor: CHROME.magentaHover, boxShadow: `0 0 18px ${NEON.magenta}88` },
+  '&:active': { bgcolor: CHROME.magentaPressed },
+} as const;
 
 /** Hint, How to play and New game under the tray. The AI dock is its own block below (App). */
 export default function GameControls(
   { hintDisabled, over, onHint, onNewGame, onHowToPlay }: { hintDisabled: boolean; over: boolean; onHint(): void; onNewGame(): void; onHowToPlay(): void },
 ) {
   return (
-    <Stack sx={{ width: '100%', alignItems: 'center', pt: 0.5 }}>
-      <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'center' }}>
-        <Button variant="outlined" color="primary" disabled={hintDisabled || over} onClick={onHint} sx={{ minWidth: 110 }}>
-          Hint
-        </Button>
-        <Button variant="outlined" color="secondary" onClick={onHowToPlay} sx={{ minWidth: 110 }}>
-          How to play
-        </Button>
-        <Button
-          variant="contained"
-          onClick={onNewGame}
-          sx={{ minWidth: 110, bgcolor: NEON.magenta, color: '#0a0a11', '&:hover': { bgcolor: '#ff7be3' } }}
-        >
-          New game
-        </Button>
-      </Stack>
+    <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'center', pt: 0.5 }}>
+      <Button variant="outlined" color="primary" disabled={hintDisabled || over} onClick={onHint} sx={hintSx}>
+        Hint
+      </Button>
+      <Button variant="outlined" color="secondary" onClick={onHowToPlay} sx={howToSx}>
+        How to play
+      </Button>
+      <Button variant="contained" onClick={onNewGame} sx={newGameSx}>
+        New game
+      </Button>
     </Stack>
   );
 }
