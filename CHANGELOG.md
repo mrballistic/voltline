@@ -7,7 +7,7 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 ### Changed
 
 - A refreshed look around the board (the chrome redesign). Every button, switch and speed toggle is at least 44 px tall, so they’re easier to hit; on a 1440×900 desktop the board shrinks a little to make room (cells of 53 px instead of 56).
-- The AI controls have their own dock under the buttons, as wide as the board. With AI mode off it shows only the switch; switch it on and the speed toggle, the move counter and “Thinking…” appear. The dock never changes height, so the board doesn’t move.
+- The AI controls have their own dock under the buttons, as wide as the board. With AI mode off it shows only the switch; switch it on and the speed toggle, the move counter and “Thinking…” appear. The dock never changes height, so the board doesn’t move, and it and the buttons fit phones as narrow as 320 px.
 - Keyboard focus shows the same yellow ring on every control, the 404 page included.
 - Disabled buttons, such as Hint while a move plays, are drawn in a readable gray-blue with a dashed border instead of fading out.
 - Dialogs sit on a flat dark surface. “No moves left” is a centered column, and How to play fades out at its scrolling edges, with a hairline above Got it.
@@ -18,7 +18,7 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 - Corner brackets frame the board and tray, and the tray’s border turns yellow while it’s full. The tray-full notice fades in and out.
 - If the graphics can’t start, the message sits in a board-sized panel with an icon.
 - The footer links are bigger targets.
-- The favicon and the desktop app icon are the V mark.
+- The favicon and the desktop app icon are the V mark; the app icon sits on the macOS icon grid, the same size as other apps in the Dock.
 
 ### Fixed
 
