@@ -2,6 +2,14 @@
 
 All notable changes to Voltline are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 1.0.1 (2026-11-13)
+
+The first public release. Version 1.0.0 was tagged but never deployed: its release checks timed out on a slow test.
+
+### Fixed
+
+- The release checks no longer time out on GitHub’s runners: the move-generation reference test has an explicit 30 s limit, and every test gets 15 s (deterministic engine and AI tests are slower with coverage on).
+
 ## 1.0.0 (2026-11-13)
 
 The first release of Voltline, an original neon match-three game. Play it at https://voltline.mrballistic.com, or build the macOS app (see `BUILDING.md`).

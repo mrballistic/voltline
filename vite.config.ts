@@ -9,6 +9,9 @@ export default defineConfig({
   appType: 'mpa',
   test: {
     environment: 'node',
+    // CI runners with coverage on are several times slower than a dev Mac;
+    // the engine/AI oracle and search tests are deterministic, just heavy.
+    testTimeout: 15_000,
     setupFiles: ['./src/test/setup.ts'],
     // Agent worktrees live inside the repo; never collect their copies of the tests.
     exclude: ['**/node_modules/**', '**/dist/**', '.claude/**', '.worktrees/**', 'scripts/smoke.spec.ts'],

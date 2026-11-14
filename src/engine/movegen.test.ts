@@ -146,5 +146,5 @@ describe('move generation fast path', () => {
     expect(boards).toBeGreaterThanOrEqual(500);
     expect(swapsChecked).toBe(boards * 112);
     expect(productiveSeen).toBeGreaterThan(boards); // the fixtures are not all dead boards
-  });
+  }, 30_000); // ~580 boards; can take ~7 s on a CI runner with coverage on
 });
