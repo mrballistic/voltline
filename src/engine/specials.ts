@@ -1,7 +1,9 @@
 import { BOARD_SIZE, COLORS } from './types';
-import type { Blast, BlastKind, Board, Color, MatchGroup, MatchShape, Pos } from './types';
+import type { Blast, BlastKind, Board, Color, MatchGroup, MatchKey, MatchShape, Pos } from './types';
+import { matchKeyOf } from './matches';
 
-export interface BlastSeed { at: Pos; kind: BlastKind; color?: Color }
+/** A prism seed's `color` is what it clears (`'rock'` for every rock); unset, the most common color. */
+export interface BlastSeed { at: Pos; kind: BlastKind; color?: MatchKey }
 
 const keyOf = (p: Pos) => `${p.row},${p.col}`;
 
@@ -77,7 +79,7 @@ export function mostCommonColor(board: Board): Color | null {
 }
 
 // Every non-null cell a blast reaches, row-major.
-function blastArea(board: Board, kind: BlastKind, at: Pos, color: Color | undefined): Pos[] {
+function blastArea(board: Board, kind: BlastKind, at: Pos, color: MatchKey | undefined): Pos[] {
   const area: Pos[] = [];
   for (let row = 0; row < BOARD_SIZE; row++) {
     for (let col = 0; col < BOARD_SIZE; col++) {
@@ -88,7 +90,7 @@ function blastArea(board: Board, kind: BlastKind, at: Pos, color: Color | undefi
         kind === 'supernova' ? true
         : kind === 'charge' ? Math.abs(row - at.row) <= 1 && Math.abs(col - at.col) <= 1
         : kind === 'arc' ? row === at.row || col === at.col
-        : self || (color !== undefined && p.kind === 'gem' && p.color === color);
+        : self || (color !== undefined && matchKeyOf(p) === color);
       if (reached) area.push({ row, col });
     }
   }
@@ -107,7 +109,7 @@ export function resolveBlasts(
 ): { blasts: Blast[]; cells: Pos[] } {
   const claimed = new Set(alreadyCleared);
   const triggered = new Set(seeds.map((s) => keyOf(s.at)));
-  const queue: { kind: BlastKind; at: Pos; color?: Color; order: number }[] = seeds.map((s) => ({
+  const queue: { kind: BlastKind; at: Pos; color?: MatchKey; order: number }[] = seeds.map((s) => ({
     kind: s.kind, at: s.at, order: 0,
     color: s.kind === 'prism' ? (s.color ?? mostCommonColor(board) ?? undefined) : undefined,
   }));

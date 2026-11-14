@@ -16,7 +16,7 @@ import type { Blast } from '../engine';
 import type { Effects } from '../app/ports';
 import { ANIM } from './constants';
 import type { PieceSprite } from './PieceSprite';
-import { PIECE_COLORS } from './textures';
+import { PIECE_COLORS, effectColor } from './textures';
 
 const FX = ANIM.fx;
 const S = (ms: number) => ms / 1000;
@@ -164,7 +164,7 @@ export class PixiEffects implements Effects {
       switch (b.kind) {
         case 'charge': this.charge(tl, b, cellXY); break;
         case 'arc': this.arc(tl, b, cellXY); break;
-        case 'prism': this.prism(tl, b, cellXY, () => (b.color ? PIECE_COLORS[b.color] : WHITE)); break;
+        case 'prism': this.prism(tl, b, cellXY, () => (b.color ? effectColor(b.color) : WHITE)); break;
         case 'supernova': this.supernova(tl, b, cellXY); break;
       }
     });

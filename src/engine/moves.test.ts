@@ -25,12 +25,16 @@ describe('moves', () => {
     expect(productiveMoves(s)).toEqual([swap(6, 1, 7, 1), swap(6, 2, 7, 2)]);
   });
 
-  it('prism swap is productive with gem, not rock', () => {
+  it('prism swap is productive with a gem and with a rock', () => {
     const s = makeState(boardWith({ '3,3': 'P', '3,4': 'X' }));
-    expect(productiveMoves(s)).toEqual([swap(2, 3, 3, 3), swap(3, 2, 3, 3), swap(3, 3, 4, 3)]);
-    // Even when the rock would complete a rock line, prism↔rock stays illegal.
-    const line = makeState(boardWith({ '2,3': 'P', '3,3': 'X', '2,4': 'X', '2,5': 'X' }));
-    expect(productiveMoves(line)).not.toContainEqual(swap(2, 3, 3, 3));
+    expect(productiveMoves(s)).toEqual([swap(2, 3, 3, 3), swap(3, 2, 3, 3), swap(3, 3, 3, 4), swap(3, 3, 4, 3)]);
+  });
+
+  it('a board whose only productive move is prism↔rock is not game over', () => {
+    // The prism sits in the corner with rocks on both sides; the dead board around it has no match.
+    const s = makeState(boardWith({ '0,0': 'P', '0,1': 'X', '1,0': 'X' }));
+    expect(productiveMoves(s)).toEqual([swap(0, 0, 0, 1), swap(0, 0, 1, 0)]);
+    expect(isGameOver(s)).toBe(false);
   });
 
   it('prism + prism swap is productive', () => {
