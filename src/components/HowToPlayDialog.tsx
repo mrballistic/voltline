@@ -118,7 +118,7 @@ export default function HowToPlayDialog({ open, onClose }: HowToPlayDialogProps)
         <Heading>Special pieces</Heading>
         <Row swatch={<ChargeSwatch />} name="Charge">Made by matching 4 in a line. Clears the 3×3 area around it.</Row>
         <Row swatch={<ArcSwatch />} name="Arc">Made by an L or T shape. Clears its whole row and column.</Row>
-        <Row swatch={<PrismSwatch />} name="Prism">Made by matching 5 in a line. Swap it with a colored piece to clear every piece of that color (rocks stay).</Row>
+        <Row swatch={<PrismSwatch />} name="Prism">Made by matching 5 in a line. Swap it with a colored piece to clear every piece of that color, or with a rock to clear every rock.</Row>
         <Typography sx={{ color: 'text.secondary' }}>Specials chain: an explosion that reaches another special sets it off.</Typography>
 
         <Heading>The tray</Heading>
@@ -133,7 +133,7 @@ export default function HowToPlayDialog({ open, onClose }: HowToPlayDialogProps)
           <RockSwatch />
           <Typography>
             From level {ROCK_START_LEVEL}, gray rocks start appearing. Clear them by matching three, or with an explosion.
-            A Prism swapped with a rock clears every rock on the board.
+            Match four or more and they explode like a Charge. A Prism swapped with a rock clears every rock on the board.
           </Typography>
         </Stack>
 

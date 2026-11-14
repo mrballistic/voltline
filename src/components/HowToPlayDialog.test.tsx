@@ -35,6 +35,8 @@ describe('HowToPlayDialog', () => {
     expect(dialog).toHaveTextContent('The tray holds five');
     expect(dialog).toHaveTextContent('From level 5, gray rocks');
     expect(dialog).toHaveTextContent('Past level 8, refills get harder');
+    expect(dialog).toHaveTextContent('or with a rock to clear every rock.');
+    expect(dialog).toHaveTextContent('Match four or more and they explode like a Charge.');
     expect(dialog).toHaveTextContent('A Prism swapped with a rock clears every rock on the board.');
     expect(screen.getByRole('dialog').textContent).not.toMatch(/['"]/);
   });

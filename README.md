@@ -28,7 +28,7 @@ Bigger matches leave something behind.
 |---|---|---|
 | 4 in a line | **Charge** | Clears the 3×3 area around it |
 | An L or T shape | **Arc** | Clears its whole row and column |
-| 5 in a line | **Prism** | Swap it with any colored piece to clear every piece of that color |
+| 5 in a line | **Prism** | Swap it with any colored piece to clear every piece of that color, or with a rock to clear every rock |
 
 ![Special pieces on the board: Charges with a bright inner ring, Arcs with crackling edges, a rainbow Prism, gray rocks, and three pieces waiting in the tray](docs/screenshots/pieces-specials.webp)
 
@@ -38,15 +38,15 @@ Specials chain. An explosion that catches another special sets it off, so one go
 
 ### The tray
 
-Every 10 pieces of one color you clear, by any means, earns a spare piece of that color in your tray. The tray holds five. To spend one, tap it, then tap a plain piece on the board: the tray piece takes its place, and if that makes a match it resolves like any swap. Placing costs a move, and you may place without making a match, though that piece is gone for good. Earn a piece while the tray is full and it is lost, so spend one.
+Every 10 pieces of one color you clear, by any means, earns a spare piece of that color in your tray. The tray holds five. To spend one, tap it, then tap a plain piece on the board: the tray piece takes its place, and if that makes a match it resolves like any swap. Placing costs a move, and you may place without making a match, though that piece is gone for good. When the tray fills, every color’s count resets to zero and counting pauses until you spend one.
 
 ### Rocks
 
-From level 10, burnt-out gray rocks start appearing among the new pieces. They fall and swap like anything else, but they only clear when you match three of them or an explosion reaches them. A Prism can’t be swapped with a rock. The deeper you go, the more often they show up.
+From level 5, burnt-out gray rocks start appearing among the new pieces. They fall and swap like anything else, but they only clear when you match three of them or an explosion reaches them. Line up four or more and they don’t just break: they go off like a Charge, blasting the 3×3 around them. Swap a Prism with a rock to clear every rock on the board. The deeper you go, the more often they show up.
 
 ### Levels and game over
 
-A progress bar fills as you score. Fill it to level up: the board is replaced with a fresh one, the target rises, and your tray carries over.
+A progress bar fills as you score. Fill it to level up: the board is replaced with a fresh one, the target rises, and your tray carries over. Past level 8 the game gets meaner: new pieces are stingier about landing in ready-made matches, and rocks come faster.
 
 The game ends when no move on the board can make a match, and that includes tray placements. That’s the tray’s promise: the tray can save you, as long as a spare piece can still make a match when nothing else can.
 
