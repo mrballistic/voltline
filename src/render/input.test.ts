@@ -1,10 +1,14 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Container, Texture, type Application } from 'pixi.js';
 import { gsap } from 'gsap';
-import type { Pos } from '../engine';
+import { applyMove, canPlace, newGame } from '../engine';
+import type { Color, GameState, Pos, Step } from '../engine';
+import type { CueName } from '../audio/cues';
+import { GameController, inputHandlers } from '../app/controller';
 import { BoardView } from './BoardView';
 import { ANIM } from './constants';
-import { attachInput, dragOffset, gestureToMove } from './input';
+import { attachInput, dragOffset, gestureToMove, type InputHandlers } from './input';
+import type { ScriptPlayerLike, ShownState } from './player';
 import { computeLayout } from './layout';
 import { PieceSprite } from './PieceSprite';
 import type { PieceTextures } from './textures';
@@ -59,14 +63,15 @@ afterEach(() => vi.unstubAllGlobals());
 
 interface Calls { place: [number, Pos][]; tapSlot: number[] }
 
-function rig(opts: { refuse?: (slot: number, at: Pos) => boolean; reducedMotion?: boolean } = {}) {
+/** Real views and a stand-in app, with input attached to the handlers `wire` returns. */
+function harness(trayColors: Color[], reducedMotion: boolean, wire: (tray: TrayView) => InputHandlers) {
   vi.stubGlobal('window', new EventTarget());
   const layout = computeLayout(600, 700);
   const board = new BoardView(tex, true);
   const tray = new TrayView(tex, true);
   board.setLayout(layout, tex);
   tray.setLayout(layout, tex);
-  tray.setTray(['red', 'blue', 'yellow', 'green', 'magenta']);
+  tray.setTray(trayColors);
   const stage = new Container();
   const canvas = Object.assign(new EventTarget(), {
     style: {} as Record<string, string>,
@@ -79,18 +84,7 @@ function rig(opts: { refuse?: (slot: number, at: Pos) => boolean; reducedMotion?
     stage, canvas, screen: { x: 0, y: 0, width: 600, height: 700 },
     ticker: { add: (f: () => void) => ticks.add(f), remove: (f: () => void) => ticks.delete(f) },
   } as unknown as Application;
-  const calls: Calls = { place: [], tapSlot: [] };
-  let busy = false;
-  const stop = attachInput(app, board, tray, {
-    tapCell: () => {},
-    tapSlot: (slot) => calls.tapSlot.push(slot),
-    swap: () => {},
-    place: (slot, at) => {
-      calls.place.push([slot, at]);
-      if (!opts.refuse?.(slot, at)) busy = true;
-    },
-    canAcceptInput: () => !busy,
-  }, { reducedMotion: opts.reducedMotion ?? false });
+  const stop = attachInput(app, board, tray, wire(tray), { reducedMotion });
 
   const ev = (type: string, x: number, y: number) =>
     Object.assign(new Event(type), { pointerId: 1, isPrimary: true, button: 0, clientX: x, clientY: y });
@@ -112,7 +106,25 @@ function rig(opts: { refuse?: (slot: number, at: Pos) => boolean; reducedMotion?
     for (let i = 1; i <= steps; i++) move(a.x + ((to.x - a.x) * i) / steps, a.y + ((to.y - a.y) * i) / steps);
     up(to.x, to.y);
   };
-  return { board, tray, calls, drag, down, move, up, frame, flyers, stop, setBusy: (b: boolean) => { busy = b; } };
+  return { board, tray, drag, down, move, up, frame, flyers, stop };
+}
+
+function rig(opts: { refuse?: (slot: number, at: Pos) => boolean; reducedMotion?: boolean } = {}) {
+  const calls: Calls = { place: [], tapSlot: [] };
+  let busy = false;
+  const h = harness(['red', 'blue', 'yellow', 'green', 'magenta'], opts.reducedMotion ?? false, () => ({
+    tapCell: () => {},
+    tapSlot: (slot) => calls.tapSlot.push(slot),
+    swap: () => {},
+    place: (slot, at) => {
+      calls.place.push([slot, at]);
+      if (!opts.refuse?.(slot, at)) busy = true;
+    },
+    canAcceptInput: () => !busy,
+    canHoldDrop: () => false,
+    placeWhenIdle: () => Promise.resolve('cancelled'),
+  }));
+  return { ...h, calls };
 }
 
 describe('tray drag', () => {
@@ -180,5 +192,195 @@ describe('tray drag', () => {
     const r = rig();
     r.drag(0, r.board.cellXY(1, 1));
     expect(r.flyers()).toEqual([]);
+  });
+});
+
+// The same gestures against a real GameController, wired as bootstrap wires it, with a player
+// that holds each move until the test finishes it (and updates the tray as the move starts).
+const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+class HeldPlayer implements ScriptPlayerLike {
+  scripts: Step[][] = [];
+  private pending: (() => void)[] = [];
+  constructor(private readonly tray: () => TrayView) {}
+  play(script: Step[], end: ShownState): Promise<void> {
+    this.scripts.push(script);
+    this.tray().setTray(end.tray);
+    return new Promise((resolve) => this.pending.push(resolve));
+  }
+  show(): Promise<void> { return Promise.resolve(); }
+  relayout(): void {}
+  async finish(): Promise<void> {
+    this.pending.shift()?.();
+    await flush();
+  }
+}
+
+const cellsOf = (): Pos[] => Array.from({ length: 64 }, (_, i) => ({ row: Math.floor(i / 8), col: i % 8 }));
+const plainColor = (s: GameState, at: Pos) => {
+  const t = s.board[at.row][at.col];
+  return t?.kind === 'gem' && t.special === 'none' ? t.color : null;
+};
+
+/**
+ * A fresh board under a full tray led by two reds; `first` (slot 0 onto `first`) makes no match,
+ * so that cell is red once it plays and the game goes on. `open` takes red before and after it;
+ * `red` is a red cell, which red can never take.
+ */
+function heldFixture() {
+  const base: GameState = { ...newGame(7), tray: ['red', 'red', 'blue', 'yellow', 'green'] };
+  for (const first of cellsOf()) {
+    if (!canPlace(base.board, base.tray, 0, first)) continue;
+    const after = applyMove(base, { type: 'place', slot: 0, at: first }).state;
+    if (after.over || plainColor(after, first) !== 'red' || after.tray[0] !== 'red') continue;
+    const open = cellsOf().find((p) => canPlace(base.board, ['red'], 0, p) && canPlace(after.board, after.tray, 0, p))!;
+    const red = cellsOf().find((p) => plainColor(base, p) === 'red')!;
+    return { base, first, open, red };
+  }
+  throw new Error('no fixture');
+}
+
+function gameRig(opts: { reducedMotion?: boolean } = {}) {
+  const f = heldFixture();
+  const cues: CueName[] = [];
+  let trayView: TrayView | null = null;
+  const player = new HeldPlayer(() => trayView!);
+  const c = new GameController({
+    player,
+    ai: { rank: () => new Promise(() => {}), dispose() {} },
+    hint: { show: () => Promise.resolve(), clear() {} },
+    prefs: { load: () => ({ bestPlayer: 0, bestAI: 0, aiSpeed: 'medium', muted: false, volume: 0.8 }), save() {} },
+    audio: { cue: (name) => cues.push(name), setMuted() {}, setVolume() {} },
+    initial: f.base,
+    onChange: () => {},
+    reportError: (err) => { throw err; },
+  });
+  const place = vi.spyOn(c, 'place');
+  const h = harness(f.base.tray, opts.reducedMotion ?? false, (tray) => { trayView = tray; return inputHandlers(c); });
+  /** Plays the first move (an accepted drop, made while idle): the board is busy until `finish`. */
+  const startMove = () => {
+    h.drag(0, h.board.cellXY(f.first.row, f.first.col));
+    expect(c.snapshot().busy).toBe(true);
+    place.mockClear();
+  };
+  /** Steps frames until the flyer is gone (or `max` frames), returning its x and y each frame. */
+  const track = (fl: PieceSprite, max = 120) => {
+    const xs: number[] = [];
+    const ys: number[] = [];
+    for (let i = 0; i < max && !fl.destroyed; i++) {
+      h.frame();
+      if (fl.destroyed) break;
+      xs.push(fl.x);
+      ys.push(fl.y);
+    }
+    return { xs, ys };
+  };
+  return { ...h, ...f, c, player, cues, place, startMove, track };
+}
+
+describe('tray drops against the controller', () => {
+  for (const reducedMotion of [false, true]) {
+    it(`a refused drop plays the refusal cue once${reducedMotion ? ', with reduced motion too' : ''}`, () => {
+      const r = gameRig({ reducedMotion });
+      r.drag(0, r.board.cellXY(r.red.row, r.red.col));
+      expect(r.cues).toEqual(['swap-invalid']);
+      const [f] = r.flyers();
+      r.track(f);
+      expect(f.destroyed).toBe(true);
+      expect(r.cues).toEqual(['swap-invalid']);
+    });
+  }
+
+  it('a drop made after the move has finished behaves as before', async () => {
+    const r = gameRig();
+    r.startMove();
+    await r.player.finish();
+    r.drag(0, r.board.cellXY(r.open.row, r.open.col));
+    expect(r.place.mock.calls).toEqual([[0, r.open]]);
+    expect(r.player.scripts).toHaveLength(2);
+    expect(r.flyers()).toEqual([]);
+  });
+
+  it('a tray drop made while a move plays holds where it was let go, then places once at idle', async () => {
+    const r = gameRig();
+    r.startMove();
+    const to = r.board.cellXY(r.open.row, r.open.col);
+    r.drag(0, to);
+    const [f] = r.flyers();
+    expect(f).toBeDefined();
+    for (let i = 0; i < 30; i++) r.frame();
+    expect({ x: f.x, y: f.y, destroyed: f.destroyed }).toEqual({ x: to.x, y: to.y, destroyed: false });
+    await flush();
+    expect(r.place).not.toHaveBeenCalled();
+    expect(r.player.scripts).toHaveLength(1);
+    await r.player.finish();
+    expect(r.place.mock.calls).toEqual([[0, r.open]]);
+    expect(r.player.scripts).toHaveLength(2);
+    expect(r.player.scripts[1][0]).toMatchObject({ t: 'place', slot: 0, at: r.open });
+    expect(f.destroyed).toBe(true);
+    expect(r.cues).toEqual([]);
+  });
+
+  it('a held drop the board can’t take by idle time is refused with the shake and the cue', async () => {
+    const r = gameRig();
+    r.startMove();
+    const to = r.board.cellXY(r.first.row, r.first.col); // red once the first move has played
+    r.drag(0, to);
+    const [f] = r.flyers();
+    await r.player.finish();
+    expect(r.cues).toEqual(['swap-invalid']);
+    expect(r.player.scripts).toHaveLength(1);
+    const { xs } = r.track(f);
+    const amp = ANIM.refuseShake.cells * r.board.cellPx;
+    expect(Math.max(...xs) - to.x).toBeGreaterThan(amp * 0.3);
+    expect(to.x - Math.min(...xs)).toBeGreaterThan(amp * 0.3);
+    expect(f.destroyed).toBe(true);
+    expect(r.cues).toEqual(['swap-invalid']);
+  });
+
+  const triggers: [string, (r: ReturnType<typeof gameRig>) => void][] = [
+    ['a new game', (r) => { void r.c.newGame(); }],
+    ['a level-up', (r) => r.c.onAction({ a: 'notice', kind: 'level-up', level: 2 })],
+    ['AI mode turning on', (r) => r.c.setAI(true)],
+  ];
+  for (const [name, trigger] of triggers) {
+    it(`a held drop is cancelled by ${name}: it flies home, with no sound`, async () => {
+      const r = gameRig();
+      r.startMove();
+      const to = r.board.cellXY(r.open.row, r.open.col);
+      r.drag(0, to);
+      const [f] = r.flyers();
+      r.cues.length = 0;
+      trigger(r);
+      await flush();
+      const { ys } = r.track(f);
+      expect(ys[0]).toBeGreaterThan(to.y); // straight home toward the tray, no shake first
+      expect(f.destroyed).toBe(true);
+      expect(r.cues).not.toContain('swap-invalid');
+      await r.player.finish();
+      expect(r.place).not.toHaveBeenCalled();
+      expect(r.player.scripts).toHaveLength(1);
+    });
+  }
+
+  it('a second tray drag while one is held is ignored', async () => {
+    const r = gameRig();
+    r.startMove();
+    r.drag(0, r.board.cellXY(r.open.row, r.open.col));
+    r.drag(1, r.board.cellXY(0, 0));
+    expect(r.flyers()).toHaveLength(1);
+    await r.player.finish();
+    expect(r.place.mock.calls).toEqual([[0, r.open]]);
+    expect(r.player.scripts).toHaveLength(2);
+  });
+
+  it('a tap on a slot while a move plays is still ignored', async () => {
+    const r = gameRig();
+    r.startMove();
+    const s = r.tray.slotXY(1);
+    r.down(s.x, s.y);
+    await r.player.finish();
+    r.up(s.x, s.y); // released once idle: still not a tap
+    expect(r.c.snapshot().selectedSlot).toBeNull();
   });
 });

@@ -17,7 +17,7 @@ import { computeLayout } from '../render/layout';
 import { ScriptPlayer } from '../render/player';
 import { buildTextures, type PieceTextures } from '../render/textures';
 import { TrayView } from '../render/TrayView';
-import { GameController, type UiSnapshot } from './controller';
+import { GameController, inputHandlers, type UiSnapshot } from './controller';
 import { createPrefsStore } from './storage';
 
 export interface GameHandle {
@@ -124,13 +124,7 @@ export async function createGame(
       opts.onChange?.(s);
     },
   });
-  const stopInput = attachInput(app, board, tray, {
-    tapCell: (p) => controller.tapCell(p),
-    tapSlot: (slot) => controller.tapSlot(slot),
-    swap: (a, b) => controller.swap(a, b),
-    place: (slot, at) => controller.place(slot, at),
-    canAcceptInput: () => controller.canAcceptInput,
-  }, { reducedMotion });
+  const stopInput = attachInput(app, board, tray, inputHandlers(controller), { reducedMotion });
 
   // Textures are drawn for one cell size, so a new size means new textures. The views keep every
   // sprite in place relative to the board; the controller re-snaps to the model once idle.

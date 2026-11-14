@@ -43,6 +43,19 @@ describe('dev fixtures', () => {
     expect(applyMove(state, move).script[0].t).toBe('place');
   });
 
+  it('the held fixture stays live through plain drops and has a rock to refuse one', () => {
+    const { state, move } = fixture('held');
+    expect(new Set(state.tray).size).toBe(5);
+    expect(state.board[0][0]?.kind).toBe('rock');
+    const first = applyMove(state, move);
+    expect(first.script.map((s) => s.t)).toEqual(['place']);
+    expect(first.state.over).toBe(false);
+    // A second plain drop (what a held drop places) still leaves the game going.
+    const second = applyMove(first.state, { type: 'place', slot: 0, at: { row: 3, col: 5 } });
+    expect(second.script.map((s) => s.t)).toEqual(['place']);
+    expect(second.state.over).toBe(false);
+  });
+
   it('reads ?fixture=<name> and ignores anything else', () => {
     expect(fixtureFromSearch('?fixture=supernova')).toEqual(fixture('supernova').state);
     expect(fixtureFromSearch('?seed=3&fixture=arc')).toEqual(fixture('arc').state);

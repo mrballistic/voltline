@@ -15,7 +15,7 @@ import { resolve } from 'node:path';
 import { chromium, type Page } from '@playwright/test';
 import type { Pos } from '../src/engine';
 import type { DebugHandle } from '../src/app/debug';
-import { FIXTURE_NAMES, fixture, type FixtureName } from '../src/app/devFixtures';
+import { EFFECT_FIXTURES, fixture, type FixtureName } from '../src/app/devFixtures';
 import { ANIM } from '../src/render/constants';
 
 const args = process.argv.slice(2);
@@ -140,7 +140,7 @@ try {
   const only = process.env.FX_ONLY?.split(',') as FixtureName[] | undefined;
   if (!process.env.FX_SKIP_CAPTURE) {
     const sheets = await ctx.newPage();
-    for (const name of only ?? FIXTURE_NAMES) {
+    for (const name of only ?? EFFECT_FIXTURES) {
       await capture(page, name);
       await contactSheet(sheets, name);
     }
