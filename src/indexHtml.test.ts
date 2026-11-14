@@ -87,6 +87,16 @@ describe('index.html metadata', () => {
     expect([0, 1, 2].map((k) => [ico[6 + 16 * k], ico[7 + 16 * k]])).toEqual([[16, 16], [32, 32], [48, 48]]);
   });
 
+  it('has a robots.txt that allows crawling and points at a sitemap listing the canonical URL', () => {
+    const robots = readFileSync(new URL('../public/robots.txt', import.meta.url), 'utf8');
+    expect(robots).toMatch(/^User-agent: \*$/m);
+    expect(robots).not.toMatch(/^Disallow: \/\s*$/m);
+    expect(robots).toMatch(new RegExp(`^Sitemap: ${SITE}sitemap\\.xml$`, 'm'));
+    const sitemap = readFileSync(new URL('../public/sitemap.xml', import.meta.url), 'utf8');
+    expect(sitemap).toContain('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"');
+    expect([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])).toEqual([SITE]);
+  });
+
   it('keeps every user-facing string in curly punctuation', () => {
     for (const key of ['description']) expect(meta('name', key)).not.toMatch(/['"]/);
     for (const key of ['og:title', 'og:description', 'og:image:alt']) expect(meta('property', key)).not.toMatch(/['"]/);

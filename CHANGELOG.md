@@ -2,6 +2,12 @@
 
 All notable changes to Voltline are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 1.2.3 (2026-11-14)
+
+### Added
+
+- A `robots.txt` and a `sitemap.xml`, so search engines can find Voltline without going through mrballistic.com (both used to return the 404 page).
+
 ## 1.2.2 (2026-11-14)
 
 ### Fixed
