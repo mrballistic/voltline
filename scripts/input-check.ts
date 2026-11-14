@@ -13,6 +13,7 @@
 // it was let go and places once the board is idle; one the board refuses then shakes, plays the
 // refusal cue and flies home; one cancelled by a new game or AI mode goes home without a sound.
 import { chromium, type Page } from '@playwright/test';
+import { DECLINED_CONSENT } from './consent';
 import { canPlace, applyMove } from '../src/engine';
 import type { GameState, Pos } from '../src/engine';
 import type { DebugHandle, FrameSample } from '../src/app/debug';
@@ -90,7 +91,9 @@ const browser = await chromium.launch();
  * starves the next section's frames (section 7's slow-motion timing failed that way). */
 async function freshContext(opts: Parameters<typeof browser.newContext>[0]) {
   for (const c of browser.contexts()) await c.close();
-  return browser.newContext(opts);
+  const ctx = await browser.newContext(opts);
+  await ctx.addInitScript(DECLINED_CONSENT);
+  return ctx;
 }
 
 // 1. Mouse drag: swap, smooth hand-off.

@@ -2,6 +2,17 @@
 
 All notable changes to Voltline are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Added
+
+- A cookie banner on the web version asks before anything is counted. Accept and Google Analytics counts page visits; decline, or don’t answer, and nothing is sent to Google and no cookie is set. Change your mind any time with Cookie settings in the footer. The desktop app never shows the banner and sends nothing.
+- The footer links to the Mac app’s latest release, beside Credits and MIT License, and has a Cookie settings button. Neither appears in the desktop app.
+
+### Changed
+
+- The web version’s Content-Security-Policy allows Google’s tag (`script-src`), its collection endpoints and Google Signals (`connect-src`, `img-src`) and the tag’s service-worker iframe (`frame-src`), which the page only contacts after you accept. Still no `unsafe-eval` and no inline script. The desktop app keeps its offline policy.
+
 ## 1.1.0 (2026-11-13)
 
 ### Added

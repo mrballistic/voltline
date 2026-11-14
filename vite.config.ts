@@ -26,11 +26,12 @@ export default defineConfig({
     },
   },
   worker: { format: 'es' },
-  // Same policy as deploy/apache-voltline-le-ssl.conf, so `npm run smoke` runs under it.
+  // Same policy as deploy/apache-voltline-le-ssl.conf, so `npm run smoke` runs under it. The Google
+  // hosts are for analytics, loaded only after the visitor accepts the cookie banner.
   preview: {
     headers: {
       'Content-Security-Policy':
-        "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:",
+        "default-src 'self'; script-src 'self' https://*.googletagmanager.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com https://pagead2.googlesyndication.com; img-src 'self' data: blob: https://*.google-analytics.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com; frame-src https://www.googletagmanager.com; media-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:",
     },
   },
 });

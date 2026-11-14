@@ -4,7 +4,7 @@ Guidance for Claude Code and any other agent working in this repo. Read it fully
 
 ## What this is
 
-**Voltline** is an original neon match-three game: an 8×8 board, special pieces (Charge, Arc, Prism), a collectable tray, rocks, levels, and a deterministic search AI that powers AI mode and Hint. It is a static, offline web app (React 19 + MUI 9 chrome around a PixiJS canvas). Live at https://voltline.mrballistic.com.
+**Voltline** is an original neon match-three game: an 8×8 board, special pieces (Charge, Arc, Prism), a collectable tray, rocks, levels, and a deterministic search AI that powers AI mode and Hint. It is a static web app (React 19 + MUI 9 chrome around a PixiJS canvas); the desktop app is fully offline, and the web build’s only network call is opt-in analytics. Live at https://voltline.mrballistic.com.
 
 Any older notes you may have seen about "Bejeweled.ai", an LLM player, the Anthropic API, react-dnd, MUI 6, a CSS-grid renderer or GitHub Pages describe an abandoned design. Ignore them.
 
@@ -65,7 +65,7 @@ See `ARCHITECTURE.md` for detail.
 5. The AI never reads hidden RNG state; it ranks moves from the visible state.
 6. Strict CSP: no `unsafe-eval`. The renderer imports `pixi.js/unsafe-eval` so Pixi works under that CSP. The same policy is set in `deploy/apache-voltline-le-ssl.conf`.
 7. TypeScript stays on 6.x until typescript-eslint supports 7. Check `npm view typescript-eslint peerDependencies` before moving.
-8. No LLM code, no API keys, no runtime network calls (fonts are self-hosted via @fontsource).
+8. No LLM code, no API keys; the only runtime network call is Google Analytics, loaded only after the visitor accepts the cookie banner, web build only, never in the desktop app.
 9. Board coordinates: `row` 0 is the top, `col` 0 is the left; `BOARD_SIZE = 8`.
 10. Vite `base: './'`; TypeScript `strict`, `noUnusedLocals`, `noUnusedParameters`.
 

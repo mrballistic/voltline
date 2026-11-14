@@ -9,6 +9,7 @@
 // state reads `none`. Playwright's Chromium would let a context run without a gesture whatever the
 // autoplay flags, so the browser's own gate isn't observable here; the engine's is.
 import { chromium, type Page } from '@playwright/test';
+import { DECLINED_CONSENT } from './consent';
 import type { DebugHandle } from '../src/app/debug';
 
 declare global { interface Window { __voltline?: DebugHandle; __starts?: number } }
@@ -39,6 +40,7 @@ const countStarts = () => {
   };
 };
 await page.addInitScript(countStarts);
+await page.addInitScript(DECLINED_CONSENT);
 await page.goto(`${base}?seed=7`);
 await page.waitForFunction(() => window.__voltline !== undefined);
 await idle(page);
@@ -150,6 +152,7 @@ await tap(4, 4);
 const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })).newPage();
 phone.on('pageerror', (e) => errors.push(`phone pageerror: ${e.message}`));
 await phone.addInitScript(countStarts);
+await phone.addInitScript(DECLINED_CONSENT);
 await phone.goto(`${base}?seed=7`);
 await phone.waitForFunction(() => window.__voltline !== undefined);
 await idle(phone);

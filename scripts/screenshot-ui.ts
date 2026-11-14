@@ -18,6 +18,7 @@ import { execFileSync } from 'node:child_process';
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromium, type Browser, type Page } from '@playwright/test';
+import { DECLINED_CONSENT } from './consent';
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(name);
@@ -40,6 +41,7 @@ const errors: string[] = [];
 
 async function open(b: Browser, viewport: { width: number; height: number }, path = `?seed=${SEED}`): Promise<Page> {
   const page = await (await b.newContext({ viewport, deviceScaleFactor: 1 })).newPage();
+  await page.addInitScript(DECLINED_CONSENT);
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto(`${base}${path}`);
