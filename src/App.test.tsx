@@ -47,4 +47,16 @@ describe('App', () => {
     expect(newGame.compareDocumentPosition(dock) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(dock.contains(newGame)).toBe(false);
   });
+
+  it('pins the footer to the bottom and gives its links a 28 px target', () => {
+    game.ui = idle;
+    render(<App />);
+    const footer = screen.getByRole('contentinfo');
+    expect(getComputedStyle(footer).marginTop).toBe('auto');
+    for (const name of ['Credits', 'MIT License']) {
+      const link = screen.getByRole('link', { name });
+      expect(getComputedStyle(link).display).toBe('inline-block');
+      expect(getComputedStyle(link).padding).toBe('6px 2px');
+    }
+  });
 });
