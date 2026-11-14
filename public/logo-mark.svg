@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Voltline">
+  <!-- Voltline mark: one continuous trace, a V with a voltage jog, a circuit pad at each tip. See docs/superpowers/specs/2026-11-13-voltline-chrome-design.md §2. -->
+  <defs>
+    <linearGradient id="vl-arc" x1="10" y1="0" x2="80" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4dd8ff"/>
+      <stop offset="1" stop-color="#ff4fd8"/>
+    </linearGradient>
+    <filter id="vl-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g transform="translate(6 3)" filter="url(#vl-glow)">
+    <path d="M16 20 L44 80 L60 48 L48 48 L72 14" fill="none" stroke="url(#vl-arc)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="16" cy="20" r="6.5" fill="#0a0a11" stroke="#4dd8ff" stroke-width="4.5"/>
+    <circle cx="72" cy="14" r="6.5" fill="#0a0a11" stroke="#ff4fd8" stroke-width="4.5"/>
+  </g>
+</svg>

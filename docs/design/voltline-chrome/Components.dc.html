@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Voltline component specs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&amp;family=Rajdhani:wght@500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1440px; min-height: 2560px; box-sizing: border-box; padding: 56px; background: #0d0d18; font-family: Rajdhani, system-ui, sans-serif; color: #e6e9ff; display: flex; flex-direction: column; gap: 44px">
+
+<header style="display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.16em; color: #4dd8ff">VOLTLINE CHROME · COMPONENTS</p>
+<h1 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 36px; letter-spacing: 0.04em">Component specs and states</h1>
+<p style="margin: 0; max-width: 900px; font-size: 18px; line-height: 26px; color: #9aa3d6">Each control maps to a stock MUI component styled through theme overrides; nothing needs another UI library. The state samples below are drawn on the page background, which is where every control lives except the two dialog buttons.</p>
+</header>
+
+<section style="display: flex; flex-direction: column">
+<h2 style="margin: 0 0 14px; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.12em; color: #4dd8ff">Button states</h2>
+<div style="display: grid; grid-template-columns: 190px repeat(6, minmax(0, 1fr)); column-gap: 16px; padding: 0 0 10px; border-bottom: 1px solid rgba(120,140,255,0.22); font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: #9aa3d6">
+<span>CONTROL</span><span>DEFAULT</span><span>HOVER</span><span>FOCUS-VISIBLE</span><span>PRESSED</span><span>DISABLED</span><span>SELECTED</span>
+</div>
+<sc-for list="{{rows}}" as="row" hint-placeholder-count="6">
+<div style="display: grid; grid-template-columns: 190px repeat(6, minmax(0, 1fr)); column-gap: 16px; align-items: center; min-height: 88px; border-bottom: 1px solid rgba(120,140,255,0.1)">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700; font-size: 16px">{{row.name}}</span><span style="font-size: 13px; color: #9aa3d6">{{row.mui}}</span></div>
+<sc-for list="{{row.cells}}" as="cell" hint-placeholder-count="6">
+<div style="display: flex; align-items: center">
+<sc-if value="{{cell.on}}" hint-placeholder-val="{{ true }}">
+<span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; min-width: {{row.minW}}px; height: 44px; padding: 0 14px; box-sizing: border-box; border-radius: {{row.radius}}px; border: {{cell.border}}; background: {{cell.bg}}; color: {{cell.color}}; box-shadow: {{cell.shadow}}; outline: {{cell.outline}}; outline-offset: 3px; transform: {{cell.tf}}; font-weight: 700; font-size: 14px; letter-spacing: 0.04em; text-decoration: {{cell.td}}; text-underline-offset: 2px">{{row.label}}</span>
+</sc-if>
+<sc-if value="{{cell.off}}" hint-placeholder-val="{{ false }}"><span style="font-size: 14px; color: #7d86b8">n/a</span></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-for>
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+<div style="padding: 20px 24px; border-radius: 10px; background: #14142a; box-shadow: inset 0 0 0 1px rgba(120,140,255,0.14); display: flex; flex-direction: column; gap: 14px">
+<h3 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #4dd8ff">AI switch</h3>
+<div style="display: flex; gap: 18px; flex-wrap: wrap; align-items: center">
+<span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="position: relative; display: block; width: 40px; height: 22px; border-radius: 11px; background: rgba(154,163,214,0.12); box-shadow: inset 0 0 0 1px rgba(154,163,214,0.6)"><span style="position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #9aa3d6"></span></span><span style="font-size: 13px; color: #9aa3d6">Off</span></span>
+<span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="position: relative; display: block; width: 40px; height: 22px; border-radius: 11px; background: rgba(255,79,216,0.32); box-shadow: inset 0 0 0 1px #ff4fd8"><span style="position: absolute; top: 3px; left: 21px; width: 16px; height: 16px; border-radius: 50%; background: #ff4fd8; box-shadow: 0 0 8px #ff4fd8aa"></span></span><span style="font-size: 13px; color: #9aa3d6">On</span></span>
+<span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="position: relative; display: block; width: 40px; height: 22px; border-radius: 11px; background: rgba(154,163,214,0.12); box-shadow: inset 0 0 0 1px rgba(154,163,214,0.6); outline: 2px solid #ffe14d; outline-offset: 3px"><span style="position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #9aa3d6"></span></span><span style="font-size: 13px; color: #9aa3d6">Focus</span></span>
+<span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="position: relative; display: block; width: 40px; height: 22px; border-radius: 11px; background: transparent; border: 1px dashed rgba(154,163,214,0.45); box-sizing: border-box"><span style="position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid #7d86b8"></span></span><span style="font-size: 13px; color: #9aa3d6">Disabled</span></span>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: #9aa3d6">MUI Switch in a FormControlLabel; the whole 44 px row is the hit area. The thumb moves sides, so state never rests on color. Track 40 × 22, thumb 16. Hover adds a 10% magenta halo behind the thumb.</p>
+</div>
+
+<div style="padding: 20px 24px; border-radius: 10px; background: #14142a; box-shadow: inset 0 0 0 1px rgba(120,140,255,0.14); display: flex; flex-direction: column; gap: 14px">
+<h3 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #4dd8ff">Mute button</h3>
+<div style="display: flex; gap: 18px; flex-wrap: wrap; align-items: center">
+<span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4dd8ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="#4dd8ff" fill-opacity="0.2"></path><path d="M15.5 9a4 4 0 0 1 0 6"></path><path d="M18.5 6.5a7.5 7.5 0 0 1 0 11"></path></svg></span><span style="font-size: 13px; color: #9aa3d6">Sound on</span></span>
+<span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 44px; height: 44px; border-radius: 10px; background: rgba(77,216,255,0.1); display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4dd8ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="#4dd8ff" fill-opacity="0.2"></path><path d="M15.5 9a4 4 0 0 1 0 6"></path><path d="M18.5 6.5a7.5 7.5 0 0 1 0 11"></path></svg></span><span style="font-size: 13px; color: #9aa3d6">Hover</span></span>
+<span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 44px; height: 44px; border-radius: 10px; outline: 2px solid #ffe14d; outline-offset: 3px; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9aa3d6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"></path><path d="M16 9.5l5 5M21 9.5l-5 5"></path></svg></span><span style="font-size: 13px; color: #9aa3d6">Muted + focus</span></span>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: #9aa3d6">IconButton 44 × 44, icon 24. Accessible name stays “Mute”; aria-pressed carries the state (see copy notes). Waves versus a cross is the shape change. Press darkens the halo to 18%.</p>
+</div>
+
+<div style="padding: 20px 24px; border-radius: 10px; background: #14142a; box-shadow: inset 0 0 0 1px rgba(120,140,255,0.14); display: flex; flex-direction: column; gap: 14px">
+<h3 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #4dd8ff">Volume slider</h3>
+<div style="display: flex; gap: 18px; flex-wrap: wrap; align-items: center">
+<span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="position: relative; display: block; width: 88px; height: 44px"><span style="position: absolute; left: 9px; right: 9px; top: 20px; height: 4px; border-radius: 2px; background: rgba(77,216,255,0.22)"></span><span style="position: absolute; left: 9px; top: 20px; width: 56px; height: 4px; border-radius: 2px; background: #4dd8ff; box-shadow: 0 0 8px #4dd8ff88"></span><span style="position: absolute; left: 56px; top: 13px; width: 18px; height: 18px; border-radius: 50%; background: #4dd8ff; box-shadow: 0 0 8px #4dd8ffaa"></span></span><span style="font-size: 13px; color: #9aa3d6">Default</span></span>
+<span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="position: relative; display: block; width: 88px; height: 44px"><span style="position: absolute; left: 9px; right: 9px; top: 20px; height: 4px; border-radius: 2px; background: rgba(77,216,255,0.22)"></span><span style="position: absolute; left: 9px; top: 20px; width: 56px; height: 4px; border-radius: 2px; background: #4dd8ff"></span><span style="position: absolute; left: 56px; top: 13px; width: 18px; height: 18px; border-radius: 50%; background: #4dd8ff; outline: 2px solid #ffe14d; outline-offset: 3px"></span></span><span style="font-size: 13px; color: #9aa3d6">Focus</span></span>
+<span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="position: relative; display: block; width: 88px; height: 44px"><span style="position: absolute; left: 9px; right: 9px; top: 20px; height: 4px; border-radius: 2px; background: rgba(154,163,214,0.22)"></span><span style="position: absolute; left: 56px; top: 13px; width: 18px; height: 18px; box-sizing: border-box; border-radius: 50%; background: #0a0a11; border: 2px solid #7d86b8"></span></span><span style="font-size: 13px; color: #9aa3d6">Muted, disabled</span></span>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: #9aa3d6">MUI Slider, 0–1 in steps of 0.05, default 0.8, aria-label “Volume”. 88 px wide with a 44 px tall hit area (was 64). Muted keeps the value but empties the fill and hollows the thumb. Arrow keys step 0.05; Page keys 0.25.</p>
+</div>
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+<sc-for list="{{specs}}" as="sp" hint-placeholder-count="10">
+<div style="padding: 20px 24px; border-radius: 10px; background: #14142a; box-shadow: inset 0 0 0 1px rgba(120,140,255,0.14); display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-family: Orbitron, system-ui, sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: #4dd8ff">{{sp.title}}</h3>
+<sc-for list="{{sp.lines}}" as="ln" hint-placeholder-count="6">
+<p style="margin: 0; padding-left: 14px; text-indent: -14px; font-size: 15px; line-height: 22px; color: #e6e9ff"><span style="color: #4dd8ff">· </span>{{ln}}</p>
+</sc-for>
+</div>
+</sc-for>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ring = '2px solid #ffe14d';
+    const dis = { on: true, off: false, border: '1px dashed rgba(154,163,214,0.45)', bg: 'transparent', color: '#7d86b8', shadow: 'none', outline: 'none', tf: 'none', td: 'none' };
+    const na = { on: false, off: true };
+    const cell = (border, bg, color, shadow, extra) => Object.assign({ on: true, off: false, border, bg, color, shadow, outline: 'none', tf: 'none', td: 'none' }, extra || {});
+    const states = (d, h, p, sel, disabled) => [d, Object.assign({}, d, h), Object.assign({}, d, { outline: ring }), Object.assign({}, d, p, { tf: 'translateY(1px)' }), disabled === false ? na : dis, sel || na];
+    const rows = [
+      { name: 'Hint', mui: 'Button outlined · primary', label: 'Hint', minW: 110, radius: 10,
+        cells: states(cell('1px solid rgba(77,216,255,0.5)', 'transparent', '#4dd8ff', 'none'), { border: '1px solid #4dd8ff', bg: 'rgba(77,216,255,0.08)' }, { border: '1px solid #4dd8ff', bg: 'rgba(77,216,255,0.16)' }) },
+      { name: 'How to play', mui: 'Button outlined · secondary', label: 'How to play', minW: 110, radius: 10,
+        cells: states(cell('1px solid #ff4fd8', 'rgba(255,79,216,0.08)', '#ff4fd8', 'none'), { bg: 'rgba(255,79,216,0.14)' }, { bg: 'rgba(255,79,216,0.22)' }) },
+      { name: 'New game', mui: 'Button contained · secondary', label: 'New game', minW: 110, radius: 10,
+        cells: states(cell('0', '#ff4fd8', '#0a0a11', '0 0 14px #ff4fd855'), { bg: '#ff7be3', shadow: '0 0 18px #ff4fd888' }, { bg: '#e63fc2', shadow: 'inset 0 2px 4px rgba(0,0,0,0.3)' }) },
+      { name: 'Play again · Got it', mui: 'Button contained · primary', label: 'Play again', minW: 140, radius: 10,
+        cells: states(cell('0', '#4dd8ff', '#0a0a11', '0 0 14px #4dd8ff55'), { bg: '#85e5ff', shadow: '0 0 18px #4dd8ff88' }, { bg: '#2fbde6', shadow: 'inset 0 2px 4px rgba(0,0,0,0.3)' }, null, false) },
+      { name: 'Speed segment', mui: 'ToggleButton in exclusive group', label: 'Medium', minW: 52, radius: 8,
+        cells: states(cell('0', 'transparent', '#9aa3d6', 'inset 0 0 0 1px rgba(154,163,214,0.4)'), { color: '#e6e9ff', bg: 'rgba(154,163,214,0.08)' }, { bg: 'rgba(255,79,216,0.22)', color: '#ff4fd8' }, cell('0', 'rgba(255,79,216,0.16)', '#ff4fd8', 'inset 0 0 0 1px #ff4fd8'), false) },
+      { name: 'Footer link', mui: 'Link underline always', label: 'Credits', minW: 0, radius: 4,
+        cells: states(cell('0', 'transparent', '#9aa3d6', 'none', { td: 'underline' }), { color: '#e6e9ff' }, { color: '#e6e9ff' }, null, false) }
+    ];
+    const specs = [
+      { title: 'Header', lines: [
+        'Padding 12 top, 16 sides, 4 bottom; rows stacked with 4 px gaps. Every row has a fixed height so nothing moves when values change.',
+        'Row 1, 44 tall: 26 px mark + 10 gap + h1 “Voltline” on the left; volume (88) + 4 gap + mute (44) on the right.',
+        'Score: min-width 8ch, tabular-nums, centered, 36 phone / 46 desktop. Counts up over 400 ms; drops jump. Brief flare on increase.',
+        'Best: 20 px row, “Best {n}” or “AI best {n}” while AI is on.',
+        'Level row, 20 tall: “Level {n}” (min-width 84) + 12 gap + LinearProgress determinate, 8 tall, max 360 total.',
+        'Level-up: 26 px reserved, role="status" polite, holds about 2 s then fades.'
+      ] },
+      { title: 'Board frame', lines: [
+        'Board well and tray: rgba(16,16,34,0.78), radius 10, inset 1px rgba(120,140,255,0.12). The canvas draws on top; keep its own background transparent.',
+        'Corner brackets: 16 × 16, 2 px cyan at 50%, 8 px outside the board-plus-tray stack. pointer-events: none; aria-hidden.',
+        'Tray full: tray edge turns yellow at 45%, a cue that doesn’t rely on reading the notice.',
+        'No chrome overlaps the stack. Only dialogs sit over it, and only while open.'
+      ] },
+      { title: 'Tray notice', lines: [
+        '24 px row reserved under the board area, centered, Rajdhani 16 yellow with glow.',
+        'Live region (role="status", aria-live polite) mounted at all times; text set only while the tray is full.',
+        'Fades in and out over 150 ms; instant with reduced motion.'
+      ] },
+      { title: 'Button row', lines: [
+        'Order: Hint, How to play, New game. Gap 12, centered, 4 px above. Height 44, min-width 110, radius 10, padding 0 16.',
+        'Hint disabled while a move animates, while hint arrows show, while AI is on, after game over and on graphics failure.',
+        'Disabled: 1 px dashed rgba(154,163,214,0.45), text #7d86b8 (5.6:1), no fill, no glow. Never opacity alone.',
+        'Press: 1 px down shift and the pressed fill; never shrink or bounce.'
+      ] },
+      { title: 'AI dock', lines: [
+        'Its own chrome area: as wide as the board (360 phone, 424 desktop), 52 tall, radius 10, 3 px inner padding, 8 px gaps, 8 px above.',
+        'Off: only the switch, with a 1 px edge at 20% secondary. Speed and status are not rendered.',
+        'On: magenta edge 45% and 6% wash; switch label turns magenta; speed toggle and status appear (150 ms fade).',
+        'Fixed height either way, so the board never resizes when AI toggles.',
+        'Speed: ToggleButtonGroup exclusive, aria-label “AI speed”, three 44 × ≥52 segments, Medium by default.',
+        'Status stack, right-aligned: “AI moves {n}” over “Thinking…” (magenta, 6 px dot). Thinking… fades in after 120 ms; its live region stays mounted.'
+      ] },
+      { title: 'Game over dialog', lines: [
+        'Width 300 (min 280), padding 28/24/24, centered column, 6 px gaps. Surface #1a1a34, 1 px #4dd8ff55 border, radius 10.',
+        'h2 “No moves left” (Orbitron 20) labels the dialog via aria-labelledby.',
+        '“Score {n}” 22 white, “Level {n}” 18, “Best {n}” or “AI best {n}” 18 secondary, “New best!” Orbitron 16 yellow when earned.',
+        'Play again: contained cyan, 44 × ≥140, 18 px above, autofocused.',
+        'No close button. Ignore Escape and backdrop clicks; Play again is the only exit. Focus is trapped.'
+      ] },
+      { title: 'How to play dialog', lines: [
+        'maxWidth sm (600), fullWidth, 16 px margin: 358 wide on phone. Height up to the viewport minus 32.',
+        'Title fixed at the top, body scrolls, actions fixed at the bottom behind a 1 px rgba(120,140,255,0.14) hairline.',
+        'Edge fades: 32 px at the bottom of the scroll area, 28 px at the top once scrolled. Thin cyan scrollbar.',
+        'Sections 20 apart; headings Orbitron 14 cyan, 6 below. Swatch rows: 36 px swatch, 12 gap, text 6 px lower to center on line one.',
+        'Closes on Escape, backdrop or “Got it” (contained cyan, autofocused). Focus returns to the How to play button.'
+      ] },
+      { title: 'Footer', lines: [
+        '“Credits · MIT License”, Rajdhani 13 secondary, centered, margin-top auto so it pins to the column bottom.',
+        'Links: underline offset 2, padding 6 × 2 for a 28 px tall target. target="_blank" rel="noopener".',
+        'Hover and focus lighten to #e6e9ff; focus adds the yellow ring.'
+      ] },
+      { title: 'Graphics failure', lines: [
+        'Replaces the board and tray in place: same footprint, same corner brackets, so the frame reads as intended.',
+        'Panel: well background, inset 1px rgba(200,208,255,0.22), radius 10, centered column, gap 20, padding 32.',
+        '72 px icon (aria-hidden): dashed chip outline, a broken pin, a yellow bolt. Sentence unchanged, 18/26 #c8d0ff, role="alert".',
+        'Hint and the AI switch disable; How to play and New game stay live.'
+      ] },
+      { title: '404 page', lines: [
+        'Standalone inline-CSS page. Column max 560, centered, gap 18 phone / 22 desktop, 16 side gutter.',
+        'h1 aria-label “404”: Orbitron 900 numerals 104/168; the zero is a dashed red ring with a yellow bolt, 94/150.',
+        'Heading uppercase 19/24, 0.22em, cyan glow. Two 20/28 lines, the second dim. Icon row: five 40 px glyphs, 14 gap, a faint swap arc over the first two.',
+        '“Back to the board”: a href="/", 48 tall, 1 px cyan, 6% wash; hover 14% wash; focus ring.',
+        'Footnote 16 #8084a3 (5.4:1). Flicker and swap stop under reduced motion.'
+      ] }
+    ];
+    return { rows, specs };
+  }
+}
+</script>
+</body>
+</html>

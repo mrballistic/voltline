@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Voltline app-icon master with the V mark (proposal; today's icon is src-tauri/icons/source.svg). -->
+  <defs>
+    <linearGradient id="arc" x1="10" y1="0" x2="80" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4dd8ff"/>
+      <stop offset="1" stop-color="#ff4fd8"/>
+    </linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#788cff" stroke-opacity=".1" stroke-width="2"/>
+    </pattern>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect x="40" y="40" width="944" height="944" rx="210" fill="#0a0a11"/>
+  <rect x="40" y="40" width="944" height="944" rx="210" fill="url(#grid)"/>
+  <rect x="41" y="41" width="942" height="942" rx="209" fill="none" stroke="#4dd8ff" stroke-opacity=".3" stroke-width="4"/>
+  <g transform="translate(195 174) scale(7.2)" filter="url(#glow)">
+    <path d="M16 20 L44 80 L60 48 L48 48 L72 14" fill="none" stroke="url(#arc)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="16" cy="20" r="6.5" fill="#0a0a11" stroke="#4dd8ff" stroke-width="4.5"/>
+    <circle cx="72" cy="14" r="6.5" fill="#0a0a11" stroke="#ff4fd8" stroke-width="4.5"/>
+  </g>
+</svg>
