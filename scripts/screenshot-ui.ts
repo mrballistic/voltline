@@ -24,7 +24,9 @@ const open = async () => {
 
 /** Replaces the controller's state, as `newGame` would, and redeals the board. */
 const seed = (cells: Record<string, string>, over: Record<string, unknown>) => page.evaluate(async ({ cells, over }) => {
-  const t = await import('/src/engine/testing.ts');
+  // A browser-side path served by the Vite dev server; a variable keeps tsc from resolving it.
+  const testing = '/src/engine/testing.ts';
+  const t = await import(/* @vite-ignore */ testing);
   const c = (window as any).__voltline.controller;
   c._state = t.makeState(t.boardWith(cells), over);
   c.shown = c.shownFrom(c._state);
