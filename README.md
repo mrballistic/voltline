@@ -62,7 +62,7 @@ The AI is a search, not a chatbot. It looks at exactly what you can see (the boa
 
 ## Controls
 
-Click or tap a piece, then a neighbor, to swap. Or just drag (or swipe) a piece toward a neighbor: the swap happens as soon as you pull past a third of a cell. Tap a tray piece, then a board piece, to place it, or drag it straight onto the board. A drag that goes nowhere eases back. A tray piece dropped where it can’t go (a piece of its own color, a special or a rock) shakes, then flies home.
+Click or tap a piece, then a neighbor, to swap. Or just drag (or swipe) a piece toward a neighbor: the swap happens as soon as you pull past a third of a cell. Tap a tray piece, then a board piece, to place it, or drag it straight onto the board. A drag that goes nowhere eases back. A tray piece dropped where it can’t go (a piece of its own color, a special or a rock) shakes, buzzes and flies home. You don’t have to wait for a move to finish: drop a tray piece while the board is still moving and it waits there, then lands once the board settles.
 
 Your best score is saved on this device, separately for you and for AI mode. Sound can be switched on or off from the header.
 Sound starts with your first tap or key press, and goes quiet while the game’s tab is in the background.

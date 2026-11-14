@@ -167,7 +167,8 @@ export default function HowToPlayDialog({ open, onClose }: HowToPlayDialogProps)
           <Typography>
             Every {TRAY_THRESHOLD} pieces of one color you clear earns a spare piece of that color. The tray holds {numberWord(TRAY_CAPACITY)}, and counting pauses
             while it’s full, so spend one. Tap a tray piece, then a plain piece on the board (or drag it there) to swap it in.
-            Placing costs a move.
+            Placing costs a move. Drop it while pieces are still falling and it waits, then lands when they stop; a cell it can’t take
+            (its own color, a special or a rock) sends it back with a buzz.
           </Typography>
 
           <Heading>Rocks</Heading>
