@@ -42,7 +42,17 @@ async function clickCell(page: Page, row: number, col: number) {
   await page.mouse.click(p.x, p.y);
 }
 
-test('voltline smoke: play, hint, AI, no errors, no CSP violations', async ({ page }) => {
+/** Any Google host: the tag, the collection endpoints and anything they might reach for. */
+function isGoogle(url: URL): boolean {
+  return /(^|\.)(google|googletagmanager|google-analytics|googleapis|gstatic|doubleclick)\.[a-z.]+$/.test(url.hostname);
+}
+
+/**
+ * Listens for console errors, failed requests, CSP violations and Google requests. Every Google
+ * request is answered here, so the run never makes a real external call: the tag gets an empty
+ * 200 script, anything else an empty 204.
+ */
+async function watch(page: Page) {
   const errors: string[] = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -50,12 +60,25 @@ test('voltline smoke: play, hint, AI, no errors, no CSP violations', async ({ pa
   // `vite preview` with appType 'mpa'. Nothing the page loads may fail.
   const failed: string[] = [];
   page.on('response', (r) => { if (r.status() >= 400) failed.push(`${r.status()} ${r.url()}`); });
+  const google: string[] = [];
+  page.on('request', (r) => { if (isGoogle(new URL(r.url()))) google.push(r.url()); });
+  await page.route(isGoogle, (route) => new URL(route.request().url()).pathname === '/gtag/js'
+    ? route.fulfill({ status: 200, contentType: 'application/javascript', body: '' })
+    : route.fulfill({ status: 204, body: '' }));
   await page.addInitScript(() => {
     (window as unknown as { __csp: string[] }).__csp = [];
     document.addEventListener('securitypolicyviolation', (e) => {
       (window as unknown as { __csp: string[] }).__csp.push(`${e.violatedDirective} ${e.blockedURI}`);
     });
   });
+  const csp = () => page.evaluate(() => (window as unknown as { __csp: string[] }).__csp);
+  return { errors, failed, google, csp };
+}
+
+const banner = (page: Page) => page.getByRole('region', { name: 'Analytics cookies' });
+
+test('voltline smoke: decline cookies, then play, hint, AI, no errors, no CSP violations', async ({ page }) => {
+  const { errors, failed, google, csp } = await watch(page);
 
   // Reduced motion stops the idle glow breathing, so the idle board is static and any
   // canvas change after Hint can only come from the hint arrows.
@@ -65,6 +88,10 @@ test('voltline smoke: play, hint, AI, no errors, no CSP violations', async ({ pa
   await page.goto(`/?seed=${SEED}`);
   const canvas = page.locator('canvas').first();
   await canvas.waitFor();
+  // First visit: the banner asks, and declining closes it without a word to Google.
+  await expect(banner(page)).toBeVisible();
+  await page.getByRole('button', { name: 'Decline' }).click();
+  await expect(banner(page)).toBeHidden();
   await page.waitForTimeout(1500); // the opening deal
 
   const readScore = async () => {
@@ -114,7 +141,46 @@ test('voltline smoke: play, hint, AI, no errors, no CSP violations', async ({ pa
   // The deliberate miss: an unknown path is a real 404 here too, not index.html.
   expect((await page.request.get('/definitely-not-a-page')).status()).toBe(404);
 
-  expect(await page.evaluate(() => (window as unknown as { __csp: string[] }).__csp)).toEqual([]);
+  // The violation log starts afresh with each page load, so check it before reloading.
+  expect(await csp()).toEqual([]);
+  // Still declined after a reload: no banner, and nothing ever went to Google.
+  await page.reload();
+  await page.locator('canvas').first().waitFor();
+  await page.waitForTimeout(500);
+  await expect(banner(page)).toBeHidden();
+  expect(google, 'no request reached a Google host').toEqual([]);
+
+  expect(await csp()).toEqual([]);
+  expect(failed, 'no request failed').toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test('voltline smoke: accept cookies loads the tag under the CSP', async ({ page }) => {
+  const { errors, failed, google, csp } = await watch(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/?seed=${SEED}`);
+  await page.locator('canvas').first().waitFor();
+  await expect(banner(page)).toBeVisible();
+  expect(google, 'nothing goes to Google before an answer').toEqual([]);
+
+  const tag = page.waitForResponse((r) => r.url().startsWith('https://www.googletagmanager.com/gtag/js?id=G-CWEHQPGMV8'));
+  await page.getByRole('button', { name: 'Accept' }).click();
+  expect((await tag).status()).toBe(200);
+  await expect(banner(page)).toBeHidden();
+  // Page views only: gtag('js') and gtag('config', id).
+  await expect.poll(() => page.evaluate(() => (window as unknown as { dataLayer?: unknown[] }).dataLayer?.length ?? 0)).toBe(2);
+
+  expect(await csp()).toEqual([]); // before the reload resets the log
+  // A returning visitor who accepted gets the tag again with no banner; Cookie settings reopens it.
+  await page.reload();
+  await page.locator('canvas').first().waitFor();
+  await expect.poll(() => google.filter((u) => u.includes('/gtag/js')).length).toBe(2);
+  await expect(banner(page)).toBeHidden();
+  await page.getByRole('button', { name: 'Cookie settings' }).click();
+  await expect(banner(page)).toBeVisible();
+  await page.screenshot({ path: `${SHOTS}/smoke-banner-1440x900.png` });
+
+  expect(await csp()).toEqual([]);
   expect(failed, 'no request failed').toEqual([]);
   expect(errors).toEqual([]);
 });

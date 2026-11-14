@@ -5,9 +5,12 @@ import GlobalStyles from '@mui/material/GlobalStyles';
 import Link from '@mui/material/Link';
 import { ThemeProvider } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
+import { openConsentSettings } from './app/consent';
+import { isDesktopApp } from './app/platform';
 import { useGame } from './app/useGame';
 import AIControls from './components/AIControls';
 import BoardCanvas from './components/BoardCanvas';
+import ConsentBanner from './components/ConsentBanner';
 import GameControls from './components/GameControls';
 import GameOverDialog from './components/GameOverDialog';
 import HowToPlayDialog from './components/HowToPlayDialog';
@@ -24,6 +27,7 @@ function seedFromUrl(): number | undefined {
 
 const seed = seedFromUrl();
 const CREDITS_URL = 'https://github.com/mrballistic/voltline/blob/main/CREDITS.md';
+const MAC_APP_URL = 'https://github.com/mrballistic/voltline/releases/latest';
 
 // Dark circuit-grid page (spec §6.3).
 const pageStyles = {
@@ -43,6 +47,8 @@ const footerLinkSx = {
   '&:hover, &:focus-visible': { color: CHROME.text },
   '&:focus-visible': { outline: `2px solid ${CHROME.focus}`, outlineOffset: 3 },
 } as const;
+// “Cookie settings” is a button that looks like the links beside it.
+const footerButtonSx = { ...footerLinkSx, font: 'inherit', verticalAlign: 'baseline', '&.Mui-focusVisible': footerLinkSx['&:focus-visible'] } as const;
 
 export default function App() {
   const host = useRef<HTMLDivElement>(null);
@@ -51,6 +57,8 @@ export default function App() {
   const over = ui?.over ?? false;
   // The best of the game that ended (recordBest's rule), not of the mode toggled afterwards.
   const best = ui ? (ui.overAI ? ui.best.ai : ui.best.player) : 0;
+  // The desktop app stays offline: no Mac app link (it is the Mac app) and no analytics to configure.
+  const desktop = isDesktopApp();
 
   return (
     <ThemeProvider theme={theme}>
@@ -78,9 +86,18 @@ export default function App() {
             <Link href={CREDITS_URL} target="_blank" rel="noopener noreferrer" color="inherit" sx={footerLinkSx}>Credits</Link>
             {' · '}
             <Link href={`${CREDITS_URL.replace('CREDITS.md', 'LICENSE')}`} target="_blank" rel="noopener noreferrer" color="inherit" sx={footerLinkSx}>MIT License</Link>
+            {!desktop && (
+              <>
+                {' · '}
+                <Link href={MAC_APP_URL} target="_blank" rel="noopener noreferrer" color="inherit" sx={footerLinkSx}>Mac app</Link>
+                {' · '}
+                <Link component="button" type="button" onClick={openConsentSettings} color="inherit" sx={footerButtonSx}>Cookie settings</Link>
+              </>
+            )}
           </Typography>
         </Box>
       </Box>
+      {!desktop && <ConsentBanner />}
       <HowToPlayDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
       <GameOverDialog
         open={over}

@@ -65,7 +65,7 @@ See `ARCHITECTURE.md` for detail.
 5. The AI never reads hidden RNG state; it ranks moves from the visible state.
 6. Strict CSP: no `unsafe-eval`. The renderer imports `pixi.js/unsafe-eval` so Pixi works under that CSP. The same policy is set in `deploy/apache-voltline-le-ssl.conf`.
 7. TypeScript stays on 6.x until typescript-eslint supports 7. Check `npm view typescript-eslint peerDependencies` before moving.
-8. No LLM code, no API keys, no runtime network calls (fonts are self-hosted via @fontsource).
+8. No LLM code, no API keys; the only runtime network call is Google Analytics, loaded only after the visitor accepts the cookie banner, web build only, never in the desktop app.
 9. Board coordinates: `row` 0 is the top, `col` 0 is the left; `BOARD_SIZE = 8`.
 10. Vite `base: './'`; TypeScript `strict`, `noUnusedLocals`, `noUnusedParameters`.
 

@@ -79,6 +79,10 @@ Sound starts with your first tap or key press, and goes quiet while the game’s
 
 <img src="docs/screenshots/app-phone.webp" alt="Voltline on a phone: the same board filling the width, with the score above and the buttons below" width="260">
 
+## Privacy
+
+The web version counts visits with Google Analytics only if you accept the cookie banner; decline and nothing is sent. Change your answer any time with Cookie settings in the footer. The Mac app sends nothing.
+
 ## AI assistance
 
 Voltline was built with AI assistance; the game’s own AI is a search, not generative AI. See [AI-ASSISTANCE.md](./AI-ASSISTANCE.md).
