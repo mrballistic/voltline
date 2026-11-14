@@ -34,7 +34,10 @@ describe('Header', () => {
 
   it('shows the logo mark hidden from assistive tech; the heading is still the name', () => {
     render(<Header ui={base} onMuted={() => {}} onVolume={() => {}} />);
-    expect(screen.getByRole('heading', { level: 1, name: 'Voltline' })).toBeInTheDocument();
+    const heading = screen.getByRole('heading', { level: 1, name: 'Voltline' });
+    // One word for a screen reader: the kerned V is an inline span, not a separate word.
+    expect(heading.textContent).toBe('Voltline');
+    expect(heading).not.toHaveAttribute('aria-label');
     const mark = screen.getByTestId('logo-mark');
     expect(mark).toHaveAttribute('aria-hidden', 'true');
     expect(mark.tagName.toLowerCase()).toBe('svg');

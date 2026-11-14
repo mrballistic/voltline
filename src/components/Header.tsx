@@ -27,7 +27,8 @@ export default function Header({ ui, onMuted, onVolume }: HeaderProps) {
         <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
           <LogoMark />
           <Typography component="h1" sx={{ fontFamily: DISPLAY_FONT, fontSize: 18, letterSpacing: '0.18em', color: NEON.cyan, textShadow: `0 0 12px ${NEON.cyan}88` }}>
-            Voltline
+            {/* The V's diagonal opens the V–o pair under uniform tracking; pull just that pair in. */}
+            <Box component="span" sx={{ mr: WORDMARK_VO_KERN }}>V</Box>oltline
           </Typography>
         </Stack>
         <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
@@ -54,6 +55,9 @@ export default function Header({ ui, onMuted, onVolume }: HeaderProps) {
     </Box>
   );
 }
+
+/** Extra kerning between the wordmark's V and o, on top of its 0.18em tracking. */
+export const WORDMARK_VO_KERN = '-0.12em';
 
 // A 70 px track in an 88 × 44 hit area; muted shows an empty track and a hollow thumb.
 const volumeSx = {
