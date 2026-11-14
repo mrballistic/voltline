@@ -3,7 +3,9 @@
 // calls. A drag past a fraction of a cell swaps at once, without waiting for release. While it
 // is under way the grabbed piece follows the pointer by shifting its `pivot`, which the script
 // player never touches, so the swap tween takes over from the piece's current offset: the
-// offset then eases to zero while the tween runs, with no snap.
+// offset then eases to zero while the tween runs, with no snap. A tray drag carries a flyer
+// under the pointer and drops on the cell under its center; a drop the controller refuses
+// shakes there before flying home, so a refusal is never silent.
 import type { Application, FederatedPointerEvent } from 'pixi.js';
 import { gsap } from 'gsap';
 import { BOARD_SIZE } from '../engine';
@@ -59,8 +61,15 @@ type Gesture =
   | { kind: 'cell'; id: number; start: Pt; cell: Pos; sprite: PieceSprite | undefined; done: boolean }
   | { kind: 'slot'; id: number; start: Pt; slot: number; flyer: PieceSprite | null; color: Color | null };
 
+export interface InputOptions {
+  /** No refusal shake: a refused tray drop just flies home. */
+  reducedMotion?: boolean;
+}
+
 /** Listens on the whole canvas; returns a function that stops listening. */
-export function attachInput(app: Application, board: BoardView, tray: TrayView, h: InputHandlers): () => void {
+export function attachInput(
+  app: Application, board: BoardView, tray: TrayView, h: InputHandlers, { reducedMotion = false }: InputOptions = {},
+): () => void {
   const stage = app.stage;
   const canvas = app.canvas;
   stage.eventMode = 'static';
@@ -115,18 +124,38 @@ export function attachInput(app: Application, board: BoardView, tray: TrayView, 
     g = null;
   };
 
-  const abortFlyer = (cur: Extract<Gesture, { kind: 'slot' }>, animate: boolean) => {
-    const f = cur.flyer;
-    if (!f) return;
-    cur.flyer = null;
-    if (!animate) { f.destroy(); return; }
-    const home = tray.slotXY(cur.slot);
+  /** Carries a released flyer back to its slot, then drops it. */
+  const flyHome = (f: PieceSprite, slot: number) => {
+    if (f.destroyed) return;
+    const home = tray.slotXY(slot);
     const q = { x: f.x, y: f.y };
     gsap.to(q, {
       x: home.x, y: home.y, duration: ANIM.dragReturnMs / 1000, ease: 'power2.out',
       onUpdate: () => { if (!f.destroyed) f.position.set(q.x, q.y); },
       onComplete: () => { if (!f.destroyed) f.destroy(); },
     });
+  };
+
+  /** The "no" for a refused drop: the flyer shakes side to side where it was let go, dying away, then flies home. */
+  const refuseFlyer = (f: PieceSprite, slot: number) => {
+    if (reducedMotion) { flyHome(f, slot); return; }
+    const { cells, ms, cycles } = ANIM.refuseShake;
+    const x0 = f.x;
+    const amp = cells * board.cellPx;
+    const q = { k: 0 };
+    gsap.to(q, {
+      k: 1, duration: ms / 1000, ease: 'none',
+      onUpdate: () => { if (!f.destroyed) f.x = x0 + amp * Math.sin(2 * Math.PI * cycles * q.k) * (1 - q.k); },
+      onComplete: () => flyHome(f, slot),
+    });
+  };
+
+  const abortFlyer = (cur: Extract<Gesture, { kind: 'slot' }>, animate: boolean) => {
+    const f = cur.flyer;
+    if (!f) return;
+    cur.flyer = null;
+    if (animate) flyHome(f, cur.slot);
+    else f.destroy();
   };
 
   const cancel = () => {
@@ -178,18 +207,25 @@ export function attachInput(app: Application, board: BoardView, tray: TrayView, 
       h.tapCell(cur.cell);
       return;
     }
-    if (!cur.flyer) {
+    const f = cur.flyer;
+    if (!f) {
       h.tapSlot(cur.slot);
       return;
     }
-    const cell = board.cellAt(p.x, p.y);
-    if (cell && h.canAcceptInput()) {
-      h.place(cur.slot, cell);
-      // Accepted: the player flies its own piece from the slot. Ignored: carry ours home.
-      abortFlyer(cur, h.canAcceptInput());
-    } else {
+    // The drop target is the cell under the flyer's center (which follows the pointer).
+    f.position.set(p.x, p.y);
+    const cell = board.cellAt(f.x, f.y);
+    if (!cell || !h.canAcceptInput()) {
       abortFlyer(cur, true);
+      return;
     }
+    h.place(cur.slot, cell);
+    // Accepted moves set the controller busy synchronously, and the player flies its own piece
+    // from the slot. Still accepting input means the controller refused the cell (same color,
+    // a special, a rock): say so before carrying ours home, so a refusal is never silent.
+    cur.flyer = null;
+    if (h.canAcceptInput()) refuseFlyer(f, cur.slot);
+    else f.destroy();
   };
 
   // Input can lock while a drag is held still (AI mode turns on, a move or a deal starts): the
