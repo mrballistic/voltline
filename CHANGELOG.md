@@ -4,7 +4,20 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 
 ## Unreleased
 
+### Added
+
+- How to play: a button beside Hint and New game opens a short guide to the pieces, the tray, rocks and levels, with its numbers taken from the game’s own rules.
+- Line up four or more rocks and they explode like a Charge, clearing the 3×3 around them in rock gray. They still never become specials, and the blast sets off any special it reaches.
+- A Prism swapped with a rock is now a legal move: it clears every rock on the board.
+- A resting Prism slowly turns, so its colors drift around the ring. Reduced motion keeps it still.
+
 ### Changed
+
+- Rocks appear from level 5 (was 10), at 3% rising to 6% by level 8, then 1.5% a level to 18% at level 16 (was capped at 10%).
+- From level 9, refills are stingy: a new piece that would land in a ready-made match is re-rolled 10% of the time at level 9, rising 10% a level to 60%. Games stay replayable from their seed.
+- The tray stops counting clears while it’s full, and filling it resets every color’s count, so no piece is earned and lost. The tray-lost sound is gone.
+- You can pick up and drag a tray piece while a move is still playing. Let go before the board settles and the piece waits where you dropped it, then lands as soon as the board is still (or shakes and goes home if that cell can’t take it any more). A new game, a level-up, the game ending or turning AI on sends it home.
+- Dependencies: eslint 10.15, Playwright 1.65.1, jest-dom 7. Two npm advisories (minimatch, yaml) are cleared.
 
 - A refreshed look around the board (the chrome redesign). Every button, switch and speed toggle is at least 44 px tall, so they’re easier to hit; on a 1440×900 desktop the board shrinks a little to make room (cells of 53 px instead of 56).
 - The AI controls have their own dock under the buttons, as wide as the board. With AI mode off it shows only the switch; switch it on and the speed toggle, the move counter and “Thinking…” appear. The dock never changes height, so the board doesn’t move, and it and the buttons fit phones as narrow as 320 px.
@@ -22,6 +35,7 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 
 ### Fixed
 
+- Tray drops that seemed not to take: they were drops on a cell the tray can’t use (a piece of its own color, a special or a rock), which slid home exactly like a cancelled drag. Now the piece shakes there and plays the “no” sound (the sound plays with reduced motion too), then flies home.
 - The mute button is always named “Mute”, with its pressed state saying whether sound is off. It used to switch its name to “Unmute” while also reporting pressed, which a screen reader read as “Unmute, pressed”.
 - The disabled Hint button is readable: about 2:1 contrast before, 5.6:1 now.
 - With reduced motion, the score shows its new value at once instead of counting up.
