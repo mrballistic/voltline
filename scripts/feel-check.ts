@@ -13,6 +13,7 @@
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromium, type Page } from '@playwright/test';
+import { DECLINED_CONSENT } from './consent';
 import type { Move, Pos, Step } from '../src/engine';
 import type { DebugHandle, FrameSample } from '../src/app/debug';
 import { ANIM } from '../src/render/constants';
@@ -272,6 +273,7 @@ try {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
   // tsx compiles with keepNames, which wraps inner functions in a `__name` helper the page lacks.
   await ctx.addInitScript('window.__name = (f) => f');
+  await ctx.addInitScript(DECLINED_CONSENT);
   const page = await ctx.newPage();
   const errors: string[] = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -301,6 +303,7 @@ try {
   // Reduced motion: same physics, shortened.
   const rctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, reducedMotion: 'reduce' });
   await rctx.addInitScript('window.__name = (f) => f');
+  await rctx.addInitScript(DECLINED_CONSENT);
   const rpage = await rctx.newPage();
   rpage.on('pageerror', (e) => errors.push(`reduced: ${e.message}`));
   await open(rpage, SEED);

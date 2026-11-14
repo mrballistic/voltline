@@ -10,6 +10,7 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, type Browser, type Page } from '@playwright/test';
+import { DECLINED_CONSENT } from './consent';
 import { computeLayout } from '../src/render/layout';
 
 const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -20,6 +21,7 @@ const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inl
 
 async function context(browser: Browser, opts: Parameters<Browser['newContext']>[0]) {
   const ctx = await browser.newContext(opts);
+  await ctx.addInitScript(DECLINED_CONSENT);
   if (strictCsp) {
     await ctx.route('**/*', async (route) => {
       if (route.request().resourceType() !== 'document') return route.continue();

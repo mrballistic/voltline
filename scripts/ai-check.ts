@@ -6,6 +6,7 @@
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromium, type Page } from '@playwright/test';
+import { DECLINED_CONSENT } from './consent';
 import type { DebugHandle } from '../src/app/debug';
 
 declare global { interface Window { __voltline?: DebugHandle } }
@@ -22,6 +23,7 @@ const idle = (p: Page) => p.waitForFunction(() => window.__voltline!.controller.
 const browser = await chromium.launch();
 const errors: string[] = [];
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 })).newPage();
+await page.addInitScript(DECLINED_CONSENT);
 page.on('console', (m) => { if (m.type() === 'error' || (m.type() === 'warning' && !m.text().includes('GL Driver Message'))) errors.push(`${m.type()}: ${m.text()}`); });
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
 await page.goto(`${base}?seed=7`);

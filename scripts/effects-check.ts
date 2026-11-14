@@ -13,6 +13,7 @@
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromium, type Page } from '@playwright/test';
+import { DECLINED_CONSENT } from './consent';
 import type { Pos } from '../src/engine';
 import type { DebugHandle } from '../src/app/debug';
 import { EFFECT_FIXTURES, fixture, type FixtureName } from '../src/app/devFixtures';
@@ -133,6 +134,7 @@ try {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
   // tsx compiles with keepNames, which wraps inner functions in a `__name` helper the page lacks.
   await ctx.addInitScript('window.__name = (f) => f');
+  await ctx.addInitScript(DECLINED_CONSENT);
   const page = await ctx.newPage();
   page.on('console', (m) => { if (m.type() === 'error') fails.push(m.text()); });
   page.on('pageerror', (e) => fails.push(e.message));
@@ -152,6 +154,7 @@ try {
   if (!process.env.FX_SKIP_PERF) {
     const pctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
     await pctx.addInitScript('window.__name = (f) => f');
+    await pctx.addInitScript(DECLINED_CONSENT);
     const perf = await pctx.newPage();
     perf.on('pageerror', (e) => fails.push(e.message));
     const { dts, work } = await frameTimes(perf, 2000);
