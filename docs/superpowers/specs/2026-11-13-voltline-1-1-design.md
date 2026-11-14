@@ -32,6 +32,9 @@ When the tray reaches 5 pieces, **every color's counter resets to 0**, and clear
 ### 6. Prism versus rocks (Todd: “the prism should be able to remove the stones”; picked “Swap Prism with a rock”)
 A Prism swapped with a rock is now a legal, productive move: it clears **every rock on the board** (and the Prism). Color clears are unchanged (they still skip rocks), and a Prism caught in an explosion still clears the most common color. The AI considers the new move automatically. The How to play copy and README change from “A Prism can’t be swapped with a rock” to say what the swap does.
 
+### 7. Rock lines of 4+ explode (Todd: “if you match 4 blocks, we can make that explode, too”; blocks = rocks; confirmed)
+A rock match of 4 or more (line4, line5, or an L/T cross of rocks) clears as today **and** detonates on the spot like a Charge: a 3×3 blast centered on the run's special cell (the same cell a gem special would land on: the moved cell if it's in the run, else the center). No special is created (rocks still never become specials). The blast chains into any special it catches, blast-only pieces score as usual, and rocks never count toward the tray. It plays the Charge blast effect and cue (tinted rock gray). The AI picks it up automatically. How to play and README copy gain one line.
+
 ## Release
 Ships as **1.1.0** (CHANGELOG section, version bump, PR, green CI, merge, tag; deploy watched and verified live, per Todd's standing release rule).
 
