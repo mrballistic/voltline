@@ -162,8 +162,8 @@ No visible strings change. Accessible names:
 - `README.md`: only if the AI section describes the old control layout.
 - Retake screenshots in `docs/screenshots/` once it’s built (same names, so the README keeps working): `app-phone.webp`, `app-desktop.webp`, `ai-mode-running.webp`, `ui-tray-full.webp`, `ui-level-up.webp`, `ui-game-over.webp`, `how-to-play-phone.webp`, `how-to-play-desktop.webp`, `404.png`. Use `?seed=N` and the dev fixtures for repeatable states, at 390×844 and 1440×900.
 
-## Open questions for Todd
+## Open questions for Todd (answered 2026-11-13)
 
-1. Replace the Prism-ring favicon and app icon with the V mark?
-2. Accept 53 px desktop cells, or use 40 px controls for fine pointers to keep 56?
-3. Keep the optional score flare (§4)?
+1. Replace the Prism-ring favicon and app icon with the V mark? **Yes, both.** `public/icon.svg` becomes the small V mark (from `public/logo-mark-small.svg`), and the Tauri icons are regenerated from `docs/design/voltline-chrome/logo-app-icon.svg` (`npx tauri icon`; update `scripts/render-icon.ts`/`src-tauri/icons/source.svg` to match).
+2. Accept 53 px desktop cells, or use 40 px controls for fine pointers to keep 56? **44 px everywhere; accept ~53 px desktop cells.**
+3. Keep the optional score flare (§4)? **Yes.**
