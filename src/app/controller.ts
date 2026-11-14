@@ -25,6 +25,8 @@ export interface UiSnapshot {
   aiOn: boolean;
   aiSpeed: AISpeed;
   aiMoves: number;
+  /** The AI loop is waiting on a ranking. */
+  aiThinking: boolean;
   muted: boolean;
   volume: number;
   /** Set when the game just ended: its score beat the saved best for its kind (strictly). */
@@ -55,8 +57,17 @@ export interface GameControllerDeps {
 /** What the player currently sees, which lags the engine state while a script plays. */
 interface Shown { score: number; level: number; levelStart: number; levelTarget: number; tray: Color[]; over: boolean }
 
-/** How long the level-up line stays up (belongs in render/constants.ts ANIM; see report). */
-const LEVEL_NOTICE_MS = 2000;
+/** AI mode per speed: how long the hint reveal runs before each move, and the rest after it. */
+export const AI_PACE: Record<AISpeed, { revealMs: number; pauseMs: number }> = {
+  slow: { revealMs: 1000, pauseMs: 600 },
+  medium: { revealMs: 500, pauseMs: 300 },
+  fast: { revealMs: 150, pauseMs: 100 },
+};
+
+/** Rank failures in a row after which AI mode gives up (one retry covers a worker that just died). */
+const AI_MAX_FAILURES = 2;
+
+const isDisposedError = (err: unknown) => err instanceof Error && err.message === 'disposed';
 
 const randomSeed = () => Math.floor(Math.random() * 2 ** 32);
 const same = (a: Pos, b: Pos) => a.row === b.row && a.col === b.col;
@@ -79,6 +90,11 @@ export class GameController {
   private notice: UiSnapshot['notice'] = null;
   private aiOn = false;
   private aiMoves = 0;
+  private aiThinking = false;
+  /** AI loop generation: bumped by setAI, newGame and dispose, so an older loop or ranking is dropped. */
+  private aiGen = 0;
+  /** Wakes the AI loop's waits (pause, hidden tab) when its generation ends. */
+  private readonly aiWakers = new Set<() => void>();
   /** Bumped whenever the state changes, so a hint ranked for an old state is dropped. */
   private version = 0;
   private disposed = false;
@@ -112,6 +128,7 @@ export class GameController {
       aiOn: this.aiOn,
       aiSpeed: this.prefs.aiSpeed,
       aiMoves: this.aiMoves,
+      aiThinking: this.aiThinking,
       muted: this.prefs.muted,
       volume: this.prefs.volume,
       newBest: this.newBest,
@@ -143,7 +160,7 @@ export class GameController {
             if (this.notice !== shownNotice) return;
             this.notice = null;
             this.emit();
-          }, LEVEL_NOTICE_MS);
+          }, ANIM.levelNoticeMs);
         }
         if (a.kind === 'level-up' && a.level !== undefined) {
           s.level = a.level;
@@ -213,7 +230,11 @@ export class GameController {
   }
 
   /** Applies `move` and plays its script. Dropped (resolves at once) while a move is playing. */
-  async submit(move: Move): Promise<void> {
+  submit(move: Move): Promise<void> {
+    return this.apply(move, false);
+  }
+
+  private async apply(move: Move, byAI: boolean): Promise<void> {
     if (this.busy || this.disposed || this._state.over) return;
     const { state: next, script } = applyMove(this._state, move);
     if (script.length === 0) return;
@@ -221,7 +242,11 @@ export class GameController {
     this.selected = null;
     this.selectedSlot = null;
     this.clearNotice();
-    if (next !== this._state) this.version++;
+    if (next !== this._state) {
+      this.version++;
+      // Counted before the script plays, so a game the AI's first move ends is still an AI game.
+      if (byAI) this.aiMoves++;
+    }
     this._state = next;
     if (move.type === 'place') this.shown.tray = this.shown.tray.filter((_, i) => i !== move.slot);
     await this.run(() => this.d.player.play(script, { board: next.board, tray: next.tray }), () => {
@@ -238,6 +263,7 @@ export class GameController {
 
   /** Starts a fresh game once the current move (if any) has finished playing. */
   async newGame(): Promise<void> {
+    this.endAILoop(); // a ranking for the old game must never land on the new one
     while (this.current) {
       const c = this.current;
       await c.catch(() => {});
@@ -255,30 +281,35 @@ export class GameController {
     this.newBest = false;
     this.aiMoves = 0;
     const { board, tray } = this._state;
-    await this.run(() => this.d.player.show({ board, tray }));
+    const dealt = this.run(() => this.d.player.show({ board, tray }));
+    if (this.aiOn) this.startAILoop(); // it waits for the deal like any other move
+    await dealt;
   }
 
   /** Shows the AI's ranked moves for the current board. */
   async hint(): Promise<void> {
-    if (this.busy || this.disposed || this._state.over) return;
+    if (this.busy || this.aiOn || this.disposed || this._state.over) return;
     const version = this.version;
     let ranked: RankedMove[];
     try {
       ranked = await this.d.ai.rank(this._state);
-    } catch {
-      return; // disposed or the worker failed; a hint is never worth an error
+    } catch (err) {
+      if (!isDisposedError(err) && !this.disposed) this.report(err);
+      return;
     }
-    if (version !== this.version || this.busy || this.disposed) return;
+    if (version !== this.version || this.busy || this.aiOn || this.disposed) return;
     await this.d.hint.show(ranked, { revealMs: ANIM.hint.revealMs, holdMs: ANIM.hint.holdMs });
   }
 
-  /** AI mode on or off. While on, player input is ignored (the AI loop itself arrives in Task 17). */
+  /** AI mode on or off. While on, player input is ignored and the AI loop plays. */
   setAI(on: boolean): void {
-    if (on === this.aiOn) return;
+    if (on === this.aiOn || this.disposed) return;
     this.aiOn = on;
     this.selected = null;
     this.selectedSlot = null;
     this.d.hint.clear();
+    if (on) this.startAILoop();
+    else this.endAILoop();
     this.emit();
   }
 
@@ -306,9 +337,116 @@ export class GameController {
 
   dispose(): void {
     this.disposed = true;
+    this.endAILoop();
     this.clearNotice();
     this.d.ai.dispose();
     this.d.hint.clear();
+  }
+
+  /** Starts a new loop generation, ending any loop still running, so two can never overlap. */
+  private startAILoop(): void {
+    this.endAILoop();
+    const gen = this.aiGen;
+    this.aiLoop(gen).catch((err: unknown) => {
+      if (gen === this.aiGen) this.setThinking(false);
+      this.report(err);
+    });
+  }
+
+  /** Ends the running loop's generation: its waits wake, and anything it was waiting on is dropped. */
+  private endAILoop(): void {
+    this.aiGen++;
+    this.aiThinking = false;
+    for (const wake of this.aiWakers) wake();
+    this.aiWakers.clear();
+  }
+
+  /**
+   * One generation of AI mode: rank, show the hint briefly, play the best move, pause, repeat,
+   * until the game is over or the generation ends. Each step re-checks the generation and the
+   * state version, so a stale ranking is dropped instead of landing on a newer board.
+   */
+  private async aiLoop(gen: number): Promise<void> {
+    const live = () => gen === this.aiGen && this.aiOn && !this.disposed;
+    let failures = 0;
+    while (live()) {
+      await this.whenVisible(gen);
+      if (!live()) return;
+      if (this.current) {
+        await this.current.catch(() => {}); // a deal or a move still playing
+        continue;
+      }
+      if (this._state.over) return;
+      const version = this.version;
+      const state = this._state;
+      this.setThinking(true);
+      let ranked: RankedMove[];
+      try {
+        ranked = await this.d.ai.rank(state);
+      } catch (err) {
+        if (!live()) return;
+        this.setThinking(false);
+        if (isDisposedError(err)) return;
+        this.report(err);
+        if (++failures >= AI_MAX_FAILURES) this.setAI(false);
+        continue;
+      }
+      if (!live()) return;
+      this.setThinking(false);
+      failures = 0;
+      if (version !== this.version || this.busy) continue; // ranked for a board that has moved on
+      const best = ranked[0];
+      if (!best) {
+        // Never happens: a live game always has a productive move. Say so rather than sit idle.
+        this.report(new Error('AI found no move on a live board'));
+        this.setAI(false);
+        return;
+      }
+      const pace = AI_PACE[this.prefs.aiSpeed];
+      await this.d.hint.show(ranked, { revealMs: pace.revealMs, holdMs: 0 });
+      if (!live()) return;
+      this.d.hint.clear(); // never overlaps the move's animation
+      if (version !== this.version || this.busy) continue;
+      await this.apply(best.move, true);
+      if (!live() || this._state.over) return;
+      await this.aiWait(gen, pace.pauseMs);
+    }
+  }
+
+  /** Resolves after `ms`, or at once when the generation ends. */
+  private aiWait(gen: number, ms: number): Promise<void> {
+    if (gen !== this.aiGen) return Promise.resolve();
+    return new Promise((resolve) => {
+      const done = () => {
+        clearTimeout(timer);
+        this.aiWakers.delete(done);
+        resolve();
+      };
+      const timer = setTimeout(done, ms);
+      this.aiWakers.add(done);
+    });
+  }
+
+  /** Resolves once the tab is visible (at once if it is), or when the generation ends. */
+  private whenVisible(gen: number): Promise<void> {
+    const doc = this.d.doc;
+    if (!doc?.hidden || gen !== this.aiGen) return Promise.resolve();
+    return new Promise((resolve) => {
+      const done = () => {
+        doc.removeEventListener('visibilitychange', onChange);
+        this.aiWakers.delete(done);
+        resolve();
+      };
+      const onChange = () => { if (!doc.hidden) done(); };
+      doc.addEventListener('visibilitychange', onChange);
+      this.aiWakers.add(done);
+    });
+  }
+
+  private setThinking(on: boolean): void {
+    if (this.aiThinking === on) return;
+    this.aiThinking = on;
+    this.emit();
   }
 
   private acceptsInput(): boolean {

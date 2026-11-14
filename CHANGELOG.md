@@ -41,9 +41,14 @@ All notable changes to Voltline are recorded here. The format follows [Keep a Ch
 - Game chrome in MUI: header with title, a score that counts up, best score, level bar, level-up line, mute and volume; Hint and New game under the tray; a persistent “Tray full” notice; a “No moves left” dialog with score, level and best (AI games show AI best). The page uses Orbitron and Rajdhani, self-hosted. Credits and MIT License links in the footer.
 - Saved prefs in `localStorage` (`voltline.prefs.v1`): player best, AI best, AI speed, mute and volume. Unavailable or corrupt storage falls back to defaults.
 - Favicon (`public/icon.svg`, the Prism ring mark).
+- Hint shows the moves the AI found: faint arrows, each labelled with its value (“≈ 1,240”), from one cell to its neighbor for a swap and from the tray slot to the cell for a placement. Over a second the weaker ones fade out lowest first, leaving the best one pulsing for up to 4 seconds or until you act. Up to 12 arrows, at most 3 of them placements. Reduced motion keeps the same information without the pulse (`src/render/HintLayer.ts`).
+- AI mode: an `AI` switch, `Slow / Medium / Fast` speeds, an `AI moves` counter and a `Thinking…` indicator under the board. The AI shows the same arrows before each move (shorter at faster speeds), then plays the best one. It pauses while the tab is hidden and resumes without catching up, drops a ranking that arrives after New game or after it was switched off, carries on into a new game, and stops at game over. Any game the AI moved in counts toward the AI best. Hint is off while AI mode is on.
+- `scripts/ai-check.ts`: a Playwright check that screenshots a hint mid-reveal and with the best isolated, holds a drag while AI mode turns on, and runs AI mode on Fast for two minutes, failing on a stall or a console error.
 
 ### Changed
 
+- A drag held still on the board or the tray now eases back the moment input locks (AI mode turns on, a move or a new board starts), instead of on the next pointer event.
+- Hint reports a failed ranking (other than a shut-down AI) instead of swallowing it. The level-up line’s 2 s lives in `ANIM.levelNoticeMs`.
 - AI weights tuned with the benchmark, and the per-level score step raised from 750 to 2,500 so levels don’t fly by (subject to a feel test).
 - The planner holds level-up and game-over until any tray flight lands, so the “tray full” notice can’t trail them. A clear that creates a special lasts at least the special’s morph. `planScript` rejects a time scale that isn’t a positive, finite number.
 - Node 26 LTS everywhere (`.nvmrc`, `engines`, `@types/node` 26, CI). The `gh-pages` force-push in `deploy.sh` is retired in favor of the server deploy.
