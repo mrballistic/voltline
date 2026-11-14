@@ -60,13 +60,13 @@ export default function App() {
           <GameControls
             hintDisabled={(ui?.busy ?? true) || (ui?.aiOn ?? false)} over={over} onHint={actions.hint} onNewGame={actions.newGame}
             onHowToPlay={() => { actions.uiClick(); setHelpOpen(true); }}
-            aiSlot={(
-              <AIControls
-                on={ui?.aiOn ?? false} speed={ui?.aiSpeed ?? 'medium'} moves={ui?.aiMoves ?? 0} thinking={ui?.aiThinking ?? false}
-                onToggle={actions.setAI} onSpeed={actions.setAISpeed}
-              />
-            )}
           />
+          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', pt: 1 }}>
+            <AIControls
+              on={ui?.aiOn ?? false} speed={ui?.aiSpeed ?? 'medium'} moves={ui?.aiMoves ?? 0} thinking={ui?.aiThinking ?? false}
+              disabled={failed} onToggle={actions.setAI} onSpeed={actions.setAISpeed}
+            />
+          </Box>
           <Typography component="footer" sx={{ py: 1, fontSize: 13, color: 'text.secondary' }}>
             <Link href={CREDITS_URL} target="_blank" rel="noopener noreferrer" color="inherit">Credits</Link>
             {' · '}

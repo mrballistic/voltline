@@ -1,14 +1,13 @@
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
-import type { ReactNode } from 'react';
 import { NEON } from '../theme';
 
-/** Hint, How to play and New game under the tray; `aiSlot` is where Task 17's AI controls go. */
+/** Hint, How to play and New game under the tray. The AI dock is its own block below (App). */
 export default function GameControls(
-  { hintDisabled, over, onHint, onNewGame, onHowToPlay, aiSlot }: { hintDisabled: boolean; over: boolean; onHint(): void; onNewGame(): void; onHowToPlay(): void; aiSlot?: ReactNode },
+  { hintDisabled, over, onHint, onNewGame, onHowToPlay }: { hintDisabled: boolean; over: boolean; onHint(): void; onNewGame(): void; onHowToPlay(): void },
 ) {
   return (
-    <Stack spacing={1} sx={{ width: '100%', alignItems: 'center' }}>
+    <Stack sx={{ width: '100%', alignItems: 'center', pt: 0.5 }}>
       <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'center' }}>
         <Button variant="outlined" color="primary" disabled={hintDisabled || over} onClick={onHint} sx={{ minWidth: 110 }}>
           Hint
@@ -24,7 +23,6 @@ export default function GameControls(
           New game
         </Button>
       </Stack>
-      {aiSlot}
     </Stack>
   );
 }
