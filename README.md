@@ -52,9 +52,11 @@ The game ends when no move on the board can make a match, and that includes tray
 
 ## Modes
 
-- **Player.** You play. Your best score is saved in your browser.
-- **AI mode.** Watch the computer play, at slow, medium or fast speed, with pause and a move counter. It keeps its own best score, so it never takes your record.
-- **Hint.** Shows the moves the AI found as faint arrows, each with a value, then fades the weaker ones until the best is left.
+- **Player.** You play. Your best score is saved on this device.
+- **Hint.** Press Hint and Voltline shows every good move it found as an arrow, each labeled with roughly what it’s worth (“≈ 1,240”). Swaps point from one piece to its neighbor; tray placements run from the tray to the cell. Over about a second the weaker arrows fade out, lowest first, until only the best is left, pulsing. It stays for a few seconds, or until you move.
+- **AI mode.** Flip the AI switch and Voltline plays for you, showing the same arrows before each move. Pick Slow, Medium or Fast; the counter shows how many moves the AI has made. It pauses when you switch tabs and picks up where it left off. Switch it off to take over. A game the AI moved in counts toward the AI best, not yours.
+
+<p><img src="docs/screenshots/hint-reveal.webp" alt="Hint: arrows on every good swap, each labeled with an estimated value such as “≈ 2,216”" width="48%"> <img src="docs/screenshots/ai-mode-running.webp" alt="AI mode on Slow: the AI switch on, its arrows on the board, and an AI moves counter" width="48%"></p>
 
 The AI is a search, not a chatbot. It looks at exactly what you can see (the board, the tray and the level), tries each move many times over with randomly dropped-in new pieces, and picks the one that does best on average. It never peeks at what the game will drop next, and it needs no network or API key.
 
