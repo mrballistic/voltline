@@ -3,10 +3,11 @@ import IconButton from '@mui/material/IconButton';
 import Slider from '@mui/material/Slider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { DISPLAY_FONT, NEON } from '../theme';
-import type { UiSnapshot } from '../app/controller';
 import SvgIcon from '@mui/material/SvgIcon';
+import { CHROME, DISPLAY_FONT, NEON } from '../theme';
+import type { UiSnapshot } from '../app/controller';
 import LevelBar from './LevelBar';
+import LogoMark from './LogoMark';
 import ScoreDisplay from './ScoreDisplay';
 
 export interface HeaderProps {
@@ -22,19 +23,20 @@ export default function Header({ ui, onMuted, onVolume }: HeaderProps) {
   const notice = ui?.notice;
   return (
     <Box component="header" sx={{ width: '100%', px: 2, pt: 1.5, pb: 0.5 }}>
-      <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography component="h1" sx={{ fontFamily: DISPLAY_FONT, fontSize: 18, letterSpacing: '0.18em', color: NEON.cyan, textShadow: `0 0 12px ${NEON.cyan}88` }}>
-          Voltline
-        </Typography>
-        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+      <Stack direction="row" sx={{ height: 44, alignItems: 'center', justifyContent: 'space-between' }}>
+        <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
+          <LogoMark />
+          <Typography component="h1" sx={{ fontFamily: DISPLAY_FONT, fontSize: 18, letterSpacing: '0.18em', color: NEON.cyan, textShadow: `0 0 12px ${NEON.cyan}88` }}>
+            Voltline
+          </Typography>
+        </Stack>
+        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
           <Slider
             size="small" min={0} max={1} step={0.05} value={ui?.volume ?? 0.8} disabled={muted}
-            onChange={(_, v) => onVolume(v)} aria-label="Volume" sx={{ width: 64 }}
+            onChange={(_, v) => onVolume(v)} aria-label="Volume" sx={volumeSx}
           />
-          <IconButton
-            size="small" aria-label={muted ? 'Unmute' : 'Mute'} aria-pressed={muted} onClick={() => onMuted(!muted)}
-            sx={{ color: muted ? 'text.secondary' : NEON.cyan }}
-          >
+          {/* The name stays “Mute”; aria-pressed carries the state. */}
+          <IconButton aria-label="Mute" aria-pressed={muted} onClick={() => onMuted(!muted)} sx={{ color: muted ? 'text.secondary' : NEON.cyan }}>
             <SpeakerIcon muted={muted} />
           </IconButton>
         </Stack>
@@ -52,6 +54,20 @@ export default function Header({ ui, onMuted, onVolume }: HeaderProps) {
     </Box>
   );
 }
+
+// A 70 px track in an 88 × 44 hit area; muted shows an empty track and a hollow thumb.
+const volumeSx = {
+  width: 70, height: 4, boxSizing: 'content-box', padding: '20px 9px',
+  '@media (pointer: coarse)': { padding: '20px 9px' },
+  '& .MuiSlider-rail': { bgcolor: 'rgba(77,216,255,0.22)', opacity: 1 },
+  '& .MuiSlider-track': { border: 0, boxShadow: `0 0 8px ${NEON.cyan}88` },
+  '& .MuiSlider-thumb': { width: 18, height: 18, boxShadow: `0 0 8px ${NEON.cyan}aa` },
+  '&.Mui-disabled .MuiSlider-rail': { bgcolor: 'rgba(154,163,214,0.22)' },
+  '&.Mui-disabled .MuiSlider-track': { display: 'none' },
+  '&.Mui-disabled .MuiSlider-thumb': {
+    bgcolor: CHROME.page, border: `2px solid ${CHROME.textDisabled}`, boxSizing: 'border-box', boxShadow: 'none',
+  },
+} as const;
 
 /** Speaker with sound waves; muted shows a cross instead, so the state is visible at a glance. */
 function SpeakerIcon({ muted }: { muted: boolean }) {

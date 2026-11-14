@@ -12,7 +12,7 @@ const base = {
 } as unknown as UiSnapshot;
 
 describe('Header', () => {
-  it('mute click calls setMuted and the icon state flips', () => {
+  it('mute keeps the name “Mute”, toggles aria-pressed, and the icon state flips', () => {
     const onMuted = vi.fn();
     function Wrapper() {
       const [muted, setMuted] = useState(false);
@@ -20,10 +20,29 @@ describe('Header', () => {
     }
     render(<Wrapper />);
     expect(screen.getByTestId('speaker-icon')).toHaveAttribute('data-muted', 'false');
+    expect(screen.getByRole('button', { name: 'Mute' })).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(screen.getByRole('button', { name: 'Mute' }));
     expect(onMuted).toHaveBeenCalledWith(true);
     expect(screen.getByTestId('speaker-icon')).toHaveAttribute('data-muted', 'true');
-    expect(screen.getByRole('button', { name: 'Unmute' })).toHaveAttribute('aria-pressed', 'true');
+    // The name never flips to “Unmute”: with aria-pressed that would read as “Unmute, pressed”.
+    expect(screen.queryByRole('button', { name: 'Unmute' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Mute' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Mute' }));
+    expect(onMuted).toHaveBeenLastCalledWith(false);
+    expect(screen.getByRole('button', { name: 'Mute' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('shows the logo mark hidden from assistive tech; the heading is still the name', () => {
+    render(<Header ui={base} onMuted={() => {}} onVolume={() => {}} />);
+    expect(screen.getByRole('heading', { level: 1, name: 'Voltline' })).toBeInTheDocument();
+    const mark = screen.getByTestId('logo-mark');
+    expect(mark).toHaveAttribute('aria-hidden', 'true');
+    expect(mark.tagName.toLowerCase()).toBe('svg');
+  });
+
+  it('disables the volume slider while muted', () => {
+    render(<Header ui={{ ...base, muted: true }} onMuted={() => {}} onVolume={() => {}} />);
+    expect(screen.getByRole('slider', { name: 'Volume' })).toBeDisabled();
   });
 
   it('gives the score an accessible name with the final value', () => {
