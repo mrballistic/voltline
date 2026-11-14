@@ -27,9 +27,14 @@ export interface DebugHandle {
   profile(): void;
   /** Stops profiling; returns each frame's work in ms. */
   stopProfile(): number[];
+  /** The audio context's state and every sound file started so far, in order (`land-2`, `match-chain-3`). */
+  audio(): { state: string; played: string[] };
 }
 
-export function installDebugHandle(deps: { app: Application; board: BoardView; tray: TrayView; controller: GameController }): () => void {
+export function installDebugHandle(deps: {
+  app: Application; board: BoardView; tray: TrayView; controller: GameController;
+  audio: { state: () => string; played: readonly string[] };
+}): () => void {
   const { app, board, controller } = deps;
   let frames: FrameSample[] | null = null;
   const sample = () => {
@@ -87,6 +92,9 @@ export function installDebugHandle(deps: { app: Application; board: BoardView; t
       const out = work ?? [];
       work = null;
       return out;
+    },
+    audio() {
+      return { state: deps.audio.state(), played: [...deps.audio.played] };
     },
   };
   (window as unknown as { __voltline?: DebugHandle }).__voltline = handle;

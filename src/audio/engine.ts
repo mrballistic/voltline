@@ -10,6 +10,8 @@ export interface AudioEngineDeps {
   now?: () => number;
   /** Picks `.webm` (Opus) when true, `.m4a` otherwise. Defaults to an `Audio.canPlayType` probe. */
   canPlayWebm?: () => boolean;
+  /** Called with the file key (`land-2`, `match-chain-3`) each time a source starts. Dev diagnostics. */
+  onPlay?: (key: string) => void;
 }
 
 const MAX_CHAIN_SEMITONES = 7;
@@ -40,6 +42,7 @@ export class AudioEngine implements CueSink {
   private unlocked = false;
   private muted = false;
   private volume = 1;
+  private disposed = false;
 
   constructor(deps: AudioEngineDeps) {
     this.deps = deps;
@@ -47,8 +50,13 @@ export class AudioEngine implements CueSink {
     this.now = deps.now ?? (() => performance.now());
   }
 
+  /** The context's state, or `none` before it exists (and after dispose). */
+  get state(): AudioContextState | 'none' {
+    return this.ctx?.state ?? 'none';
+  }
+
   private context(): AudioContext | null {
-    if (this.ctx) return this.ctx;
+    if (this.ctx || this.disposed) return this.ctx;
     try {
       const ctx = this.deps.createContext();
       const master = ctx.createGain();
@@ -89,9 +97,10 @@ export class AudioEngine implements CueSink {
         try {
           const res = await this.deps.fetch(url);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          this.buffers.set(key, await ctx.decodeAudioData(await res.arrayBuffer()));
+          const buffer = await ctx.decodeAudioData(await res.arrayBuffer());
+          if (!this.disposed) this.buffers.set(key, buffer);
         } catch {
-          if (import.meta.env.DEV) console.warn(`[audio] missing or undecodable: ${url}`);
+          if (import.meta.env.DEV && !this.disposed) console.warn(`[audio] missing or undecodable: ${url}`);
         }
       }),
     );
@@ -127,6 +136,19 @@ export class AudioEngine implements CueSink {
     if (this.unlocked) this.ctx?.resume?.()?.catch(() => {});
   }
 
+  /** Closes the context and drops every buffer; the engine stays silent from then on. */
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    const ctx = this.ctx;
+    this.ctx = null;
+    this.master = null;
+    this.buses = {};
+    this.buffers.clear();
+    this.active.clear();
+    ctx?.close?.()?.catch(() => {});
+  }
+
   cue(name: CueName, opts?: { chain?: number }): void {
     const ctx = this.ctx;
     if (!ctx || !this.unlocked || this.muted || ctx.state !== 'running') return;
@@ -148,7 +170,8 @@ export class AudioEngine implements CueSink {
       key = name.startsWith('match-chain-') ? name : base;
       if (spec.chainSet) semitones = Math.min(chain, MAX_CHAIN_SEMITONES);
     }
-    const buffer = this.buffers.get(key) ?? this.buffers.get(base);
+    if (!this.buffers.has(key)) key = base;
+    const buffer = this.buffers.get(key);
     if (!buffer) return;
 
     const t = this.now();
@@ -177,6 +200,7 @@ export class AudioEngine implements CueSink {
       voices.add(started);
       started.start();
       this.lastStart.set(base, t);
+      this.deps.onPlay?.(key);
     } catch {
       if (src) voices.delete(src);
     }

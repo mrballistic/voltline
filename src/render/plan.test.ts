@@ -258,6 +258,45 @@ describe('planScript', () => {
     expect(drops[0].atMs).toBe(Math.max(landOf(21), landOf(22)));
   });
 
+  it('cues fire at their action timestamps', () => {
+    // Synthetic: the match cue shares the matched pops' start, each column's land cue its last landing.
+    const { items } = planScript([swap, threeRow, score(), refill]);
+    const pops = of(items, 'pop');
+    expect(cues(items, 'match').map((p) => p.atMs)).toEqual([ANIM.swapMs]);
+    expect(new Set(pops.map((p) => p.atMs))).toEqual(new Set([ANIM.swapMs]));
+    const landEnds = new Map<number, number>();
+    for (const p of [...of(items, 'fall'), ...of(items, 'spawn')]) {
+      landEnds.set(p.action.col, Math.max(landEnds.get(p.action.col) ?? 0, end(p)));
+    }
+    const expected = [...landEnds.values()].sort((x, y) => x - y);
+    expect(cues(items, 'land').map((p) => p.atMs).sort((x, y) => x - y)).toEqual(expected);
+
+    // Real scripts: every round's match cue is on its matched pops, with that round's chain level,
+    // and every land or rock-drop cue is on the last landing in some column of that round.
+    let state = newGame(11);
+    for (let n = 0; n < 8; n++) {
+      const { script, state: next } = applyMove(state, productiveMoves(state)[0]);
+      const plan = planScript(script).items;
+      const matchCues = cues(plan, 'match');
+      const clears = script.filter((s): s is Extract<Step, { t: 'clear' }> => s.t === 'clear' && s.groups.length > 0);
+      expect(matchCues).toHaveLength(clears.length);
+      clears.forEach((c, i) => {
+        const matchedIds = new Set(c.cleared.filter((x) => x.cause === 'match').map((x) => x.id));
+        const starts = new Set(of(plan, 'pop').filter((p) => matchedIds.has(p.action.id)).map((p) => p.atMs));
+        expect(starts).toEqual(new Set([matchCues[i].atMs]));
+        expect(matchCues[i].action.chain).toBe(c.chain);
+      });
+      const landings = new Map<string, number>(); // "fallStart:col" → last landing
+      for (const p of [...of(plan, 'fall'), ...of(plan, 'spawn')]) {
+        const k = `${p.atMs}:${p.action.col}`;
+        landings.set(k, Math.max(landings.get(k) ?? 0, end(p)));
+      }
+      const columnCues = [...cues(plan, 'land'), ...cues(plan, 'rock-drop')].map((p) => p.atMs).sort((x, y) => x - y);
+      expect(columnCues).toEqual([...landings.values()].sort((x, y) => x - y));
+      state = next;
+    }
+  });
+
   it('tray fly begins after pops', () => {
     const blasts: Blast[] = [{ kind: 'charge', at: at(7, 1), cells: [at(6, 1)], order: 1 }];
     const step = clear([matched(1, 7, 0), matched(2, 7, 1), matched(3, 7, 2), blasted(4, 6, 1)], { blasts });

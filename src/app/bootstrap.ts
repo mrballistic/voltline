@@ -1,11 +1,12 @@
 // Creates the Pixi app inside `host` and wires a playable game: board and tray views, the script
-// player, the controller and tap input, on one clock (Pixi's ticker drives GSAP).
+// player, the controller, tap input and the sound engine, on one clock (Pixi's ticker drives GSAP).
 // Pixi's eval-free shader/uniform path, needed under the strict CSP (no 'unsafe-eval') that
 // production and the desktop app serve. Must load before the Application is created.
 import 'pixi.js/unsafe-eval';
 import { Application, Container } from 'pixi.js';
 import { createAIClient } from '../ai/client';
-import { silentCues } from '../audio/cues';
+import { AudioEngine } from '../audio/engine';
+import { attachAudioLifecycle } from '../audio/lifecycle';
 import { BoardView } from '../render/BoardView';
 import { driveGsapFrom } from '../render/clock';
 import { PixiEffects } from '../render/effects';
@@ -56,12 +57,24 @@ export async function createGame(
   host.appendChild(app.canvas);
   const stopClock = driveGsapFrom(app.ticker);
 
+  // One sound engine for the game. Loading runs alongside the deal (cues before it lands are just
+  // silent), and the context unlocks on the first tap or key press anywhere on the page.
+  const played: string[] = [];
+  const audio = new AudioEngine({
+    base: './audio',
+    createContext: () => new AudioContext(),
+    fetch: (input, init) => fetch(input, init),
+    onPlay: import.meta.env.DEV ? (key) => played.push(key) : undefined,
+  });
+  void audio.load();
+  const stopAudio = attachAudioLifecycle(audio, window, document);
+
   const reducedMotion = prefersReducedMotion();
   let layout = computeLayout(app.screen.width, app.screen.height);
   let tex: PieceTextures = buildTextures(app.renderer, layout.cellPx, resolution);
   const board = new BoardView(tex, reducedMotion);
   const tray = new TrayView(tex, reducedMotion);
-  const hint = new HintLayer(board, tray, silentCues, reducedMotion);
+  const hint = new HintLayer(board, tray, audio, reducedMotion);
   app.stage.addChild(board.root, tray.root, hint.root);
   board.setLayout(layout, tex);
   tray.setLayout(layout, tex);
@@ -92,7 +105,7 @@ export async function createGame(
     : undefined;
 
   const player = new ScriptPlayer({
-    board, tray, effects, audio: silentCues, reducedMotion,
+    board, tray, effects, audio, reducedMotion,
     onAction: (a) => controller.onAction(a),
   });
   const controller: GameController = new GameController({
@@ -100,6 +113,7 @@ export async function createGame(
     ai: createAIClient(),
     hint,
     prefs: createPrefsStore(),
+    audio,
     seed: opts.seed,
     initial,
     doc: document,
@@ -137,7 +151,7 @@ export async function createGame(
   let removeDebug: (() => void) | null = null;
   if (import.meta.env.DEV) {
     void import('./debug').then((m) => {
-      if (!destroyed) removeDebug = m.installDebugHandle({ app, board, tray, controller });
+      if (!destroyed) removeDebug = m.installDebugHandle({ app, board, tray, controller, audio: { state: () => audio.state, played } });
     });
   }
 
@@ -151,6 +165,8 @@ export async function createGame(
       stopInput();
       controller.dispose();
       player.dispose();
+      stopAudio();
+      audio.dispose();
       effects.destroy();
       observer.disconnect();
       app.renderer.off('resize', relayout);

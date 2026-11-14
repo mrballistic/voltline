@@ -17,10 +17,10 @@ class FakeSource extends FakeNode {
   start = vi.fn();
 }
 
-function setup(files: string[] | 'all', opts: { webm?: boolean } = {}) {
+function setup(files: string[] | 'all', opts: { webm?: boolean; onPlay?: (key: string) => void } = {}) {
   const sources: FakeSource[] = [];
   const ctx = {
-    state: 'suspended' as 'suspended' | 'running',
+    state: 'suspended' as 'suspended' | 'running' | 'closed',
     destination: {},
     createGain: () => new FakeNode(),
     createBufferSource: () => {
@@ -31,6 +31,7 @@ function setup(files: string[] | 'all', opts: { webm?: boolean } = {}) {
     decodeAudioData: vi.fn(async (b: ArrayBuffer) => ({ tag: new TextDecoder().decode(b) })),
     resume: vi.fn(async () => { ctx.state = 'running'; }),
     suspend: vi.fn(async () => { ctx.state = 'suspended'; }),
+    close: vi.fn(async () => { ctx.state = 'closed'; }),
   };
   const requested: string[] = [];
   const fetchFn = vi.fn(async (url: string) => {
@@ -47,6 +48,7 @@ function setup(files: string[] | 'all', opts: { webm?: boolean } = {}) {
     rng: () => 0.5,
     now: () => clock,
     canPlayWebm: () => opts.webm ?? true,
+    onPlay: opts.onPlay,
   });
   return { engine, sources, ctx, requested, tick: (ms: number) => { clock += ms; } };
 }
@@ -197,6 +199,62 @@ describe('AudioEngine', () => {
     engine.setMuted(false);
     engine.cue('select');
     expect(sources).toHaveLength(1);
+  });
+});
+
+describe('AudioEngine lifecycle', () => {
+  it('reports its context state, none before one exists', async () => {
+    const { engine } = setup('all');
+    expect(engine.state).toBe('none');
+    await engine.load();
+    expect(engine.state).toBe('suspended');
+    engine.unlock();
+    await Promise.resolve();
+    expect(engine.state).toBe('running');
+  });
+
+  it('onPlay names each file that starts, and only those', async () => {
+    const played: string[] = [];
+    const { engine, tick } = setup(['select', 'land-1', 'land-2', 'land-3', 'match', 'match-chain-3'], { onPlay: (k) => played.push(k) });
+    await engine.load();
+    engine.cue('select'); // locked: nothing starts
+    engine.unlock();
+    await Promise.resolve();
+    engine.cue('select');
+    engine.cue('land');
+    engine.cue('match', { chain: 2 });
+    tick(100);
+    engine.cue('swap'); // not loaded
+    expect(played).toEqual(['select', 'land-2', 'match-chain-3']);
+  });
+
+  it('dispose closes the context; afterwards every call is a silent no-op', async () => {
+    const { engine, ctx, sources } = setup('all');
+    await engine.load();
+    engine.unlock();
+    await Promise.resolve();
+    engine.dispose();
+    expect(ctx.close).toHaveBeenCalledTimes(1);
+    engine.cue('select');
+    engine.unlock();
+    engine.resume();
+    engine.suspend();
+    engine.dispose();
+    expect(sources).toHaveLength(0);
+    expect(ctx.resume).toHaveBeenCalledTimes(1);
+    expect(ctx.close).toHaveBeenCalledTimes(1);
+    expect(engine.state).toBe('none');
+  });
+
+  it('a load cut short by dispose warns about nothing', async () => {
+    const { engine, ctx } = setup('all');
+    ctx.decodeAudioData.mockImplementation(async () => { throw new Error('context closed'); });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const loading = engine.load();
+    engine.dispose();
+    await loading;
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });
 

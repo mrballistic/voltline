@@ -65,6 +65,7 @@ The AI is a search, not a chatbot. It looks at exactly what you can see (the boa
 Click or tap a piece, then a neighbor, to swap. Or just drag (or swipe) a piece toward a neighbor: the swap happens as soon as you pull past a third of a cell. Tap a tray piece, then a board piece, to place it, or drag it straight onto the board. A drag that goes nowhere eases back.
 
 Your best score is saved on this device, separately for you and for AI mode. Sound can be muted or turned down from the header.
+Sound starts with your first tap or key press, and goes quiet while the game’s tab is in the background.
 
 <img src="docs/screenshots/app-phone.webp" alt="Voltline on a phone: the same board filling the width, with the score above and the buttons below" width="260">
 
