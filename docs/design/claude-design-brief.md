@@ -133,7 +133,7 @@ On desktop (1440×900) the column is 640 px wide in the middle of the page, with
 
 ### 4.4 Tray: empty, filling, full
 
-- `docs/screenshots/ui-tray-full.webp`: the tray strip with all five slots filled (red circle, blue square, yellow triangle, green hexagon, cyan star) and the notice below it in yellow: **“Tray full—spend one to free a slot.”** (the dash is a closed-up em-dash). The brief spells it out because this document itself uses no em-dashes; the real string contains the character.
+- `docs/screenshots/ui-tray-full.webp`: the tray strip with all five slots filled (red circle, blue square, yellow triangle, green hexagon, cyan star) and the notice below it in yellow: **“Tray full—spend one to free a slot.”** (the dash is a closed-up em-dash).
 - `docs/screenshots/ui-level-up.webp` also shows a partly filled tray (two spare pieces, three empty slots). `docs/screenshots/pieces-specials.webp` shows three.
 - The notice is a polite live region and stays up for as long as the tray is full. When there is room, the line is empty but keeps its 24 px of height.
 
