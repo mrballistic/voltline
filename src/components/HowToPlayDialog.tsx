@@ -7,7 +7,12 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import type { ReactNode } from 'react';
+import { ROCK_START_LEVEL, STINGY_START_LEVEL, TRAY_CAPACITY, TRAY_THRESHOLD } from '../engine/rules';
 import { DISPLAY_FONT, NEON } from '../theme';
+
+const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+/** Number words for the small rule values (1 to 10); anything else stays a digit. */
+export const numberWord = (n: number) => WORDS[n] ?? String(n);
 
 const glow = 'drop-shadow(0 0 4px currentColor)';
 
@@ -113,24 +118,28 @@ export default function HowToPlayDialog({ open, onClose }: HowToPlayDialogProps)
         <Heading>Special pieces</Heading>
         <Row swatch={<ChargeSwatch />} name="Charge">Made by matching 4 in a line. Clears the 3×3 area around it.</Row>
         <Row swatch={<ArcSwatch />} name="Arc">Made by an L or T shape. Clears its whole row and column.</Row>
-        <Row swatch={<PrismSwatch />} name="Prism">Made by matching 5 in a line. Swap it with a colored piece to clear every piece of that color.</Row>
+        <Row swatch={<PrismSwatch />} name="Prism">Made by matching 5 in a line. Swap it with a colored piece to clear every piece of that color (rocks stay).</Row>
         <Typography sx={{ color: 'text.secondary' }}>Specials chain: an explosion that reaches another special sets it off.</Typography>
 
         <Heading>The tray</Heading>
         <Typography>
-          Every 10 pieces of one color you clear earns a spare piece of that color. The tray holds five, and counting pauses
+          Every {TRAY_THRESHOLD} pieces of one color you clear earns a spare piece of that color. The tray holds {numberWord(TRAY_CAPACITY)}, and counting pauses
           while it’s full, so spend one. Tap a tray piece, then a plain piece on the board (or drag it there) to swap it in.
           Placing costs a move.
         </Typography>
 
         <Heading>Rocks</Heading>
-        <Row swatch={<RockSwatch />} name="Rocks">
-          From level 5, gray rocks start appearing. Clear them by matching three, or with an explosion. A Prism can’t be swapped with one.
-        </Row>
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', mb: 0.75 }}>
+          <RockSwatch />
+          <Typography>
+            From level {ROCK_START_LEVEL}, gray rocks start appearing. Clear them by matching three, or with an explosion.
+            A Prism swapped with a rock clears every rock on the board.
+          </Typography>
+        </Stack>
 
         <Heading>Levels and game over</Heading>
         <Typography>
-          Fill the progress bar to level up. Past level 8, refills get harder. The game ends when no move can make a match,
+          Fill the progress bar to level up. Past level {STINGY_START_LEVEL - 1}, refills get harder. The game ends when no move can make a match,
           tray placements included, so a spare piece can save you.
         </Typography>
 

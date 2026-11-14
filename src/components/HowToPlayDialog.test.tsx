@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import GameControls from './GameControls';
-import HowToPlayDialog from './HowToPlayDialog';
+import { ROCK_START_LEVEL, STINGY_START_LEVEL, TRAY_CAPACITY, TRAY_THRESHOLD } from '../engine/rules';
+import HowToPlayDialog, { numberWord } from './HowToPlayDialog';
 
 afterEach(cleanup);
 
@@ -23,10 +24,18 @@ describe('HowToPlayDialog', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'How to play' }));
     expect(screen.getByRole('dialog', { name: 'How to play' })).toBeInTheDocument();
-    expect(screen.getByText(/Every 10 pieces of one color you clear/)).toBeInTheDocument();
-    expect(screen.getByText(/counting pauses while it’s full/)).toBeInTheDocument();
-    expect(screen.getByText(/From level 5, gray rocks/)).toBeInTheDocument();
-    expect(screen.getByText(/Past level 8, refills get harder/)).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog');
+    // Derived from the rules, so a rules change updates the copy...
+    expect(dialog).toHaveTextContent(`Every ${TRAY_THRESHOLD} pieces of one color you clear`);
+    expect(dialog).toHaveTextContent(`The tray holds ${numberWord(TRAY_CAPACITY)}, and counting pauses while it’s full`);
+    expect(dialog).toHaveTextContent(`From level ${ROCK_START_LEVEL}, gray rocks`);
+    expect(dialog).toHaveTextContent(`Past level ${STINGY_START_LEVEL - 1}, refills get harder`);
+    // ...and today's exact numbers, so a rules change fails here until the copy is reviewed.
+    expect(dialog).toHaveTextContent('Every 10 pieces of one color you clear');
+    expect(dialog).toHaveTextContent('The tray holds five');
+    expect(dialog).toHaveTextContent('From level 5, gray rocks');
+    expect(dialog).toHaveTextContent('Past level 8, refills get harder');
+    expect(dialog).toHaveTextContent('A Prism swapped with a rock clears every rock on the board.');
     expect(screen.getByRole('dialog').textContent).not.toMatch(/['"]/);
   });
 
