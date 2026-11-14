@@ -2,6 +2,12 @@
 
 All notable changes to Voltline are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 1.2.2 (2026-11-14)
+
+### Fixed
+
+- The release check after a deploy looked for the old page title, so 1.2.1 went live but its release wasn’t published. It now checks that the title starts with Voltline and that the page still has its share image.
+
 ## 1.2.1 (2026-11-14)
 
 ### Added

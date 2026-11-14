@@ -140,7 +140,9 @@ jobs:
       - name: Smoke test the public site
         run: |
           curl -fsS -o "$RUNNER_TEMP/index.html" "$SITE_URL/"
-          grep -q '<title>Voltline</title>' "$RUNNER_TEMP/index.html"
+          # The page is ours (title starts with the name) and still carries its share card.
+          grep -q '<title>Voltline' "$RUNNER_TEMP/index.html" || { echo "::error::The page title is wrong."; exit 1; }
+          grep -q 'property="og:image" content="https://' "$RUNNER_TEMP/index.html" || { echo "::error::The page lost its og:image."; exit 1; }
           asset=$(grep -oE 'assets/[^"]+\.js' dist/index.html | head -n 1)
           test -n "$asset"
           result=$(curl -fsS -o /dev/null -w '%{http_code} %{content_type}' "$SITE_URL/$asset")
